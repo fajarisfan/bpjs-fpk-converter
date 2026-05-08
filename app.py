@@ -379,8 +379,8 @@ with st.expander("ℹ️ Cara Penggunaan"):
 uploaded_file = st.file_uploader(
     "Upload PDF FPK di sini",
     type=['pdf'],
-    label_visibility="collapsed"
     help="Format yang diterima: .pdf"
+    label_visibility="collapsed"
 )
 
 if uploaded_file:
