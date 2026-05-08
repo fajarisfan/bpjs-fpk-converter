@@ -368,9 +368,18 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+with st.expander("ℹ️ Cara Penggunaan"):
+    st.markdown("""
+    1. Pastikan file PDF adalah **Lampiran FPK** (ada tabel rincian SEP).
+    2. Klik tombol di bawah atau **Drag & Drop** file ke kotak.
+    3. Klik **⚡ Proses Sekarang** dan tunggu data muncul.
+    4. Cek total nominal, lalu klik **Download CSV**.
+    """)
+    
 uploaded_file = st.file_uploader(
     "Upload PDF FPK di sini",
     type=['pdf'],
+    label_visibility="collapsed"
     help="Format yang diterima: .pdf"
 )
 
