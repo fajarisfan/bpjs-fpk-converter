@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 import tabula
 import pdfplumber
-import plotly.graph_objects as go
+
 from datetime import datetime, timezone, timedelta
 
 # ── CONFIG ──────────────────────────────────────────────────
@@ -451,7 +451,7 @@ def render_result(res, idx=0):
         st.markdown('</div>', unsafe_allow_html=True)
 
 
-def build_chart(log_data, dark: bool):
+def build_chart(log_data):
     if not log_data:
         return None
     bulan_order = ["JANUARI","FEBRUARI","MARET","APRIL","MEI","JUNI",
@@ -467,42 +467,19 @@ def build_chart(log_data, dark: bool):
     if not records:
         return None
 
-    periods = sorted(set(k[0] for k in records),
-                     key=lambda x: (x.split()[-1], bulan_order.index(x.split()[0])
-                                    if x.split()[0] in bulan_order else 99))
+    periods  = sorted(set(k[0] for k in records),
+                      key=lambda x: (x.split()[-1], bulan_order.index(x.split()[0])
+                                     if x.split()[0] in bulan_order else 99))
     tingkats = sorted(set(k[1] for k in records))
 
-    colors = {'RITL': '#a78bfa', 'RJTL': '#60a5fa', 'RITP': '#34d399', 'RJTP': '#fb923c'}
-    font_col = '#94a3b8' if dark else '#475569'
-    grid_col = 'rgba(255,255,255,0.05)' if dark else 'rgba(0,0,0,0.06)'
-    paper_bg = 'rgba(0,0,0,0)'
+    rows = []
+    for p in periods:
+        row = {'Periode': p}
+        for tkt in tingkats:
+            row[tkt] = round(records.get((p, tkt), 0) / 1_000_000, 2)
+        rows.append(row)
 
-    fig = go.Figure()
-    for tkt in tingkats:
-        vals = [records.get((p, tkt), 0) / 1_000_000 for p in periods]
-        fig.add_trace(go.Bar(
-            name=tkt, x=periods, y=vals,
-            marker_color=colors.get(tkt, '#818cf8'),
-            marker_line_width=0,
-            text=[f"Rp {v:.1f}M" if v > 0 else "" for v in vals],
-            textposition='outside',
-            textfont=dict(size=10, color=font_col),
-        ))
-
-    fig.update_layout(
-        barmode='group',
-        paper_bgcolor=paper_bg,
-        plot_bgcolor=paper_bg,
-        font=dict(family='Sora', color=font_col, size=11),
-        margin=dict(l=0, r=0, t=10, b=0),
-        legend=dict(orientation='h', yanchor='bottom', y=1.02, xanchor='right', x=1,
-                    font=dict(size=11), bgcolor='rgba(0,0,0,0)'),
-        xaxis=dict(tickfont=dict(size=10), gridcolor=grid_col, linecolor='rgba(0,0,0,0)'),
-        yaxis=dict(tickformat='.1f', ticksuffix='M', gridcolor=grid_col,
-                   linecolor='rgba(0,0,0,0)', tickfont=dict(size=10)),
-        height=220,
-    )
-    return fig
+    return pd.DataFrame(rows).set_index('Periode')
 
 
 # ══════════════════════════════════════════════════════════════
@@ -612,9 +589,10 @@ log_data = load_log()
 # -- Chart --
 if log_data:
     st.markdown('<div class="section-title">📊 Rekap Per Periode</div>', unsafe_allow_html=True)
-    fig = build_chart(log_data, st.session_state.dark_mode)
-    if fig:
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    df_chart = build_chart(log_data)
+    if df_chart is not None:
+        st.bar_chart(df_chart, use_container_width=True, height=220,
+                     color=["#a78bfa","#60a5fa","#34d399","#fb923c"][:len(df_chart.columns)])
     st.divider()
 
 # -- Log header --
