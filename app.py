@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 import tabula
 import pdfplumber
+import plotly.graph_objects as go
 from datetime import datetime, timezone, timedelta
 
 # ── CONFIG ──────────────────────────────────────────────────
