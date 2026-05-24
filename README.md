@@ -1,25 +1,32 @@
-# 🏥 BPJS FPK Jaspel Converter
+# ðŸ¥ BPJS FPK Jaspel Converter
 
-A lightweight automation tool to extract verified SEP numbers and approved claim amounts from BPJS Kesehatan FPK (Hasil Verifikasi) PDF documents — converting them into clean, structured CSV output ready for Jaspel financial processing.
+A lightweight automation tool to extract verified SEP numbers and approved claim amounts from BPJS Kesehatan FPK (Hasil Verifikasi) PDF documents â€” converting them into clean, structured CSV output ready for Jaspel financial processing.
 
 > Built to eliminate a manual 7-minute conversion process per file, reducing it to under 10 seconds.
 
 ---
 
-## 🚨 Problem
+## ðŸš¨ Problem
 
-The official BPJS vendor workflow for processing FPK (Finalisasi Pengajuan Klaim) documents required staff to manually extract data from multi-page PDFs following a step-by-step video guide — a slow, error-prone, and repetitive process done every billing cycle.
+The official BPJS vendor workflow for processing FPK (Finalisasi Pengajuan Klaim) documents required staff to manually extract data from multi-page PDFs following a step-by-step video guide â€” a slow, error-prone, and repetitive process done every billing cycle.
 
-## ✅ Solution
+## âœ… Solution
 
-This tool automates the entire extraction pipeline:
+This tool automates the entire extraction pipeline with two core modules:
+
+**1. FPK Converter (`app.py`)**
 - Upload the FPK PDF from BPJS Kesehatan portal
 - Automatically extracts all **No. SEP** and **Biaya Disetujui** fields
-- Outputs a clean `.csv` file — identical in structure to the manual result, but in seconds
+- Outputs a clean `.csv` file â€” identical in structure to the manual result, but in seconds
+
+**2. Jaspel Audit Validator (`audit.py`)**
+- Cross-checks the converted CSV output against SIMRS Icha data
+- Validates claim amounts using the official Jaspel calculation formula from BPJS documentation
+- Flags any discrepancies before submission â€” preventing errors in the financial disbursement pipeline
 
 ---
 
-## 🛠️ Tech Stack
+## ðŸ› ï¸ Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -31,27 +38,27 @@ This tool automates the entire extraction pipeline:
 
 ---
 
-## 🚀 Live Demo
+## ðŸš€ Live Demo
 
-🔗 [pdf-converter-icha.streamlit.app](https://pdf-converter-icha.streamlit.app)
+ðŸ”— [pdf-converter-icha.streamlit.app](https://pdf-converter-icha.streamlit.app)
 
 ---
 
-## 📋 How It Works
+## ðŸ“‹ How It Works
 
 ```
 Input  : BPJS FPK PDF (Rincian Data Hasil Verifikasi)
-         └── Contains: No.SEP, Tgl. Verifikasi, Biaya Riil RS, Diajukan, Disetujui
+         â””â”€â”€ Contains: No.SEP, Tgl. Verifikasi, Biaya Riil RS, Diajukan, Disetujui
 
-Process: Extract → Clean → Filter approved records only
+Process: Extract â†’ Clean â†’ Filter approved records only
 
 Output : CSV file
-         └── Columns: No.SEP | Biaya Disetujui
+         â””â”€â”€ Columns: No.SEP | Biaya Disetujui
 ```
 
 ---
 
-## 💻 Run Locally
+## ðŸ’» Run Locally
 
 ```bash
 # Clone repo
@@ -74,34 +81,36 @@ pandas
 
 ---
 
-## 📁 Project Structure
+## ðŸ“ Project Structure
 
 ```
 bpjs-fpk-converter/
-├── app.py              # Main Streamlit application
-├── extractor.py        # PDF parsing & data extraction logic
-├── requirements.txt
-└── README.md
+â”œâ”€â”€ app.py              # Main Streamlit app â€” FPK PDF to CSV converter
+â”œâ”€â”€ audit.py            # Jaspel audit validator â€” cross-check CSV vs SIMRS data
+â”œâ”€â”€ requirements.txt
+â”œâ”€â”€ packages.txt
+â””â”€â”€ README.md
 ```
 
 ---
 
-## 🎯 Impact
+## ðŸŽ¯ Impact
 
-- ⏱️ Reduced per-file processing time from ~7 minutes (manual) to under 10 seconds
-- ✅ Output format matches official manual workflow — zero retraining needed
-- 🏥 Actively used in hospital Jaspel financial disbursement pipeline
-- 🔒 No patient data stored — processes only administrative claim numbers
+- â±ï¸ Reduced per-file processing time from ~7 minutes (manual) to under 10 seconds
+- âœ… Output format matches official manual workflow â€” zero retraining needed
+- ðŸ” Built-in audit validator catches discrepancies before submission using official Jaspel formula
+- ðŸ¥ Actively used in hospital Jaspel financial disbursement pipeline
+- ðŸ”’ No patient data stored â€” processes only administrative claim numbers
 
 ---
 
-## ⚠️ Disclaimer
+## âš ï¸ Disclaimer
 
 This tool was built independently as a personal productivity tool. It does not store, transmit, or log any hospital or patient data. All processing is done locally in-session.
 
 ---
 
-## 👤 Author
+## ðŸ‘¤ Author
 
 **Isfan Fajar Anugrah**
 - GitHub: [@fajarisfan](https://github.com/fajarisfan)
