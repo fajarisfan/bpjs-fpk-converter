@@ -104,7 +104,7 @@ def change_pin(pin_lama: str, pin_baru: str, pin_konfirm: str):
     data = load_pin()
     if pin_lama != data["pin"]:
         return False, "❌ PIN lama tidak cocok."
-    if len(pin_baru) < 4:
+    if len(pin_baru) < 6:
         return False, "❌ PIN baru minimal 4 karakter."
     if pin_baru != pin_konfirm:
         return False, "❌ Konfirmasi PIN tidak cocok."
