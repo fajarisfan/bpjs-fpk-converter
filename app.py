@@ -297,6 +297,22 @@ input[type="password"]:focus {{
     color: transparent !important;
 }}
 
+/* Force hide eye icon — semua kemungkinan selector Streamlit/BaseWeb */
+[data-baseweb="input"] [data-baseweb="icon"],
+[data-baseweb="input"] svg,
+[data-baseweb="input"] button,
+[data-baseweb="input"] span[role="button"],
+[data-baseweb="input"] div[role="button"],
+.stTextInput [data-baseweb="input"] > div:last-child,
+[data-testid="stTextInputHideShowButton"] {{
+    display: none !important;
+    width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}}
+
 /* FILE UPLOADER */
 [data-testid="stFileUploader"] {{ position:relative !important; }}
 [data-testid="stFileUploader"] section {{
@@ -517,6 +533,31 @@ h3, .stSubheader {{
     font-family:'JetBrains Mono',monospace !important;
 }}
 </style>
+<script>
+(function() {{
+  function removeEyeIcons() {{
+    var selectors = [
+      '[data-testid="stTextInputHideShowButton"]',
+      'button[aria-label="Show password text"]',
+      'button[aria-label="Hide password text"]',
+      'button[aria-label="Show password"]',
+      'button[aria-label="Hide password"]'
+    ];
+    selectors.forEach(function(sel) {{
+      document.querySelectorAll(sel).forEach(function(el) {{
+        el.parentNode && el.parentNode.removeChild(el);
+      }});
+    }});
+    document.querySelectorAll('[data-baseweb="input"] button').forEach(function(el) {{
+      el.style.setProperty('display', 'none', 'important');
+      el.style.setProperty('width', '0', 'important');
+    }});
+  }}
+  removeEyeIcons();
+  var observer = new MutationObserver(function() {{ removeEyeIcons(); }});
+  observer.observe(document.body, {{ childList: true, subtree: true }});
+}})();
+</script>
 """, unsafe_allow_html=True)
 
 
@@ -540,13 +581,33 @@ if st.session_state.logged_in:
             st.rerun()
 
 if not st.session_state.logged_in:
-    st.markdown("""
-        <div class="app-header">
-            <div class="badge">⚡ FPK Converter &nbsp;·&nbsp; v1.0</div>
-            <h1>Selamat <span>Datang</span></h1>
-            <p>Aplikasi pribadi konversi data klaim BPJS Kesehatan</p>
-            <p style="font-size:0.75rem; margin-top:0.3rem; color:#334155;">
-                Masukkan PIN untuk melanjutkan
+    _dark_login = st.session_state.get('dark_mode', True)
+    _bg_login   = "#0d0d0d" if _dark_login else "#fffaf0"
+    _txt_login  = "#f0f0f0" if _dark_login else "#111111"
+    _sub_login  = "#888888" if _dark_login else "#555555"
+    st.markdown(f"""
+        <div style="text-align:center; padding:3rem 2rem 1rem;">
+            <div style="display:inline-block; background:#ff6b35; border:3px solid {_txt_login};
+                padding:6px 18px; margin-bottom:1.5rem;
+                box-shadow:4px 4px 0px {_txt_login};">
+                <span style="font-family:'JetBrains Mono',monospace; font-size:11px;
+                    font-weight:800; color:{_txt_login}; letter-spacing:2px;">
+                    ⚡ FPK CONVERTER &nbsp;·&nbsp; V1.0
+                </span>
+            </div>
+            <h1 style="font-family:'Space Grotesk',sans-serif; font-size:3.2rem; font-weight:800;
+                color:{_txt_login}; line-height:1.1; margin:0 0 1rem; letter-spacing:-2px;
+                text-transform:uppercase;">
+                SELAMAT<br><span style="color:#ff6b35; text-decoration:underline;
+                text-decoration-thickness:5px; text-underline-offset:5px;">DATANG</span>
+            </h1>
+            <p style="font-family:'Space Grotesk',sans-serif; color:{_sub_login};
+                font-size:0.95rem; margin-bottom:0.4rem; font-weight:500;">
+                Aplikasi pribadi konversi data klaim BPJS Kesehatan
+            </p>
+            <p style="font-family:'JetBrains Mono',monospace; font-size:0.72rem;
+                color:{_sub_login}; opacity:0.6; letter-spacing:1px;">
+                // MASUKKAN PIN UNTUK MELANJUTKAN
             </p>
         </div>
     """, unsafe_allow_html=True)
