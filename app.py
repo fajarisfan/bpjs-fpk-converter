@@ -472,6 +472,13 @@ if st.session_state.logged_in:
 
 if not st.session_state.logged_in:
     st.markdown("""
+        <style>
+        /* Sasis Trik: Melenyapkan tombol mata bawaan Streamlit */
+        button[aria-label="Show password"] {
+            display: none !important;
+        }
+        </style>
+        
         <div class="app-header">
             <div class="badge">⚡ FPK Converter &nbsp;·&nbsp; v1.0</div>
             <h1>Selamat <span>Datang</span></h1>
