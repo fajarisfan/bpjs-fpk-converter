@@ -104,7 +104,7 @@ def change_pin(pin_lama: str, pin_baru: str, pin_konfirm: str):
     data = load_pin()
     if pin_lama != data["pin"]:
         return False, "❌ PIN lama tidak cocok."
-    if len(pin_baru) < 6:
+    if len(pin_baru) < 4:
         return False, "❌ PIN baru minimal 4 karakter."
     if pin_baru != pin_konfirm:
         return False, "❌ Konfirmasi PIN tidak cocok."
@@ -115,60 +115,67 @@ def change_pin(pin_lama: str, pin_baru: str, pin_konfirm: str):
 # ── THEME CSS ────────────────────────────────────────────────
 def inject_css(dark: bool):
     if dark:
-        bg          = "#0a0a0f"
-        bg_grad     = "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.15), transparent), radial-gradient(ellipse 40% 40% at 80% 80%, rgba(139,92,246,0.08), transparent)"
-        surface     = "rgba(255,255,255,0.03)"
-        border      = "rgba(255,255,255,0.07)"
-        border2     = "rgba(255,255,255,0.06)"
-        text_h      = "#f1f5f9"
-        text_body   = "#64748b"
-        text_muted  = "#475569"
-        text_dim    = "#334155"
-        input_bg    = "rgba(255,255,255,0.04)"
-        input_bdr   = "rgba(255,255,255,0.1)"
-        input_col   = "#f1f5f9"
-        label_col   = "#94a3b8"
-        exp_text    = "#94a3b8"
-        exp_detail  = "#64748b"
-        log_name    = "#cbd5e1"
-        log_meta    = "#475569"
-        spinner_col = "#6366f1"
+        bg          = "#0d0d0d"
+        surface     = "#1a1a1a"
+        surface2    = "#222222"
+        border      = "#333333"
+        border2     = "#2a2a2a"
+        text_h      = "#f0f0f0"
+        text_body   = "#aaaaaa"
+        text_muted  = "#888888"
+        text_dim    = "#444444"
+        input_bg    = "#111111"
+        input_bdr   = "#3a3a3a"
+        input_col   = "#f0f0f0"
+        label_col   = "#bbbbbb"
+        exp_text    = "#aaaaaa"
+        exp_detail  = "#888888"
+        log_name    = "#dddddd"
+        log_meta    = "#666666"
+        spinner_col = "#ff6b35"
         toggle_icon = "☀️"
         toggle_tip  = "Light Mode"
+        accent      = "#ff6b35"
+        accent2     = "#ffd700"
+        accent3     = "#00e5a0"
+        shadow_col  = "#ff6b35"
     else:
-        bg          = "#f1f5f9"
-        bg_grad     = "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.08), transparent)"
-        surface     = "rgba(0,0,0,0.02)"
-        border      = "rgba(0,0,0,0.08)"
-        border2     = "rgba(0,0,0,0.06)"
-        text_h      = "#1e293b"
-        text_body   = "#475569"
-        text_muted  = "#64748b"
-        text_dim    = "#94a3b8"
-        input_bg    = "rgba(255,255,255,0.8)"
-        input_bdr   = "rgba(0,0,0,0.12)"
-        input_col   = "#1e293b"
-        label_col   = "#475569"
-        exp_text    = "#475569"
-        exp_detail  = "#64748b"
-        log_name    = "#1e293b"
-        log_meta    = "#64748b"
-        spinner_col = "#6366f1"
+        bg          = "#fffaf0"
+        surface     = "#ffffff"
+        surface2    = "#f5f0e8"
+        border      = "#111111"
+        border2     = "#333333"
+        text_h      = "#111111"
+        text_body   = "#333333"
+        text_muted  = "#555555"
+        text_dim    = "#999999"
+        input_bg    = "#ffffff"
+        input_bdr   = "#111111"
+        input_col   = "#111111"
+        label_col   = "#333333"
+        exp_text    = "#333333"
+        exp_detail  = "#555555"
+        log_name    = "#111111"
+        log_meta    = "#777777"
+        spinner_col = "#ff6b35"
         toggle_icon = "🌙"
         toggle_tip  = "Dark Mode"
+        accent      = "#ff6b35"
+        accent2     = "#ffd700"
+        accent3     = "#00c47a"
+        shadow_col  = "#111111"
 
     st.session_state._toggle_icon = toggle_icon
     st.session_state._toggle_tip  = toggle_tip
 
     st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
-html, body, [class*="css"] {{ font-family: 'Sora', sans-serif !important; }}
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !important; }}
 #MainMenu {{visibility:hidden;}} footer {{visibility:hidden;}} header {{visibility:hidden;}}
 
 .stApp {{
     background-color: {bg};
-    background-image: {bg_grad};
 }}
 .block-container {{ padding-top: 1.5rem; max-width: 680px; }}
 
@@ -176,39 +183,46 @@ html, body, [class*="css"] {{ font-family: 'Sora', sans-serif !important; }}
 .app-header {{ text-align:center; padding:2.5rem 2rem 1.5rem; margin-bottom:0.5rem; }}
 .app-header .badge {{
     display:inline-block;
-    background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3);
-    color:#818cf8; font-size:11px; font-weight:600; letter-spacing:2px;
-    text-transform:uppercase; padding:6px 16px; border-radius:100px; margin-bottom:1.2rem;
+    background:{accent}; border:3px solid {text_h};
+    color:{text_h}; font-size:11px; font-weight:800; letter-spacing:2px;
+    text-transform:uppercase; padding:6px 16px; border-radius:0px; margin-bottom:1.2rem;
+    box-shadow: 3px 3px 0px {text_h};
+    font-family:'JetBrains Mono',monospace;
 }}
 .app-header h1 {{
     font-size:3rem !important; font-weight:800 !important; color:{text_h} !important;
     line-height:1.1 !important; margin:0 !important; letter-spacing:-1.5px;
+    text-transform:uppercase;
 }}
 .app-header h1 span {{
-    background:linear-gradient(135deg,#6366f1,#a78bfa);
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    color:{accent};
+    text-decoration: underline;
+    text-decoration-thickness: 4px;
+    text-underline-offset: 4px;
 }}
-.app-header p {{ color:{text_body}; font-size:0.95rem; margin-top:0.8rem; font-weight:300; }}
+.app-header p {{ color:{text_body}; font-size:0.95rem; margin-top:0.8rem; font-weight:500; }}
 
 /* THEME TOGGLE */
 .theme-bar {{
     display:flex; justify-content:flex-end; margin-bottom:0.5rem;
 }}
 .theme-btn {{
-    background:{surface}; border:1px solid {border};
-    color:{text_muted}; font-size:0.75rem; font-weight:600;
-    padding:6px 14px; border-radius:100px; cursor:pointer;
-    letter-spacing:0.5px; transition:all 0.2s;
+    background:{surface}; border:2px solid {border};
+    color:{text_muted}; font-size:0.75rem; font-weight:700;
+    padding:6px 14px; cursor:pointer;
+    letter-spacing:0.5px;
 }}
 
 /* EXPANDER */
 [data-testid="stExpander"] {{
-    background:{surface} !important; border:1px solid {border} !important;
-    border-radius:14px !important; overflow:hidden !important; margin-bottom:1rem !important;
+    background:{surface} !important; border:3px solid {border} !important;
+    border-radius:0px !important; overflow:hidden !important; margin-bottom:1rem !important;
+    box-shadow: 4px 4px 0px {shadow_col} !important;
 }}
 [data-testid="stExpander"] summary {{
     color:{exp_text} !important; font-size:0.85rem !important;
-    font-weight:600 !important; padding:1rem 1.2rem !important;
+    font-weight:700 !important; padding:1rem 1.2rem !important;
+    text-transform:uppercase !important; letter-spacing:1px !important;
 }}
 [data-testid="stExpanderDetails"] {{
     padding:0 1.2rem 1.2rem !important; color:{exp_detail} !important;
@@ -217,38 +231,67 @@ html, body, [class*="css"] {{ font-family: 'Sora', sans-serif !important; }}
 
 /* TABS */
 [data-testid="stTabs"] [data-testid="stTab"] {{
-    background:{surface} !important; border:1px solid {border} !important;
-    border-radius:10px 10px 0 0 !important; color:{text_muted} !important;
-    font-size:0.8rem !important; font-weight:600 !important;
+    background:{surface} !important; border:2px solid {border} !important;
+    border-radius:0px !important; color:{text_muted} !important;
+    font-size:0.8rem !important; font-weight:700 !important;
+    text-transform:uppercase !important;
 }}
 [data-testid="stTabs"] [aria-selected="true"] {{
-    background:rgba(99,102,241,0.15) !important;
-    border-color:rgba(99,102,241,0.35) !important; color:#818cf8 !important;
+    background:{accent} !important;
+    border-color:{text_h} !important; color:{text_h} !important;
 }}
 
-/* INPUT */
+/* INPUT — hapus ikon mata sepenuhnya */
 .stTextInput > div > div > input {{
-    background:{input_bg} !important; border:1px solid {input_bdr} !important;
-    border-radius:12px !important; color:{input_col} !important;
+    background:{input_bg} !important; border:3px solid {input_bdr} !important;
+    border-radius:0px !important; color:{input_col} !important;
     padding:14px 18px !important; font-size:0.95rem !important;
     font-family:'JetBrains Mono',monospace !important;
-    letter-spacing:4px !important; transition:all 0.2s !important;
+    letter-spacing:4px !important; transition:border-color 0.15s !important;
+    box-shadow: none !important;
 }}
 .stTextInput > div > div > input:focus {{
-    border-color:rgba(99,102,241,0.6) !important;
-    box-shadow:0 0 0 3px rgba(99,102,241,0.1) !important;
-    background:rgba(99,102,241,0.05) !important;
+    border-color:{accent} !important;
+    box-shadow: 4px 4px 0px {accent} !important;
+    outline: none !important;
 }}
 .stTextInput label {{
     color:{label_col} !important; font-size:0.8rem !important;
-    font-weight:600 !important; letter-spacing:1px !important; text-transform:uppercase !important;
+    font-weight:700 !important; letter-spacing:2px !important;
+    text-transform:uppercase !important; font-family:'JetBrains Mono',monospace !important;
+}}
+
+/* HAPUS IKON MATA — semua cara yang mungkin */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {{
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}}
+[data-testid="stTextInput"] button,
+[data-testid="stTextInput"] [data-testid="stTextInputHideShowButton"],
+.stTextInput button,
+div[data-baseweb="input"] button,
+div[data-baseweb="input"] [role="button"],
+input[type="password"] ~ button,
+input[type="password"] + * button {{
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    position: absolute !important;
+}}
+div[data-baseweb="input"] > div > button {{
+    display: none !important;
 }}
 
 /* PIN invisible - Linux terminal style */
 input[type="password"] {{
     -webkit-text-security: none !important;
     color: transparent !important;
-    caret-color: #818cf8 !important;
+    caret-color: {accent} !important;
 }}
 input[type="password"]:focus {{
     color: transparent !important;
@@ -257,124 +300,143 @@ input[type="password"]:focus {{
 /* FILE UPLOADER */
 [data-testid="stFileUploader"] {{ position:relative !important; }}
 [data-testid="stFileUploader"] section {{
-    background:{surface} !important; border:1.5px dashed rgba(99,102,241,0.35) !important;
-    border-radius:16px !important; padding:2rem 1.5rem !important;
-    transition:all 0.3s !important; position:relative !important; overflow:visible !important;
+    background:{surface} !important; border:3px dashed {border} !important;
+    border-radius:0px !important; padding:2rem 1.5rem !important;
+    transition:border-color 0.2s !important; position:relative !important; overflow:visible !important;
 }}
 [data-testid="stFileUploader"] section:hover {{
-    border-color:rgba(99,102,241,0.7) !important; background:rgba(99,102,241,0.04) !important;
+    border-color:{accent} !important; background:{surface2} !important;
 }}
 [data-testid="stFileUploaderDropzone"] {{
     display:flex !important; flex-direction:column !important; align-items:center !important; gap:0.75rem !important;
 }}
 [data-testid="stFileUploaderDropzoneInstructions"] {{ color:{text_body} !important; text-align:center !important; }}
-[data-testid="stFileUploaderDropzoneInstructions"] span {{ color:#818cf8 !important; font-weight:600 !important; }}
+[data-testid="stFileUploaderDropzoneInstructions"] span {{ color:{accent} !important; font-weight:700 !important; }}
 [data-testid="stFileUploader"] section button {{
-    background:rgba(99,102,241,0.12) !important; border:1px solid rgba(99,102,241,0.35) !important;
-    color:#818cf8 !important; border-radius:10px !important; padding:8px 20px !important;
-    font-size:0.85rem !important; font-weight:600 !important; z-index:1 !important; position:relative !important;
+    background:{accent} !important; border:3px solid {text_h} !important;
+    color:{text_h} !important; border-radius:0px !important; padding:8px 20px !important;
+    font-size:0.85rem !important; font-weight:800 !important; z-index:1 !important; position:relative !important;
+    box-shadow: 3px 3px 0px {text_h} !important; text-transform:uppercase !important;
 }}
 
 /* BUTTONS */
 .stButton > button {{
-    background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%) !important;
-    color:white !important; border:none !important; border-radius:12px !important;
-    height:52px !important; font-size:0.9rem !important; font-weight:700 !important;
-    transition:all 0.2s ease !important; box-shadow:0 4px 20px rgba(99,102,241,0.25) !important;
-    width:100% !important;
+    background:{accent} !important;
+    color:{text_h} !important; border:3px solid {text_h} !important; border-radius:0px !important;
+    height:52px !important; font-size:0.9rem !important; font-weight:800 !important;
+    transition:all 0.1s ease !important; box-shadow:4px 4px 0px {text_h} !important;
+    width:100% !important; text-transform:uppercase !important; letter-spacing:1px !important;
+    font-family:'Space Grotesk',sans-serif !important;
 }}
 .stButton > button:hover {{
-    transform:translateY(-2px) !important; box-shadow:0 8px 30px rgba(99,102,241,0.4) !important;
-    filter:brightness(1.1) !important;
+    transform:translate(-2px,-2px) !important; box-shadow:6px 6px 0px {text_h} !important;
+    filter:brightness(1.08) !important;
 }}
-.stButton > button:active {{ transform:translateY(0) !important; }}
+.stButton > button:active {{
+    transform:translate(2px,2px) !important;
+    box-shadow:1px 1px 0px {text_h} !important;
+}}
 
 .reset-btn .stButton > button {{
-    background:transparent !important; border:1px solid {border} !important;
-    color:{text_muted} !important; box-shadow:none !important; height:52px !important;
+    background:{surface} !important; border:3px solid {border} !important;
+    color:{text_muted} !important; box-shadow:3px 3px 0px {border} !important; height:52px !important;
 }}
 .reset-btn .stButton > button:hover {{
-    background:{surface} !important; color:{label_col} !important;
-    transform:none !important; box-shadow:none !important; filter:none !important;
+    background:{surface2} !important; color:{text_h} !important;
+    box-shadow:5px 5px 0px {border} !important;
 }}
 
 .toggle-btn .stButton > button {{
-    background:{surface} !important; border:1px solid {border} !important;
-    color:{text_muted} !important; box-shadow:none !important;
+    background:{surface} !important; border:2px solid {border} !important;
+    color:{text_muted} !important; box-shadow:2px 2px 0px {border} !important;
     height:36px !important; font-size:0.78rem !important; width:auto !important;
-    padding:0 14px !important; border-radius:100px !important;
+    padding:0 14px !important; border-radius:0px !important;
 }}
 .toggle-btn .stButton > button:hover {{
-    background:rgba(99,102,241,0.1) !important; border-color:rgba(99,102,241,0.3) !important;
-    color:#818cf8 !important; transform:none !important; box-shadow:none !important; filter:none !important;
+    background:{accent} !important; border-color:{text_h} !important;
+    color:{text_h} !important;
 }}
 
 .danger-btn .stButton > button {{
-    background:transparent !important; border:1px solid rgba(239,68,68,0.25) !important;
-    color:#f87171 !important; box-shadow:none !important;
+    background:transparent !important; border:2px solid #cc2222 !important;
+    color:#ff4444 !important; box-shadow:2px 2px 0px #cc2222 !important;
     height:38px !important; font-size:0.78rem !important;
 }}
 .danger-btn .stButton > button:hover {{
-    background:rgba(239,68,68,0.08) !important; border-color:rgba(239,68,68,0.5) !important;
-    color:#fca5a5 !important; transform:none !important; box-shadow:none !important; filter:none !important;
+    background:#cc2222 !important; border-color:#cc2222 !important;
+    color:#ffffff !important;
+}}
+
+.selesai-btn .stButton > button {{
+    background:{surface} !important; border:2px solid {accent3} !important;
+    color:{accent3} !important; box-shadow:2px 2px 0px {accent3} !important;
+    height:34px !important; font-size:0.75rem !important;
+}}
+.selesai-btn .stButton > button:hover {{
+    background:{accent3} !important; color:{text_h} !important;
 }}
 
 /* DOWNLOAD */
 .stDownloadButton > button {{
-    background:rgba(16,185,129,0.1) !important; border:1px solid rgba(16,185,129,0.3) !important;
-    color:#34d399 !important; box-shadow:0 4px 20px rgba(16,185,129,0.1) !important;
-    border-radius:12px !important; height:52px !important; font-size:0.9rem !important;
-    font-weight:700 !important; width:100% !important; transition:all 0.2s !important;
+    background:{surface} !important; border:3px solid {accent3} !important;
+    color:{accent3} !important; box-shadow:4px 4px 0px {accent3} !important;
+    border-radius:0px !important; height:52px !important; font-size:0.9rem !important;
+    font-weight:800 !important; width:100% !important; transition:all 0.1s !important;
+    text-transform:uppercase !important; letter-spacing:1px !important;
 }}
 .stDownloadButton > button:hover {{
-    background:rgba(16,185,129,0.2) !important; border-color:rgba(16,185,129,0.5) !important;
-    box-shadow:0 8px 30px rgba(16,185,129,0.2) !important; color:#6ee7b7 !important;
-    transform:translateY(-2px) !important;
+    background:{accent3} !important; color:{text_h} !important;
+    box-shadow:6px 6px 0px {border} !important;
+    transform:translate(-2px,-2px) !important;
 }}
 
 /* STATS */
 .stats-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; }}
 .stat-card {{
-    background:{surface}; border:1px solid {border};
-    border-radius:16px; padding:1.5rem; position:relative; overflow:hidden;
+    background:{surface}; border:3px solid {border};
+    border-radius:0px; padding:1.5rem; position:relative; overflow:hidden;
+    box-shadow: 4px 4px 0px {shadow_col};
 }}
 .stat-card::before {{
-    content:''; position:absolute; top:0; left:0; right:0; height:2px;
-    background:linear-gradient(90deg,#6366f1,#8b5cf6);
+    content:''; position:absolute; top:0; left:0; right:0; height:5px;
+    background:{accent};
 }}
-.stat-card.green-top::before {{ background:linear-gradient(90deg,#10b981,#34d399); }}
-.stat-card.blue-top::before  {{ background:linear-gradient(90deg,#3b82f6,#60a5fa); }}
-.stat-label {{ color:{text_muted}; font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:0.5rem; }}
+.stat-card.green-top::before {{ background:{accent3}; }}
+.stat-card.blue-top::before  {{ background:{accent2}; }}
+.stat-label {{ color:{text_muted}; font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:0.5rem; font-family:'JetBrains Mono',monospace; }}
 .stat-value {{ color:{text_h}; font-size:1.6rem; font-weight:800; letter-spacing:-0.5px; line-height:1; }}
-.stat-value.green {{ color:#34d399; }}
-.stat-sub {{ color:{text_dim}; font-size:0.75rem; margin-top:0.4rem; font-family:'JetBrains Mono',monospace; }}
+.stat-value.green {{ color:{accent3}; }}
+.stat-sub {{ color:{text_dim}; font-size:0.72rem; margin-top:0.4rem; font-family:'JetBrains Mono',monospace; }}
 
 /* TINGKAT BADGE */
 .tingkat-badge {{
     display:inline-flex; align-items:center; gap:6px;
-    padding:4px 12px; border-radius:100px; font-size:0.72rem; font-weight:700;
-    letter-spacing:1.5px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; margin-top:0.4rem;
+    padding:4px 12px; border-radius:0px; font-size:0.72rem; font-weight:800;
+    letter-spacing:2px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; margin-top:0.4rem;
+    border:2px solid;
 }}
-.tingkat-badge.ritl {{ background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.3); color:#a78bfa; }}
-.tingkat-badge.rjtl {{ background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; }}
+.tingkat-badge.ritl {{ background:rgba(139,92,246,0.15); border-color:#a78bfa; color:#a78bfa; }}
+.tingkat-badge.rjtl {{ background:rgba(59,130,246,0.15); border-color:#60a5fa; color:#60a5fa; }}
 
 /* FILE BADGE */
 .file-badge {{
     display:inline-flex; align-items:center; gap:8px;
-    background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2);
-    color:#34d399; padding:8px 16px; border-radius:100px;
-    font-size:0.8rem; font-weight:600; font-family:'JetBrains Mono',monospace; margin:0.5rem 0;
+    background:{surface}; border:2px solid {accent3};
+    color:{accent3}; padding:8px 16px; border-radius:0px;
+    font-size:0.8rem; font-weight:700; font-family:'JetBrains Mono',monospace; margin:0.5rem 0;
+    box-shadow: 3px 3px 0px {accent3};
 }}
 
 /* LOG */
-.log-title {{ color:{text_muted}; font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; }}
+.log-title {{ color:{text_muted}; font-size:10px; font-weight:800; letter-spacing:3px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }}
 .log-item {{
-    background:{surface}; border:1px solid {border};
-    border-radius:14px; padding:0.9rem 1.1rem; margin-bottom:0.55rem; transition:border-color 0.2s;
+    background:{surface}; border:2px solid {border};
+    border-radius:0px; padding:0.9rem 1.1rem; margin-bottom:0.55rem;
+    transition:border-color 0.15s; box-shadow:3px 3px 0px {border2};
 }}
-.log-item:hover {{ border-color:rgba(99,102,241,0.25); }}
+.log-item:hover {{ border-color:{accent}; box-shadow:3px 3px 0px {accent}; }}
 .log-item-name {{
-    color:{log_name}; font-size:0.82rem; font-weight:600;
+    color:{log_name}; font-size:0.82rem; font-weight:700;
     font-family:'JetBrains Mono',monospace;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     margin-bottom:0.35rem;
@@ -385,47 +447,50 @@ input[type="password"]:focus {{
 }}
 .log-item-time {{ color:{log_meta}; font-size:0.7rem; }}
 .log-item-sep  {{ color:{text_dim}; font-size:0.7rem; }}
-.log-item-total {{ color:#34d399; font-size:0.75rem; font-weight:700; }}
+.log-item-total {{ color:{accent3}; font-size:0.75rem; font-weight:700; }}
 .log-item-count {{ color:{text_muted}; font-size:0.7rem; }}
 .log-badge {{
     display:inline-flex; align-items:center;
-    padding:2px 7px; border-radius:100px; font-size:0.62rem;
-    font-weight:700; letter-spacing:1px; font-family:'JetBrains Mono',monospace; vertical-align:middle;
+    padding:2px 7px; border-radius:0px; font-size:0.62rem;
+    font-weight:800; letter-spacing:1px; font-family:'JetBrains Mono',monospace; vertical-align:middle;
+    border:1.5px solid;
 }}
-.log-badge.ritl {{ background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.3); color:#a78bfa; }}
-.log-badge.rjtl {{ background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; }}
-.log-badge.other {{ background:rgba(100,116,139,0.12); border:1px solid rgba(100,116,139,0.25); color:#94a3b8; }}
+.log-badge.ritl {{ background:rgba(139,92,246,0.1); border-color:#a78bfa; color:#a78bfa; }}
+.log-badge.rjtl {{ background:rgba(59,130,246,0.1); border-color:#60a5fa; color:#60a5fa; }}
+.log-badge.other {{ background:rgba(100,116,139,0.1); border-color:#94a3b8; color:#94a3b8; }}
+
 /* REKAP CARD */
 .rekap-card {{
-    background:{surface}; border:1px solid {border};
-    border-radius:14px; padding:1rem 1.25rem; margin-bottom:0.55rem;
+    background:{surface}; border:2px solid {border};
+    border-radius:0px; padding:1rem 1.25rem; margin-bottom:0.55rem;
     display:flex; align-items:center; justify-content:space-between; gap:1rem;
-    transition:border-color 0.2s;
+    box-shadow: 3px 3px 0px {border2}; transition:all 0.15s;
 }}
-.rekap-card:hover {{ border-color:rgba(99,102,241,0.25); }}
+.rekap-card:hover {{ border-color:{accent}; box-shadow:3px 3px 0px {accent}; }}
 .rekap-period {{
-    color:{text_h}; font-size:0.9rem; font-weight:700;
+    color:{text_h}; font-size:0.9rem; font-weight:800;
     font-family:'JetBrains Mono',monospace; margin-bottom:0.25rem;
+    text-transform:uppercase;
 }}
 .rekap-meta {{ color:{text_muted}; font-size:0.72rem; font-family:'JetBrains Mono',monospace; }}
 .rekap-total {{
-    color:#34d399; font-size:0.85rem; font-weight:700;
+    color:{accent3}; font-size:0.85rem; font-weight:800;
     font-family:'JetBrains Mono',monospace; white-space:nowrap; text-align:right;
 }}
 
 /* STATUS BADGE */
 .status-selesai {{
     display:inline-flex; align-items:center; gap:4px;
-    background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3);
-    color:#34d399; padding:2px 10px; border-radius:100px;
-    font-size:0.65rem; font-weight:700; letter-spacing:1px;
+    background:rgba(0,200,122,0.1); border:2px solid {accent3};
+    color:{accent3}; padding:2px 10px; border-radius:0px;
+    font-size:0.65rem; font-weight:800; letter-spacing:1px;
     font-family:'JetBrains Mono',monospace;
 }}
 .status-pending {{
     display:inline-flex; align-items:center; gap:4px;
-    background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25);
-    color:#fbbf24; padding:2px 10px; border-radius:100px;
-    font-size:0.65rem; font-weight:700; letter-spacing:1px;
+    background:rgba(255,215,0,0.08); border:2px solid {accent2};
+    color:{accent2}; padding:2px 10px; border-radius:0px;
+    font-size:0.65rem; font-weight:800; letter-spacing:1px;
     font-family:'JetBrains Mono',monospace;
 }}
 
@@ -433,19 +498,23 @@ input[type="password"]:focus {{
 
 /* SECTION TITLE */
 .section-title {{
-    color:{text_muted}; font-size:10px; font-weight:700;
-    letter-spacing:2px; text-transform:uppercase; margin-bottom:1rem;
+    color:{text_muted}; font-size:10px; font-weight:800;
+    letter-spacing:3px; text-transform:uppercase; margin-bottom:1rem;
+    font-family:'JetBrains Mono',monospace;
+    border-left: 4px solid {accent}; padding-left: 10px;
 }}
 
 /* MISC */
-[data-testid="stAlert"] {{ border-radius:12px !important; padding:0.85rem 1rem !important; }}
+[data-testid="stAlert"] {{ border-radius:0px !important; padding:0.85rem 1rem !important; border-left:4px solid !important; }}
 hr {{ border-color:{border2} !important; margin:1.5rem 0 !important; }}
 [data-testid="stDataFrame"] {{
-    border-radius:14px !important; overflow:hidden !important; border:1px solid {border} !important;
+    border-radius:0px !important; overflow:hidden !important; border:2px solid {border} !important;
+    box-shadow: 4px 4px 0px {border} !important;
 }}
 h3, .stSubheader {{
     color:{label_col} !important; font-size:0.8rem !important;
-    font-weight:700 !important; letter-spacing:2px !important; text-transform:uppercase !important;
+    font-weight:800 !important; letter-spacing:2px !important; text-transform:uppercase !important;
+    font-family:'JetBrains Mono',monospace !important;
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -472,13 +541,6 @@ if st.session_state.logged_in:
 
 if not st.session_state.logged_in:
     st.markdown("""
-        <style>
-        /* Sasis Trik: Melenyapkan tombol mata bawaan Streamlit */
-        button[aria-label="Show password"] {
-            display: none !important;
-        }
-        </style>
-        
         <div class="app-header">
             <div class="badge">⚡ FPK Converter &nbsp;·&nbsp; v1.0</div>
             <h1>Selamat <span>Datang</span></h1>
@@ -900,7 +962,7 @@ if log_data:
         </div>
         <div style="background:{surf}; border:1px solid {bdr}; border-radius:12px; padding:0.9rem 1rem; overflow:hidden;">
             <div style="color:{dim}; font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Total Nominal</div>
-            <div style="color:#818cf8; font-size:0.8rem; font-weight:800; white-space:nowrap;">{nominal_fmt}</div>
+            <div style="color:#ff6b35; font-size:0.8rem; font-weight:800; white-space:nowrap;">{nominal_fmt}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -969,9 +1031,9 @@ ft_muted  = "#475569" if _dark else "#64748b"
 st.markdown(f"""
 <div style="text-align:center; padding:2.5rem 1rem 1.5rem; margin-top:2.5rem; border-top:1px solid {ft_border};">
     <div style="margin-bottom:1rem;">
-        <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.2); padding:6px 18px; border-radius:100px; margin-bottom:0.8rem;">
+        <div style="display:inline-flex; align-items:center; gap:8px; background:#ff6b35; border:3px solid #333; padding:6px 18px; margin-bottom:0.8rem; box-shadow:3px 3px 0px #333;">
             <span style="font-size:14px;">⚡</span>
-            <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; font-weight:700; color:#818cf8; letter-spacing:2px;">FPK CONVERTER</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; font-weight:800; color:#fff; letter-spacing:2px;">FPK CONVERTER</span>
         </div>
     </div>
     <div style="font-size:0.8rem; color:{ft_muted}; font-weight:300; margin-bottom:1.2rem; letter-spacing:0.3px;">
