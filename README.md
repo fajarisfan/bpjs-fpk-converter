@@ -40,7 +40,7 @@ This tool automates the entire extraction pipeline with two core modules:
 
 ## 🚀 Live Demo
 
-🔗 [pdf-converter-icha.streamlit.app](https://paid-in-heaven.streamlit.app)
+🔗 (https://paid-in-heaven.streamlit.app)
 
 ---
 
