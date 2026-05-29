@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 # ── CONFIG ──────────────────────────────────────────────────
 st.set_page_config(page_title="FPK Converter", page_icon="⚡", layout="centered")
 
-LOG_FILE = "log_konversi.json"
+LOG_FILE = "/tmp/log_konversi.json"
 
 def now_wib():
     return datetime.now(timezone.utc) + timedelta(hours=7)
@@ -37,7 +37,6 @@ def hapus_log():
         os.remove(LOG_FILE)
 
 def update_log_status(nama_file: str, status: str):
-    """Update status entri log berdasarkan nama file."""
     log = load_log()
     for item in log:
         if item.get('nama_file') == nama_file:
@@ -47,122 +46,104 @@ def update_log_status(nama_file: str, status: str):
     with open(LOG_FILE, "w") as f:
         json.dump(log[:100], f, ensure_ascii=False, indent=2)
 
-# ── PIN FILE ─────────────────────────────────────────────────
-PIN_FILE    = "pin_app.json"
+# ── PIN (via st.secrets) ─────────────────────────────────────
 MAX_ATTEMPT = 5
 LOCKOUT_MIN = 5
 
-def load_pin():
-    if os.path.exists(PIN_FILE):
-        try:
-            with open(PIN_FILE, "r") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    # Default PIN pertama kali
-    data = {"pin": "1234", "attempts": 0, "locked_until": None}
-    save_pin(data)
-    return data
-
-def save_pin(data: dict):
-    with open(PIN_FILE, "w") as f:
-        json.dump(data, f)
-
-def is_locked(data: dict):
-    if data.get("locked_until"):
-        locked_until = datetime.fromisoformat(data["locked_until"])
-        if now_wib() < locked_until:
-            sisa = (locked_until - now_wib()).seconds // 60 + 1
-            return True, sisa
-        else:
-            data["attempts"]    = 0
-            data["locked_until"] = None
-            save_pin(data)
-    return False, 0
+def get_correct_pin():
+    try:
+        return str(st.secrets["PIN"])
+    except Exception:
+        return "1234"
 
 def check_pin(input_pin: str):
-    data  = load_pin()
-    locked, sisa = is_locked(data)
-    if locked:
-        return False, f"🔒 Terlalu banyak percobaan. Coba lagi dalam **{sisa} menit**."
-    if input_pin == data["pin"]:
-        data["attempts"]    = 0
-        data["locked_until"] = None
-        save_pin(data)
+    correct_pin = get_correct_pin()
+
+    # Cek lockout dari session_state
+    locked_until = st.session_state.get("locked_until")
+    if locked_until:
+        if now_wib() < locked_until:
+            sisa = int((locked_until - now_wib()).total_seconds() // 60) + 1
+            return False, f"🔒 Terlalu banyak percobaan. Coba lagi dalam **{sisa} menit**."
+        else:
+            st.session_state.attempts    = 0
+            st.session_state.locked_until = None
+
+    if input_pin == correct_pin:
+        st.session_state.attempts    = 0
+        st.session_state.locked_until = None
         return True, ""
     else:
-        data["attempts"] += 1
-        sisa_attempt = MAX_ATTEMPT - data["attempts"]
-        if data["attempts"] >= MAX_ATTEMPT:
-            data["locked_until"] = (now_wib() + timedelta(minutes=LOCKOUT_MIN)).isoformat()
-            save_pin(data)
+        st.session_state.attempts = st.session_state.get("attempts", 0) + 1
+        sisa_attempt = MAX_ATTEMPT - st.session_state.attempts
+        if st.session_state.attempts >= MAX_ATTEMPT:
+            st.session_state.locked_until = now_wib() + timedelta(minutes=LOCKOUT_MIN)
             return False, f"🔒 PIN salah {MAX_ATTEMPT}x. Dikunci selama **{LOCKOUT_MIN} menit**."
-        save_pin(data)
         return False, f"❌ PIN salah. Sisa percobaan: **{sisa_attempt}x**."
 
 def change_pin(pin_lama: str, pin_baru: str, pin_konfirm: str):
-    data = load_pin()
-    if pin_lama != data["pin"]:
+    correct_pin = get_correct_pin()
+    if pin_lama != correct_pin:
         return False, "❌ PIN lama tidak cocok."
     if len(pin_baru) < 4:
         return False, "❌ PIN baru minimal 4 karakter."
     if pin_baru != pin_konfirm:
         return False, "❌ Konfirmasi PIN tidak cocok."
-    data["pin"] = pin_baru
-    save_pin(data)
-    return True, "✅ PIN berhasil diubah."
+    return False, "⚠️ Untuk ganti PIN, ubah nilai **PIN** di Streamlit Secrets dashboard, lalu reboot app."
 
 # ── THEME CSS ────────────────────────────────────────────────
 def inject_css(dark: bool):
     if dark:
-        bg          = "#0d0d0d"
-        surface     = "#1a1a1a"
-        surface2    = "#222222"
-        border      = "#333333"
-        border2     = "#2a2a2a"
-        text_h      = "#f0f0f0"
-        text_body   = "#aaaaaa"
-        text_muted  = "#888888"
-        text_dim    = "#444444"
-        input_bg    = "#111111"
-        input_bdr   = "#3a3a3a"
-        input_col   = "#f0f0f0"
-        label_col   = "#bbbbbb"
+        bg          = "#0a0a0a"
+        surface     = "#141414"
+        surface2    = "#1e1e1e"
+        border      = "#2a2a2a"
+        border2     = "#1f1f1f"
+        text_h      = "#f5f5f5"
+        text_body   = "#999999"
+        text_muted  = "#777777"
+        text_dim    = "#3a3a3a"
+        input_bg    = "#0f0f0f"
+        input_bdr   = "#333333"
+        input_col   = "#f5f5f5"
+        label_col   = "#aaaaaa"
         exp_text    = "#aaaaaa"
-        exp_detail  = "#888888"
-        log_name    = "#dddddd"
-        log_meta    = "#666666"
-        spinner_col = "#ff6b35"
+        exp_detail  = "#777777"
+        log_name    = "#eeeeee"
+        log_meta    = "#555555"
         toggle_icon = "☀️"
         toggle_tip  = "Light Mode"
         accent      = "#ff6b35"
         accent2     = "#ffd700"
         accent3     = "#00e5a0"
+        accent4     = "#e040fb"
+        accent5     = "#00b0ff"
         shadow_col  = "#ff6b35"
     else:
-        bg          = "#fffaf0"
+        bg          = "#fafaf7"
         surface     = "#ffffff"
-        surface2    = "#f5f0e8"
+        surface2    = "#f0ede6"
         border      = "#111111"
         border2     = "#333333"
-        text_h      = "#111111"
+        text_h      = "#0a0a0a"
         text_body   = "#333333"
         text_muted  = "#555555"
-        text_dim    = "#999999"
+        text_dim    = "#aaaaaa"
         input_bg    = "#ffffff"
         input_bdr   = "#111111"
         input_col   = "#111111"
-        label_col   = "#333333"
-        exp_text    = "#333333"
+        label_col   = "#222222"
+        exp_text    = "#222222"
         exp_detail  = "#555555"
         log_name    = "#111111"
-        log_meta    = "#777777"
-        spinner_col = "#ff6b35"
+        log_meta    = "#888888"
         toggle_icon = "🌙"
         toggle_tip  = "Dark Mode"
         accent      = "#ff6b35"
-        accent2     = "#ffd700"
-        accent3     = "#00c47a"
+        accent2     = "#e6b800"
+        accent3     = "#00a86b"
+        accent4     = "#cc00ff"
+        accent5     = "#0066cc"
         shadow_col  = "#111111"
 
     st.session_state._toggle_icon = toggle_icon
@@ -174,50 +155,44 @@ def inject_css(dark: bool):
 html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !important; }}
 #MainMenu {{visibility:hidden;}} footer {{visibility:hidden;}} header {{visibility:hidden;}}
 
-.stApp {{
-    background-color: {bg};
-}}
-.block-container {{ padding-top: 1.5rem; max-width: 680px; }}
+.stApp {{ background-color: {bg}; }}
+.block-container {{ padding-top: 1.5rem; max-width: 700px; }}
 
-/* HEADER */
+/* ── HEADER ── */
 .app-header {{ text-align:center; padding:2.5rem 2rem 1.5rem; margin-bottom:0.5rem; }}
 .app-header .badge {{
     display:inline-block;
     background:{accent}; border:3px solid {text_h};
     color:{text_h}; font-size:11px; font-weight:800; letter-spacing:2px;
-    text-transform:uppercase; padding:6px 16px; border-radius:0px; margin-bottom:1.2rem;
-    box-shadow: 3px 3px 0px {text_h};
+    text-transform:uppercase; padding:6px 18px; border-radius:0px; margin-bottom:1.2rem;
+    box-shadow: 4px 4px 0px {text_h};
     font-family:'JetBrains Mono',monospace;
 }}
 .app-header h1 {{
-    font-size:3rem !important; font-weight:800 !important; color:{text_h} !important;
-    line-height:1.1 !important; margin:0 !important; letter-spacing:-1.5px;
+    font-size:3.2rem !important; font-weight:800 !important; color:{text_h} !important;
+    line-height:1.1 !important; margin:0 !important; letter-spacing:-2px;
     text-transform:uppercase;
 }}
-.app-header h1 span {{
-    color:{accent};
-    text-decoration: underline;
-    text-decoration-thickness: 4px;
-    text-underline-offset: 4px;
-}}
+.app-header h1 span {{ color:{accent}; text-decoration:underline; text-decoration-thickness:5px; text-underline-offset:5px; }}
 .app-header p {{ color:{text_body}; font-size:0.95rem; margin-top:0.8rem; font-weight:500; }}
 
-/* THEME TOGGLE */
-.theme-bar {{
-    display:flex; justify-content:flex-end; margin-bottom:0.5rem;
+/* ── FEATURE CHIPS ── */
+.chip-row {{ display:flex; justify-content:center; gap:0.6rem; margin-top:1.2rem; flex-wrap:wrap; }}
+.chip {{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:5px 12px; border-radius:0px; font-size:0.7rem; font-weight:700;
+    letter-spacing:0.5px; border:2px solid; font-family:'JetBrains Mono',monospace;
 }}
-.theme-btn {{
-    background:{surface}; border:2px solid {border};
-    color:{text_muted}; font-size:0.75rem; font-weight:700;
-    padding:6px 14px; cursor:pointer;
-    letter-spacing:0.5px;
-}}
+.chip-orange {{ background:rgba(255,107,53,0.12); border-color:{accent};  color:{accent};  }}
+.chip-green  {{ background:rgba(0,229,160,0.1);  border-color:{accent3}; color:{accent3}; }}
+.chip-blue   {{ background:rgba(0,176,255,0.1);  border-color:{accent5}; color:{accent5}; }}
+.chip-purple {{ background:rgba(224,64,251,0.1); border-color:{accent4}; color:{accent4}; }}
 
-/* EXPANDER */
+/* ── EXPANDER ── */
 [data-testid="stExpander"] {{
     background:{surface} !important; border:3px solid {border} !important;
     border-radius:0px !important; overflow:hidden !important; margin-bottom:1rem !important;
-    box-shadow: 4px 4px 0px {shadow_col} !important;
+    box-shadow: 5px 5px 0px {shadow_col} !important;
 }}
 [data-testid="stExpander"] summary {{
     color:{exp_text} !important; font-size:0.85rem !important;
@@ -229,7 +204,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     font-size:0.9rem !important; line-height:1.7 !important;
 }}
 
-/* TABS */
+/* ── TABS ── */
 [data-testid="stTabs"] [data-testid="stTab"] {{
     background:{surface} !important; border:2px solid {border} !important;
     border-radius:0px !important; color:{text_muted} !important;
@@ -241,7 +216,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     border-color:{text_h} !important; color:{text_h} !important;
 }}
 
-/* INPUT — hapus ikon mata sepenuhnya */
+/* ── INPUT ── */
 .stTextInput > div > div > input {{
     background:{input_bg} !important; border:3px solid {input_bdr} !important;
     border-radius:0px !important; color:{input_col} !important;
@@ -261,13 +236,9 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     text-transform:uppercase !important; font-family:'JetBrains Mono',monospace !important;
 }}
 
-/* HAPUS IKON MATA — semua cara yang mungkin */
+/* ── HIDE EYE ICON ── */
 input[type="password"]::-ms-reveal,
-input[type="password"]::-ms-clear {{
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-}}
+input[type="password"]::-ms-clear {{ display:none !important; visibility:hidden !important; pointer-events:none !important; }}
 [data-testid="stTextInput"] button,
 [data-testid="stTextInput"] [data-testid="stTextInputHideShowButton"],
 .stTextInput button,
@@ -275,29 +246,17 @@ div[data-baseweb="input"] button,
 div[data-baseweb="input"] [role="button"],
 input[type="password"] ~ button,
 input[type="password"] + * button {{
-    display: none !important;
-    visibility: hidden !important;
-    width: 0 !important;
-    height: 0 !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    position: absolute !important;
+    display:none !important; visibility:hidden !important;
+    width:0 !important; height:0 !important; opacity:0 !important;
+    pointer-events:none !important; position:absolute !important;
 }}
-div[data-baseweb="input"] > div > button {{
-    display: none !important;
-}}
-
-/* PIN invisible - Linux terminal style */
+div[data-baseweb="input"] > div > button {{ display:none !important; }}
 input[type="password"] {{
     -webkit-text-security: none !important;
     color: transparent !important;
     caret-color: {accent} !important;
 }}
-input[type="password"]:focus {{
-    color: transparent !important;
-}}
-
-/* Force hide eye icon — semua kemungkinan selector Streamlit/BaseWeb */
+input[type="password"]:focus {{ color: transparent !important; }}
 [data-baseweb="input"] [data-baseweb="icon"],
 [data-baseweb="input"] svg,
 [data-baseweb="input"] button,
@@ -305,20 +264,17 @@ input[type="password"]:focus {{
 [data-baseweb="input"] div[role="button"],
 .stTextInput [data-baseweb="input"] > div:last-child,
 [data-testid="stTextInputHideShowButton"] {{
-    display: none !important;
-    width: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
+    display:none !important; width:0 !important;
+    padding:0 !important; margin:0 !important;
+    overflow:hidden !important; pointer-events:none !important;
 }}
 
-/* FILE UPLOADER */
+/* ── FILE UPLOADER ── */
 [data-testid="stFileUploader"] {{ position:relative !important; }}
 [data-testid="stFileUploader"] section {{
     background:{surface} !important; border:3px dashed {border} !important;
     border-radius:0px !important; padding:2rem 1.5rem !important;
-    transition:border-color 0.2s !important; position:relative !important; overflow:visible !important;
+    transition:border-color 0.2s !important;
 }}
 [data-testid="stFileUploader"] section:hover {{
     border-color:{accent} !important; background:{surface2} !important;
@@ -331,26 +287,25 @@ input[type="password"]:focus {{
 [data-testid="stFileUploader"] section button {{
     background:{accent} !important; border:3px solid {text_h} !important;
     color:{text_h} !important; border-radius:0px !important; padding:8px 20px !important;
-    font-size:0.85rem !important; font-weight:800 !important; z-index:1 !important; position:relative !important;
-    box-shadow: 3px 3px 0px {text_h} !important; text-transform:uppercase !important;
+    font-size:0.85rem !important; font-weight:800 !important;
+    box-shadow:3px 3px 0px {text_h} !important; text-transform:uppercase !important;
 }}
 
-/* BUTTONS */
+/* ── BUTTONS ── */
 .stButton > button {{
     background:{accent} !important;
-    color:{text_h} !important; border:3px solid {text_h} !important; border-radius:0px !important;
+    color:#ffffff !important; border:3px solid {text_h} !important; border-radius:0px !important;
     height:52px !important; font-size:0.9rem !important; font-weight:800 !important;
-    transition:all 0.1s ease !important; box-shadow:4px 4px 0px {text_h} !important;
+    transition:all 0.1s ease !important; box-shadow:5px 5px 0px {text_h} !important;
     width:100% !important; text-transform:uppercase !important; letter-spacing:1px !important;
     font-family:'Space Grotesk',sans-serif !important;
 }}
 .stButton > button:hover {{
-    transform:translate(-2px,-2px) !important; box-shadow:6px 6px 0px {text_h} !important;
-    filter:brightness(1.08) !important;
+    transform:translate(-2px,-2px) !important; box-shadow:7px 7px 0px {text_h} !important;
+    filter:brightness(1.1) !important;
 }}
 .stButton > button:active {{
-    transform:translate(2px,2px) !important;
-    box-shadow:1px 1px 0px {text_h} !important;
+    transform:translate(2px,2px) !important; box-shadow:2px 2px 0px {text_h} !important;
 }}
 
 .reset-btn .stButton > button {{
@@ -369,8 +324,7 @@ input[type="password"]:focus {{
     padding:0 14px !important; border-radius:0px !important;
 }}
 .toggle-btn .stButton > button:hover {{
-    background:{accent} !important; border-color:{text_h} !important;
-    color:{text_h} !important;
+    background:{accent} !important; border-color:{text_h} !important; color:#fff !important;
 }}
 
 .danger-btn .stButton > button {{
@@ -379,8 +333,7 @@ input[type="password"]:focus {{
     height:38px !important; font-size:0.78rem !important;
 }}
 .danger-btn .stButton > button:hover {{
-    background:#cc2222 !important; border-color:#cc2222 !important;
-    color:#ffffff !important;
+    background:#cc2222 !important; color:#ffffff !important;
 }}
 
 .selesai-btn .stButton > button {{
@@ -392,140 +345,157 @@ input[type="password"]:focus {{
     background:{accent3} !important; color:{text_h} !important;
 }}
 
-/* DOWNLOAD */
+/* ── DOWNLOAD ── */
 .stDownloadButton > button {{
     background:{surface} !important; border:3px solid {accent3} !important;
-    color:{accent3} !important; box-shadow:4px 4px 0px {accent3} !important;
+    color:{accent3} !important; box-shadow:5px 5px 0px {accent3} !important;
     border-radius:0px !important; height:52px !important; font-size:0.9rem !important;
     font-weight:800 !important; width:100% !important; transition:all 0.1s !important;
     text-transform:uppercase !important; letter-spacing:1px !important;
 }}
 .stDownloadButton > button:hover {{
     background:{accent3} !important; color:{text_h} !important;
-    box-shadow:6px 6px 0px {border} !important;
-    transform:translate(-2px,-2px) !important;
+    box-shadow:7px 7px 0px {border} !important; transform:translate(-2px,-2px) !important;
 }}
 
-/* STATS */
+/* ── STATS GRID ── */
 .stats-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; }}
 .stat-card {{
     background:{surface}; border:3px solid {border};
     border-radius:0px; padding:1.5rem; position:relative; overflow:hidden;
-    box-shadow: 4px 4px 0px {shadow_col};
+    box-shadow: 5px 5px 0px {shadow_col};
 }}
 .stat-card::before {{
-    content:''; position:absolute; top:0; left:0; right:0; height:5px;
-    background:{accent};
+    content:''; position:absolute; top:0; left:0; right:0; height:5px; background:{accent};
 }}
-.stat-card.green-top::before {{ background:{accent3}; }}
+.stat-card.green-top::before {{ background:{accent3}; box-shadow:0 0 12px {accent3}40; }}
 .stat-card.blue-top::before  {{ background:{accent2}; }}
+.stat-card.purple-top::before {{ background:{accent4}; }}
 .stat-label {{ color:{text_muted}; font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:0.5rem; font-family:'JetBrains Mono',monospace; }}
 .stat-value {{ color:{text_h}; font-size:1.6rem; font-weight:800; letter-spacing:-0.5px; line-height:1; }}
-.stat-value.green {{ color:{accent3}; }}
+.stat-value.green  {{ color:{accent3}; }}
+.stat-value.orange {{ color:{accent};  }}
+.stat-value.purple {{ color:{accent4}; }}
 .stat-sub {{ color:{text_dim}; font-size:0.72rem; margin-top:0.4rem; font-family:'JetBrains Mono',monospace; }}
 
-/* TINGKAT BADGE */
+/* ── TINGKAT BADGE ── */
 .tingkat-badge {{
     display:inline-flex; align-items:center; gap:6px;
-    padding:4px 12px; border-radius:0px; font-size:0.72rem; font-weight:800;
+    padding:5px 14px; border-radius:0px; font-size:0.72rem; font-weight:800;
     letter-spacing:2px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; margin-top:0.4rem;
     border:2px solid;
 }}
-.tingkat-badge.ritl {{ background:rgba(139,92,246,0.15); border-color:#a78bfa; color:#a78bfa; }}
-.tingkat-badge.rjtl {{ background:rgba(59,130,246,0.15); border-color:#60a5fa; color:#60a5fa; }}
+.tingkat-badge.ritl {{ background:rgba(224,64,251,0.12); border-color:{accent4}; color:{accent4}; }}
+.tingkat-badge.rjtl {{ background:rgba(0,176,255,0.12);  border-color:{accent5}; color:{accent5}; }}
 
-/* FILE BADGE */
+/* ── FILE BADGE ── */
 .file-badge {{
     display:inline-flex; align-items:center; gap:8px;
     background:{surface}; border:2px solid {accent3};
     color:{accent3}; padding:8px 16px; border-radius:0px;
     font-size:0.8rem; font-weight:700; font-family:'JetBrains Mono',monospace; margin:0.5rem 0;
-    box-shadow: 3px 3px 0px {accent3};
+    box-shadow: 4px 4px 0px {accent3};
 }}
 
-/* LOG */
+/* ── LOG ── */
 .log-title {{ color:{text_muted}; font-size:10px; font-weight:800; letter-spacing:3px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }}
 .log-item {{
     background:{surface}; border:2px solid {border};
     border-radius:0px; padding:0.9rem 1.1rem; margin-bottom:0.55rem;
-    transition:border-color 0.15s; box-shadow:3px 3px 0px {border2};
+    transition:all 0.15s; box-shadow:3px 3px 0px {border2};
+    border-left: 4px solid {accent};
 }}
-.log-item:hover {{ border-color:{accent}; box-shadow:3px 3px 0px {accent}; }}
+.log-item:hover {{ border-color:{accent}; box-shadow:4px 4px 0px {accent}; transform:translate(-1px,-1px); }}
 .log-item-name {{
     color:{log_name}; font-size:0.82rem; font-weight:700;
     font-family:'JetBrains Mono',monospace;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    margin-bottom:0.35rem;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:0.35rem;
 }}
 .log-item-footer {{
-    display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;
-    font-family:'JetBrains Mono',monospace;
+    display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; font-family:'JetBrains Mono',monospace;
 }}
-.log-item-time {{ color:{log_meta}; font-size:0.7rem; }}
-.log-item-sep  {{ color:{text_dim}; font-size:0.7rem; }}
+.log-item-time  {{ color:{log_meta}; font-size:0.7rem; }}
+.log-item-sep   {{ color:{text_dim}; font-size:0.7rem; }}
 .log-item-total {{ color:{accent3}; font-size:0.75rem; font-weight:700; }}
 .log-item-count {{ color:{text_muted}; font-size:0.7rem; }}
 .log-badge {{
     display:inline-flex; align-items:center;
-    padding:2px 7px; border-radius:0px; font-size:0.62rem;
+    padding:2px 8px; border-radius:0px; font-size:0.62rem;
     font-weight:800; letter-spacing:1px; font-family:'JetBrains Mono',monospace; vertical-align:middle;
     border:1.5px solid;
 }}
-.log-badge.ritl {{ background:rgba(139,92,246,0.1); border-color:#a78bfa; color:#a78bfa; }}
-.log-badge.rjtl {{ background:rgba(59,130,246,0.1); border-color:#60a5fa; color:#60a5fa; }}
-.log-badge.other {{ background:rgba(100,116,139,0.1); border-color:#94a3b8; color:#94a3b8; }}
+.log-badge.ritl  {{ background:rgba(224,64,251,0.1);  border-color:{accent4}; color:{accent4}; }}
+.log-badge.rjtl  {{ background:rgba(0,176,255,0.1);   border-color:{accent5}; color:{accent5}; }}
+.log-badge.other {{ background:rgba(100,116,139,0.1); border-color:#94a3b8;   color:#94a3b8; }}
 
-/* REKAP CARD */
+/* ── REKAP CARD ── */
 .rekap-card {{
     background:{surface}; border:2px solid {border};
     border-radius:0px; padding:1rem 1.25rem; margin-bottom:0.55rem;
     display:flex; align-items:center; justify-content:space-between; gap:1rem;
-    box-shadow: 3px 3px 0px {border2}; transition:all 0.15s;
+    box-shadow:4px 4px 0px {border2}; transition:all 0.15s;
+    border-left: 5px solid {accent2};
 }}
-.rekap-card:hover {{ border-color:{accent}; box-shadow:3px 3px 0px {accent}; }}
+.rekap-card:hover {{ border-color:{accent2}; box-shadow:4px 4px 0px {accent2}; transform:translate(-1px,-1px); }}
 .rekap-period {{
     color:{text_h}; font-size:0.9rem; font-weight:800;
-    font-family:'JetBrains Mono',monospace; margin-bottom:0.25rem;
-    text-transform:uppercase;
+    font-family:'JetBrains Mono',monospace; margin-bottom:0.25rem; text-transform:uppercase;
 }}
-.rekap-meta {{ color:{text_muted}; font-size:0.72rem; font-family:'JetBrains Mono',monospace; }}
+.rekap-meta  {{ color:{text_muted}; font-size:0.72rem; font-family:'JetBrains Mono',monospace; }}
 .rekap-total {{
-    color:{accent3}; font-size:0.85rem; font-weight:800;
+    color:{accent3}; font-size:0.9rem; font-weight:800;
     font-family:'JetBrains Mono',monospace; white-space:nowrap; text-align:right;
 }}
 
-/* STATUS BADGE */
+/* ── STATUS BADGE ── */
 .status-selesai {{
     display:inline-flex; align-items:center; gap:4px;
-    background:rgba(0,200,122,0.1); border:2px solid {accent3};
+    background:rgba(0,229,160,0.1); border:2px solid {accent3};
     color:{accent3}; padding:2px 10px; border-radius:0px;
-    font-size:0.65rem; font-weight:800; letter-spacing:1px;
-    font-family:'JetBrains Mono',monospace;
+    font-size:0.65rem; font-weight:800; letter-spacing:1px; font-family:'JetBrains Mono',monospace;
 }}
 .status-pending {{
     display:inline-flex; align-items:center; gap:4px;
     background:rgba(255,215,0,0.08); border:2px solid {accent2};
     color:{accent2}; padding:2px 10px; border-radius:0px;
-    font-size:0.65rem; font-weight:800; letter-spacing:1px;
-    font-family:'JetBrains Mono',monospace;
+    font-size:0.65rem; font-weight:800; letter-spacing:1px; font-family:'JetBrains Mono',monospace;
 }}
 
 .log-empty {{ color:{text_dim}; font-size:0.85rem; text-align:center; padding:2rem 0; font-style:italic; }}
 
-/* SECTION TITLE */
+/* ── SECTION TITLE ── */
 .section-title {{
     color:{text_muted}; font-size:10px; font-weight:800;
     letter-spacing:3px; text-transform:uppercase; margin-bottom:1rem;
     font-family:'JetBrains Mono',monospace;
-    border-left: 4px solid {accent}; padding-left: 10px;
+    border-left:5px solid {accent}; padding-left:12px;
 }}
 
-/* MISC */
+/* ── SUMMARY STATS ── */
+.summary-grid {{
+    display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.6rem; margin-bottom:1rem;
+}}
+.summary-card {{
+    border-radius:0px; padding:0.9rem 1rem; border:2px solid; position:relative; overflow:hidden;
+}}
+.summary-card::after {{
+    content:''; position:absolute; bottom:0; left:0; right:0; height:3px;
+}}
+.s-konversi {{ background:rgba(255,107,53,0.08); border-color:{accent};  }}
+.s-konversi::after {{ background:{accent}; }}
+.s-selesai  {{ background:rgba(0,229,160,0.06); border-color:{accent3}; }}
+.s-selesai::after  {{ background:{accent3}; }}
+.s-pending  {{ background:rgba(255,215,0,0.06); border-color:{accent2}; }}
+.s-pending::after  {{ background:{accent2}; }}
+.s-nominal  {{ background:rgba(224,64,251,0.06); border-color:{accent4}; overflow:hidden; }}
+.s-nominal::after  {{ background:{accent4}; }}
+
+/* ── MISC ── */
 [data-testid="stAlert"] {{ border-radius:0px !important; padding:0.85rem 1rem !important; border-left:4px solid !important; }}
 hr {{ border-color:{border2} !important; margin:1.5rem 0 !important; }}
 [data-testid="stDataFrame"] {{
     border-radius:0px !important; overflow:hidden !important; border:2px solid {border} !important;
-    box-shadow: 4px 4px 0px {border} !important;
+    box-shadow:5px 5px 0px {border} !important;
 }}
 h3, .stSubheader {{
     color:{label_col} !important; font-size:0.8rem !important;
@@ -576,49 +546,85 @@ if st.session_state.logged_in:
     if login_time:
         elapsed = (now_wib() - datetime.fromisoformat(login_time)).total_seconds() / 3600
         if elapsed > SESSION_TIMEOUT_HOURS:
-            st.session_state.logged_in = False
+            st.session_state.logged_in  = False
             st.session_state.login_time = None
             st.rerun()
 
 if not st.session_state.logged_in:
-    _dark_login = st.session_state.get('dark_mode', True)
-    _bg_login   = "#0d0d0d" if _dark_login else "#fffaf0"
-    _txt_login  = "#f0f0f0" if _dark_login else "#111111"
-    _sub_login  = "#888888" if _dark_login else "#555555"
+    _dark   = st.session_state.get('dark_mode', True)
+    _bg     = "#0a0a0a" if _dark else "#fafaf7"
+    _txt    = "#f5f5f5" if _dark else "#0a0a0a"
+    _sub    = "#777777" if _dark else "#555555"
+    _surf   = "#141414" if _dark else "#ffffff"
+    _bdr    = "#2a2a2a" if _dark else "#111111"
+
     st.markdown(f"""
-        <div style="text-align:center; padding:3rem 2rem 1rem;">
-            <div style="display:inline-block; background:#ff6b35; border:3px solid {_txt_login};
-                padding:6px 18px; margin-bottom:1.5rem;
-                box-shadow:4px 4px 0px {_txt_login};">
+        <div style="text-align:center; padding:3rem 2rem 0.5rem;">
+            <div style="display:inline-flex; align-items:center; gap:8px;
+                background:#ff6b35; border:3px solid {_txt};
+                padding:6px 20px; margin-bottom:1.8rem;
+                box-shadow:5px 5px 0px {_txt};">
+                <span style="font-size:14px;">⚡</span>
                 <span style="font-family:'JetBrains Mono',monospace; font-size:11px;
-                    font-weight:800; color:{_txt_login}; letter-spacing:2px;">
-                    ⚡ FPK CONVERTER &nbsp;·&nbsp; V1.0
+                    font-weight:800; color:{_txt}; letter-spacing:2px;">
+                    FPK CONVERTER &nbsp;·&nbsp; V1.0
                 </span>
             </div>
-            <h1 style="font-family:'Space Grotesk',sans-serif; font-size:3.2rem; font-weight:800;
-                color:{_txt_login}; line-height:1.1; margin:0 0 1rem; letter-spacing:-2px;
+            <h1 style="font-family:'Space Grotesk',sans-serif; font-size:3.4rem; font-weight:800;
+                color:{_txt}; line-height:1.05; margin:0 0 1rem; letter-spacing:-2.5px;
                 text-transform:uppercase;">
-                SELAMAT<br><span style="color:#ff6b35; text-decoration:underline;
-                text-decoration-thickness:5px; text-underline-offset:5px;">DATANG</span>
+                SELAMAT<br>
+                <span style="color:#ff6b35; text-decoration:underline;
+                    text-decoration-thickness:6px; text-underline-offset:6px;">DATANG</span>
             </h1>
-            <p style="font-family:'Space Grotesk',sans-serif; color:{_sub_login};
-                font-size:0.95rem; margin-bottom:0.4rem; font-weight:500;">
+            <p style="font-family:'Space Grotesk',sans-serif; color:{_sub};
+                font-size:0.95rem; margin-bottom:0.3rem; font-weight:500;">
                 Aplikasi pribadi konversi data klaim BPJS Kesehatan
             </p>
             <p style="font-family:'JetBrains Mono',monospace; font-size:0.72rem;
-                color:{_sub_login}; opacity:0.6; letter-spacing:1px;">
+                color:{_sub}; opacity:0.5; letter-spacing:1.5px; margin-bottom:2rem;">
                 // MASUKKAN PIN UNTUK MELANJUTKAN
             </p>
         </div>
+        <div style="display:flex; justify-content:center; gap:0.5rem; margin-bottom:1rem;">
+            <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 12px;
+                border:2px solid #ff6b35; background:rgba(255,107,53,0.1);
+                color:#ff6b35; font-size:0.68rem; font-weight:700; font-family:'JetBrains Mono',monospace;">
+                ✦ Multi-file
+            </span>
+            <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 12px;
+                border:2px solid #00e5a0; background:rgba(0,229,160,0.08);
+                color:#00e5a0; font-size:0.68rem; font-weight:700; font-family:'JetBrains Mono',monospace;">
+                ✦ Auto-detect
+            </span>
+            <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 12px;
+                border:2px solid #e040fb; background:rgba(224,64,251,0.08);
+                color:#e040fb; font-size:0.68rem; font-weight:700; font-family:'JetBrains Mono',monospace;">
+                ✦ Cek duplikat
+            </span>
+            <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 12px;
+                border:2px solid #00b0ff; background:rgba(0,176,255,0.08);
+                color:#00b0ff; font-size:0.68rem; font-weight:700; font-family:'JetBrains Mono',monospace;">
+                ✦ Riwayat
+            </span>
+        </div>
     """, unsafe_allow_html=True)
 
-    pin_data  = load_pin()
-    locked, sisa_mnt = is_locked(pin_data)
-    if locked:
-        st.error(f"🔒 Terlalu banyak percobaan salah. Coba lagi dalam **{sisa_mnt} menit**.")
-    else:
-        pin_input = st.text_input("PIN AKSES", type="password", placeholder="")
-        if st.button("Masuk →"):
+    # Cek lockout
+    locked_until = st.session_state.get("locked_until")
+    is_locked_now = False
+    if locked_until:
+        if now_wib() < locked_until:
+            is_locked_now = True
+            sisa = int((locked_until - now_wib()).total_seconds() // 60) + 1
+            st.error(f"🔒 Terlalu banyak percobaan salah. Coba lagi dalam **{sisa} menit**.")
+        else:
+            st.session_state.attempts    = 0
+            st.session_state.locked_until = None
+
+    if not is_locked_now:
+        pin_input = st.text_input("PIN AKSES", type="password", placeholder="", key="pin_login")
+        if st.button("Masuk →", key="btn_masuk"):
             ok, msg = check_pin(pin_input)
             if ok:
                 st.session_state.logged_in  = True
@@ -640,9 +646,9 @@ def ambil_metadata_pdf(pdf_path):
             m_b = re.search(f"{bulan_pola}\\s+(\\d{{4}})", text, re.IGNORECASE)
             m_t = re.search(r"Tingkat\s+Pelayanan\s*:\s*(RITL|RJTL|RITP|RJTP)", text, re.IGNORECASE)
             if m_b:
-                bulan   = m_b.group(1).upper()
-                tahun   = m_b.group(2)
-                tingkat = m_t.group(1).upper() if m_t else "FPK"
+                bulan     = m_b.group(1).upper()
+                tahun     = m_b.group(2)
+                tingkat   = m_t.group(1).upper() if m_t else "FPK"
                 nama_file = f"FPK_{tingkat}_{bulan}_{tahun}"
             elif m_t:
                 tingkat   = m_t.group(1).upper()
@@ -658,7 +664,7 @@ def process_data(pdf_path):
     if not df_list:
         raise ValueError("PDF tidak terbaca.")
     cleaned = [df for df in df_list if df.shape[1] >= 6 and len(df) > 1]
-    df = pd.concat(cleaned, ignore_index=True)
+    df      = pd.concat(cleaned, ignore_index=True)
     df_data = df.iloc[:, :6].copy()
     df_data = df_data[pd.to_numeric(df_data.iloc[:, 0], errors='coerce').notna()]
     df_data.columns = ['No. Urut', 'No.SEP', 'Tgl. Verifikasi', 'Biaya Riil RS', 'Diajukan', 'Disetujui']
@@ -671,7 +677,6 @@ def process_data(pdf_path):
 
 
 def render_result(res, idx=0):
-    """Render satu hasil konversi (stats + preview + download)."""
     tingkat = res['tingkat']
     t_lower = tingkat.lower()
     t_label = ("🏥 Rawat Inap (RITL)" if tingkat == "RITL"
@@ -683,7 +688,7 @@ def render_result(res, idx=0):
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-label">Jumlah Data</div>
-            <div class="stat-value">{res['count']}</div>
+            <div class="stat-value orange">{res['count']}</div>
             <div class="stat-sub">SEP records</div>
         </div>
         <div class="stat-card green-top">
@@ -709,11 +714,11 @@ def render_result(res, idx=0):
                      "Disetujui": st.column_config.NumberColumn("Nominal Cair", format="Rp %d"),
                  })
 
-    # Cek duplikat No.SEP
     dup = res['df'][res['df']['No.SEP'].duplicated(keep=False)]
     if not dup.empty:
         dup_list = ', '.join(dup['No.SEP'].unique().tolist())
         st.warning(f"⚠️ **{len(dup['No.SEP'].unique())} No.SEP duplikat ditemukan:** {dup_list}")
+
     st.divider()
     col1, col2 = st.columns([3, 1])
     with col1:
@@ -739,27 +744,23 @@ def build_chart(log_data):
                    "JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"]
     records = {}
     for item in log_data:
-        m = re.search(r'FPK_(?:RITL|RJTL|RITP|RJTP|FPK)?_?([A-Z]+)_(\d{4})', item['nama_file'])
+        m      = re.search(r'FPK_(?:RITL|RJTL|RITP|RJTP|FPK)?_?([A-Z]+)_(\d{4})', item['nama_file'])
         period = f"{m.group(1)} {m.group(2)}" if m else "Lainnya"
         tkt    = item.get('tingkat', 'FPK')
         key    = (period, tkt)
         records[key] = records.get(key, 0) + item['total']
-
     if not records:
         return None
-
     periods  = sorted(set(k[0] for k in records),
                       key=lambda x: (x.split()[-1], bulan_order.index(x.split()[0])
                                      if x.split()[0] in bulan_order else 99))
     tingkats = sorted(set(k[1] for k in records))
-
     rows = []
     for p in periods:
         row = {'Periode': p}
         for tkt in tingkats:
             row[tkt] = round(records.get((p, tkt), 0) / 1_000_000, 2)
         rows.append(row)
-
     return pd.DataFrame(rows).set_index('Periode')
 
 
@@ -767,7 +768,7 @@ def build_chart(log_data):
 # HALAMAN UTAMA
 # ══════════════════════════════════════════════════════════════
 
-# Top bar: theme toggle + ganti PIN + logout
+# Top bar
 col_sp, col_theme, col_pin, col_logout = st.columns([4, 1, 1, 1])
 
 with col_theme:
@@ -795,35 +796,25 @@ with col_logout:
 # Form ganti PIN
 if st.session_state.get("show_pin_form"):
     with st.expander("🔑 Ganti PIN", expanded=True):
-        p_lama    = st.text_input("PIN Lama",    type="password", placeholder="", key="p_lama")
-        p_baru    = st.text_input("PIN Baru",    type="password", placeholder="", key="p_baru")
+        st.info("💡 Untuk ganti PIN, ubah nilai **PIN** di **Streamlit Cloud → Settings → Secrets**, lalu klik **Reboot app**.")
+        p_lama    = st.text_input("PIN Lama",            type="password", placeholder="", key="p_lama")
+        p_baru    = st.text_input("PIN Baru",            type="password", placeholder="", key="p_baru")
         p_konfirm = st.text_input("Konfirmasi PIN Baru", type="password", placeholder="", key="p_konfirm")
         if st.button("Simpan PIN Baru", key="save_pin_btn"):
             ok, msg = change_pin(p_lama, p_baru, p_konfirm)
-            if ok:
-                st.success(msg)
-                st.session_state.show_pin_form = False
-            else:
-                st.error(msg)
+            st.warning(msg) if not ok else st.success(msg)
 
+# Header
 st.markdown("""
     <div class="app-header">
         <div class="badge">⚡ Converter Tools &nbsp;·&nbsp; v1.0</div>
         <h1>FPK <span>Converter</span></h1>
         <p>Otomasi konversi data klaim BPJS Kesehatan ke CSV siap pakai</p>
-        <div style="display:flex; justify-content:center; gap:1rem; margin-top:1rem; flex-wrap:wrap;">
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">
-                ✦ Multi-file upload
-            </span>
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">
-                ✦ Auto-detect RITL / RJTL
-            </span>
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">
-                ✦ Cek duplikat SEP
-            </span>
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">
-                ✦ Riwayat & rekap
-            </span>
+        <div class="chip-row">
+            <span class="chip chip-orange">✦ Multi-file upload</span>
+            <span class="chip chip-green">✦ Auto-detect RITL / RJTL</span>
+            <span class="chip chip-blue">✦ Cek duplikat SEP</span>
+            <span class="chip chip-purple">✦ Riwayat & rekap</span>
         </div>
     </div>
 """, unsafe_allow_html=True)
@@ -840,7 +831,6 @@ with st.expander("ℹ️ Fitur & Cara Penggunaan"):
     ### ⚠️ Cek Duplikat No.SEP
     - Setelah diproses, sistem otomatis cek apakah ada **No.SEP yang muncul lebih dari sekali**
     - Kalau ada duplikat, muncul warning kuning beserta daftar No.SEP yang bermasalah
-    - Periksa data sebelum diserahkan ke rekan yang upload ke SIMRS
 
     ### 📥 Download & Status
     - Klik **⬇ Download CSV** untuk mengunduh hasil konversi
@@ -867,7 +857,7 @@ with st.expander("ℹ️ Fitur & Cara Penggunaan"):
     - **PIN tidak terlihat** saat diketik (seperti terminal Linux)
     - **Salah PIN 5x** → aplikasi dikunci otomatis 5 menit
     - **Session timeout 8 jam** → otomatis logout jika tidak aktif
-    - **Ganti PIN** lewat tombol 🔑 di pojok kanan atas tanpa edit code
+    - **Ganti PIN** lewat Streamlit Cloud → Settings → Secrets → ubah nilai PIN → Reboot app
     - **Logout** lewat tombol 🚪 di pojok kanan atas
 
     ### 🌙 Tema
@@ -949,7 +939,7 @@ if st.session_state.get('results'):
 st.divider()
 log_data = load_log()
 
-# -- Monthly summary rekap --
+# Monthly rekap
 if log_data:
     bulan_order = ["JANUARI","FEBRUARI","MARET","APRIL","MEI","JUNI",
                    "JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"]
@@ -975,7 +965,7 @@ if log_data:
         tkt_str  = " · ".join(sorted(t for t in r['tingkats'] if t))
         st.markdown(f"""
         <div class="rekap-card">
-            <div class="rekap-left">
+            <div>
                 <div class="rekap-period">{p}</div>
                 <div class="rekap-meta">{r['konversi']}x konversi &nbsp;·&nbsp; {r['count']} SEP &nbsp;·&nbsp; {tkt_str}</div>
             </div>
@@ -984,51 +974,61 @@ if log_data:
         """, unsafe_allow_html=True)
     st.divider()
 
-# -- Chart --
+# Chart
 if log_data:
     st.markdown('<div class="section-title">📊 Rekap Per Periode</div>', unsafe_allow_html=True)
     df_chart = build_chart(log_data)
     if df_chart is not None:
         st.bar_chart(df_chart, use_container_width=True, height=220,
-                     color=["#a78bfa","#60a5fa","#34d399","#fb923c"][:len(df_chart.columns)])
+                     color=["#e040fb","#00b0ff","#00e5a0","#ff6b35"][:len(df_chart.columns)])
     st.divider()
 
-# -- Log summary stats --
+# Log summary stats
 if log_data:
-    total_entri  = len(log_data)
-    total_selesai   = sum(1 for x in log_data if x.get('status') == 'Selesai')
-    total_pending   = total_entri - total_selesai
-    total_nominal   = sum(x['total'] for x in log_data)
-    nominal_fmt     = f"Rp {total_nominal:,.0f}".replace(",", ".")
+    total_entri   = len(log_data)
+    total_selesai = sum(1 for x in log_data if x.get('status') == 'Selesai')
+    total_pending = total_entri - total_selesai
+    total_nominal = sum(x['total'] for x in log_data)
+    nominal_fmt   = f"Rp {total_nominal:,.0f}".replace(",", ".")
 
     dark = st.session_state.dark_mode
-    dim  = '#334155' if dark else '#94a3b8'
-    surf = 'rgba(255,255,255,0.03)' if dark else 'rgba(0,0,0,0.02)'
-    bdr  = 'rgba(255,255,255,0.07)' if dark else 'rgba(0,0,0,0.08)'
-    th   = '#f1f5f9' if dark else '#1e293b'
+    th   = '#f1f5f9' if dark else '#0a0a0a'
 
     st.markdown(f"""
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.6rem; margin-bottom:1rem;">
-        <div style="background:{surf}; border:1px solid {bdr}; border-radius:12px; padding:0.9rem 1rem;">
-            <div style="color:{dim}; font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Total Konversi</div>
-            <div style="color:{th}; font-size:1.3rem; font-weight:800;">{total_entri}</div>
+    <div class="summary-grid">
+        <div class="summary-card s-konversi">
+            <div style="color:#ff6b35; font-size:9px; font-weight:700; letter-spacing:2px;
+                text-transform:uppercase; margin-bottom:4px; font-family:'JetBrains Mono',monospace;">
+                Total Konversi
+            </div>
+            <div style="color:{th}; font-size:1.4rem; font-weight:800;">{total_entri}</div>
         </div>
-        <div style="background:{surf}; border:1px solid {bdr}; border-radius:12px; padding:0.9rem 1rem;">
-            <div style="color:{dim}; font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Selesai</div>
-            <div style="color:#34d399; font-size:1.3rem; font-weight:800;">{total_selesai}</div>
+        <div class="summary-card s-selesai">
+            <div style="color:#00e5a0; font-size:9px; font-weight:700; letter-spacing:2px;
+                text-transform:uppercase; margin-bottom:4px; font-family:'JetBrains Mono',monospace;">
+                Selesai
+            </div>
+            <div style="color:#00e5a0; font-size:1.4rem; font-weight:800;">{total_selesai}</div>
         </div>
-        <div style="background:{surf}; border:1px solid {bdr}; border-radius:12px; padding:0.9rem 1rem;">
-            <div style="color:{dim}; font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Pending</div>
-            <div style="color:#fbbf24; font-size:1.3rem; font-weight:800;">{total_pending}</div>
+        <div class="summary-card s-pending">
+            <div style="color:#ffd700; font-size:9px; font-weight:700; letter-spacing:2px;
+                text-transform:uppercase; margin-bottom:4px; font-family:'JetBrains Mono',monospace;">
+                Pending
+            </div>
+            <div style="color:#ffd700; font-size:1.4rem; font-weight:800;">{total_pending}</div>
         </div>
-        <div style="background:{surf}; border:1px solid {bdr}; border-radius:12px; padding:0.9rem 1rem; overflow:hidden;">
-            <div style="color:{dim}; font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Total Nominal</div>
-            <div style="color:#ff6b35; font-size:0.8rem; font-weight:800; white-space:nowrap;">{nominal_fmt}</div>
+        <div class="summary-card s-nominal">
+            <div style="color:#e040fb; font-size:9px; font-weight:700; letter-spacing:2px;
+                text-transform:uppercase; margin-bottom:4px; font-family:'JetBrains Mono',monospace;">
+                Total Nominal
+            </div>
+            <div style="color:#e040fb; font-size:0.78rem; font-weight:800; white-space:nowrap;
+                overflow:hidden; text-overflow:ellipsis;">{nominal_fmt}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-# -- Log header --
+# Log header
 col_title, col_hapus = st.columns([4, 1])
 with col_title:
     st.markdown('<div class="log-title">🕓 Riwayat Konversi</div>', unsafe_allow_html=True)
@@ -1053,7 +1053,7 @@ else:
         wkt_sel  = item.get('waktu_selesai')
 
         if status == 'Selesai':
-            status_html = f'<span class="status-selesai">✓ Selesai</span>'
+            status_html  = '<span class="status-selesai">✓ Selesai</span>'
             footer_extra = f'<span class="log-item-sep">·</span><span class="log-item-time">📥 {wkt_sel}</span>' if wkt_sel else ''
         else:
             status_html  = '<span class="status-pending">⏳ Belum Diambil</span>'
@@ -1072,7 +1072,6 @@ else:
             </div>
         </div>""", unsafe_allow_html=True)
 
-        # Tombol manual tandai selesai
         if status != 'Selesai':
             col_a, col_b = st.columns([5, 1])
             with col_b:
@@ -1082,9 +1081,9 @@ else:
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
-# ── WATERMARK FOOTER ─────────────────────────────────────────
+# ── FOOTER ───────────────────────────────────────────────────
 _dark     = st.session_state.get('dark_mode', True)
-ft_border = "rgba(255,255,255,0.05)" if _dark else "rgba(0,0,0,0.06)"
+ft_border = "rgba(255,255,255,0.05)" if _dark else "rgba(0,0,0,0.07)"
 ft_dim    = "#334155" if _dark else "#94a3b8"
 ft_dimmer = "#1e293b" if _dark else "#cbd5e1"
 ft_muted  = "#475569" if _dark else "#64748b"
@@ -1092,26 +1091,32 @@ ft_muted  = "#475569" if _dark else "#64748b"
 st.markdown(f"""
 <div style="text-align:center; padding:2.5rem 1rem 1.5rem; margin-top:2.5rem; border-top:1px solid {ft_border};">
     <div style="margin-bottom:1rem;">
-        <div style="display:inline-flex; align-items:center; gap:8px; background:#ff6b35; border:3px solid #333; padding:6px 18px; margin-bottom:0.8rem; box-shadow:3px 3px 0px #333;">
+        <div style="display:inline-flex; align-items:center; gap:8px;
+            background:#ff6b35; border:3px solid #333;
+            padding:6px 20px; margin-bottom:0.8rem; box-shadow:4px 4px 0px #333;">
             <span style="font-size:14px;">⚡</span>
-            <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem; font-weight:800; color:#fff; letter-spacing:2px;">FPK CONVERTER</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem;
+                font-weight:800; color:#fff; letter-spacing:2px;">FPK CONVERTER</span>
         </div>
     </div>
-    <div style="font-size:0.8rem; color:{ft_muted}; font-weight:300; margin-bottom:1.2rem; letter-spacing:0.3px;">
+    <div style="font-size:0.8rem; color:{ft_muted}; font-weight:400; margin-bottom:1.2rem; letter-spacing:0.3px;">
         Solusi otomasi konversi data klaim BPJS Kesehatan
     </div>
-    <div style="display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:1.2rem;">
-        <div style="width:4px; height:4px; border-radius:50%; background:rgba(99,102,241,0.4);"></div>
-        <div style="width:4px; height:4px; border-radius:50%; background:rgba(139,92,246,0.4);"></div>
-        <div style="width:4px; height:4px; border-radius:50%; background:rgba(99,102,241,0.4);"></div>
+    <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:1.2rem;">
+        <div style="width:6px; height:6px; background:#ff6b35; border:1px solid #ff6b35;"></div>
+        <div style="width:6px; height:6px; background:#e040fb; border:1px solid #e040fb;"></div>
+        <div style="width:6px; height:6px; background:#00e5a0; border:1px solid #00e5a0;"></div>
+        <div style="width:6px; height:6px; background:#00b0ff; border:1px solid #00b0ff;"></div>
     </div>
-    <div style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:{ft_dim}; letter-spacing:1px; margin-bottom:0.4rem;">
+    <div style="font-family:'JetBrains Mono',monospace; font-size:0.72rem;
+        color:{ft_dim}; letter-spacing:1px; margin-bottom:0.4rem;">
         Dikembangkan oleh <strong style="color:#6366f1; font-size:0.78rem;">Isfan Fajar Anugrah</strong>
     </div>
     <div style="font-size:0.68rem; color:{ft_dimmer}; letter-spacing:0.5px; margin-bottom:0.8rem;">
         Versi 1.0 &nbsp;·&nbsp; 2025 &nbsp;·&nbsp; All Rights Reserved
     </div>
-    <div style="display:inline-block; background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.15); border-radius:8px; padding:6px 16px;">
+    <div style="display:inline-block; background:rgba(239,68,68,0.06);
+        border:1px solid rgba(239,68,68,0.15); border-radius:0px; padding:6px 16px;">
         <span style="font-size:0.65rem; color:#f87171; letter-spacing:0.5px;">
             ⚠️ Hak Cipta Pribadi — Dilarang digandakan, dimodifikasi, atau digunakan tanpa izin tertulis dari pemilik
         </span>
