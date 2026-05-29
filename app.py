@@ -94,56 +94,52 @@ def change_pin(pin_lama: str, pin_baru: str, pin_konfirm: str):
 # ── THEME CSS ────────────────────────────────────────────────
 def inject_css(dark: bool):
     if dark:
-        bg          = "#0a0a0a"
-        surface     = "#141414"
-        surface2    = "#1e1e1e"
-        border      = "#2a2a2a"
-        border2     = "#1f1f1f"
-        text_h      = "#f5f5f5"
-        text_body   = "#999999"
-        text_muted  = "#777777"
-        text_dim    = "#3a3a3a"
-        input_bg    = "#0f0f0f"
-        input_bdr   = "#333333"
-        input_col   = "#f5f5f5"
-        label_col   = "#aaaaaa"
+        bg          = "#0d0d0d"
+        surface     = "#1a1a1a"
+        surface2    = "#222222"
+        border      = "#333333"
+        border2     = "#2a2a2a"
+        text_h      = "#f0f0f0"
+        text_body   = "#aaaaaa"
+        text_muted  = "#888888"
+        text_dim    = "#444444"
+        input_bg    = "#111111"
+        input_bdr   = "#3a3a3a"
+        input_col   = "#f0f0f0"
+        label_col   = "#bbbbbb"
         exp_text    = "#aaaaaa"
-        exp_detail  = "#777777"
-        log_name    = "#eeeeee"
-        log_meta    = "#555555"
+        exp_detail  = "#888888"
+        log_name    = "#dddddd"
+        log_meta    = "#666666"
         toggle_icon = "☀️"
         toggle_tip  = "Light Mode"
         accent      = "#ff6b35"
         accent2     = "#ffd700"
         accent3     = "#00e5a0"
-        accent4     = "#e040fb"
-        accent5     = "#00b0ff"
         shadow_col  = "#ff6b35"
     else:
-        bg          = "#fafaf7"
+        bg          = "#fffaf0"
         surface     = "#ffffff"
-        surface2    = "#f0ede6"
+        surface2    = "#f5f0e8"
         border      = "#111111"
         border2     = "#333333"
-        text_h      = "#0a0a0a"
+        text_h      = "#111111"
         text_body   = "#333333"
         text_muted  = "#555555"
-        text_dim    = "#aaaaaa"
+        text_dim    = "#999999"
         input_bg    = "#ffffff"
         input_bdr   = "#111111"
         input_col   = "#111111"
-        label_col   = "#222222"
-        exp_text    = "#222222"
+        label_col   = "#333333"
+        exp_text    = "#333333"
         exp_detail  = "#555555"
         log_name    = "#111111"
-        log_meta    = "#888888"
+        log_meta    = "#777777"
         toggle_icon = "🌙"
         toggle_tip  = "Dark Mode"
         accent      = "#ff6b35"
-        accent2     = "#e6b800"
-        accent3     = "#00a86b"
-        accent4     = "#cc00ff"
-        accent5     = "#0066cc"
+        accent2     = "#ffd700"
+        accent3     = "#00c47a"
         shadow_col  = "#111111"
 
     st.session_state._toggle_icon = toggle_icon
@@ -156,43 +152,36 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
 #MainMenu {{visibility:hidden;}} footer {{visibility:hidden;}} header {{visibility:hidden;}}
 
 .stApp {{ background-color: {bg}; }}
-.block-container {{ padding-top: 1.5rem; max-width: 700px; }}
+.block-container {{ padding-top: 1.5rem; max-width: 680px; }}
 
-/* ── HEADER ── */
+/* HEADER */
 .app-header {{ text-align:center; padding:2.5rem 2rem 1.5rem; margin-bottom:0.5rem; }}
 .app-header .badge {{
     display:inline-block;
     background:{accent}; border:3px solid {text_h};
     color:{text_h}; font-size:11px; font-weight:800; letter-spacing:2px;
-    text-transform:uppercase; padding:6px 18px; border-radius:0px; margin-bottom:1.2rem;
-    box-shadow: 4px 4px 0px {text_h};
+    text-transform:uppercase; padding:6px 16px; border-radius:0px; margin-bottom:1.2rem;
+    box-shadow: 3px 3px 0px {text_h};
     font-family:'JetBrains Mono',monospace;
 }}
 .app-header h1 {{
-    font-size:3.2rem !important; font-weight:800 !important; color:{text_h} !important;
-    line-height:1.1 !important; margin:0 !important; letter-spacing:-2px;
+    font-size:3rem !important; font-weight:800 !important; color:{text_h} !important;
+    line-height:1.1 !important; margin:0 !important; letter-spacing:-1.5px;
     text-transform:uppercase;
 }}
-.app-header h1 span {{ color:{accent}; text-decoration:underline; text-decoration-thickness:5px; text-underline-offset:5px; }}
+.app-header h1 span {{
+    color:{accent};
+    text-decoration: underline;
+    text-decoration-thickness: 4px;
+    text-underline-offset: 4px;
+}}
 .app-header p {{ color:{text_body}; font-size:0.95rem; margin-top:0.8rem; font-weight:500; }}
 
-/* ── FEATURE CHIPS ── */
-.chip-row {{ display:flex; justify-content:center; gap:0.6rem; margin-top:1.2rem; flex-wrap:wrap; }}
-.chip {{
-    display:inline-flex; align-items:center; gap:5px;
-    padding:5px 12px; border-radius:0px; font-size:0.7rem; font-weight:700;
-    letter-spacing:0.5px; border:2px solid; font-family:'JetBrains Mono',monospace;
-}}
-.chip-orange {{ background:rgba(255,107,53,0.12); border-color:{accent};  color:{accent};  }}
-.chip-green  {{ background:rgba(0,229,160,0.1);  border-color:{accent3}; color:{accent3}; }}
-.chip-blue   {{ background:rgba(0,176,255,0.1);  border-color:{accent5}; color:{accent5}; }}
-.chip-purple {{ background:rgba(224,64,251,0.1); border-color:{accent4}; color:{accent4}; }}
-
-/* ── EXPANDER ── */
+/* EXPANDER */
 [data-testid="stExpander"] {{
     background:{surface} !important; border:3px solid {border} !important;
     border-radius:0px !important; overflow:hidden !important; margin-bottom:1rem !important;
-    box-shadow: 5px 5px 0px {shadow_col} !important;
+    box-shadow: 4px 4px 0px {shadow_col} !important;
 }}
 [data-testid="stExpander"] summary {{
     color:{exp_text} !important; font-size:0.85rem !important;
@@ -204,7 +193,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     font-size:0.9rem !important; line-height:1.7 !important;
 }}
 
-/* ── TABS ── */
+/* TABS */
 [data-testid="stTabs"] [data-testid="stTab"] {{
     background:{surface} !important; border:2px solid {border} !important;
     border-radius:0px !important; color:{text_muted} !important;
@@ -216,7 +205,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     border-color:{text_h} !important; color:{text_h} !important;
 }}
 
-/* ── INPUT ── */
+/* INPUT */
 .stTextInput > div > div > input {{
     background:{input_bg} !important; border:3px solid {input_bdr} !important;
     border-radius:0px !important; color:{input_col} !important;
@@ -236,12 +225,10 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     text-transform:uppercase !important; font-family:'JetBrains Mono',monospace !important;
 }}
 
-/* ── HIDE EYE ICON ── */
+/* HIDE EYE ICON */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {{
-    display:none !important;
-    visibility:hidden !important;
-    pointer-events:none !important;
+    display:none !important; visibility:hidden !important; pointer-events:none !important;
 }}
 [data-testid="stTextInputHideShowButton"],
 button[data-testid="stTextInputHideShowButton"],
@@ -251,16 +238,10 @@ button[aria-label="Show password text"],
 button[aria-label="Hide password text"],
 button[aria-label="Show password"],
 button[aria-label="Hide password"] {{
-    display:none !important;
-    visibility:hidden !important;
-    width:0 !important;
-    height:0 !important;
-    padding:0 !important;
-    margin:0 !important;
-    overflow:hidden !important;
-    pointer-events:none !important;
-    position:absolute !important;
-    opacity:0 !important;
+    display:none !important; visibility:hidden !important;
+    width:0 !important; height:0 !important; padding:0 !important;
+    margin:0 !important; overflow:hidden !important;
+    pointer-events:none !important; position:absolute !important; opacity:0 !important;
 }}
 input[type="password"],
 input[type="password"]:focus,
@@ -270,12 +251,12 @@ input[type="password"]:active {{
     caret-color: {accent} !important;
 }}
 
-/* ── FILE UPLOADER ── */
+/* FILE UPLOADER */
 [data-testid="stFileUploader"] {{ position:relative !important; }}
 [data-testid="stFileUploader"] section {{
     background:{surface} !important; border:3px dashed {border} !important;
     border-radius:0px !important; padding:2rem 1.5rem !important;
-    transition:border-color 0.2s !important;
+    transition:border-color 0.2s !important; position:relative !important; overflow:visible !important;
 }}
 [data-testid="stFileUploader"] section:hover {{
     border-color:{accent} !important; background:{surface2} !important;
@@ -288,27 +269,26 @@ input[type="password"]:active {{
 [data-testid="stFileUploader"] section button {{
     background:{accent} !important; border:3px solid {text_h} !important;
     color:{text_h} !important; border-radius:0px !important; padding:8px 20px !important;
-    font-size:0.85rem !important; font-weight:800 !important;
-    box-shadow:3px 3px 0px {text_h} !important; text-transform:uppercase !important;
+    font-size:0.85rem !important; font-weight:800 !important; z-index:1 !important; position:relative !important;
+    box-shadow: 3px 3px 0px {text_h} !important; text-transform:uppercase !important;
 }}
 
-/* ── BUTTONS ── */
+/* BUTTONS */
 .stButton > button {{
     background:{accent} !important;
-    color:#ffffff !important; border:3px solid {text_h} !important; border-radius:0px !important;
+    color:{text_h} !important; border:3px solid {text_h} !important; border-radius:0px !important;
     height:52px !important; font-size:0.9rem !important; font-weight:800 !important;
-    transition:all 0.1s ease !important; box-shadow:5px 5px 0px {text_h} !important;
+    transition:all 0.1s ease !important; box-shadow:4px 4px 0px {text_h} !important;
     width:100% !important; text-transform:uppercase !important; letter-spacing:1px !important;
     font-family:'Space Grotesk',sans-serif !important;
 }}
 .stButton > button:hover {{
-    transform:translate(-2px,-2px) !important; box-shadow:7px 7px 0px {text_h} !important;
-    filter:brightness(1.1) !important;
+    transform:translate(-2px,-2px) !important; box-shadow:6px 6px 0px {text_h} !important;
+    filter:brightness(1.08) !important;
 }}
 .stButton > button:active {{
-    transform:translate(2px,2px) !important; box-shadow:2px 2px 0px {text_h} !important;
+    transform:translate(2px,2px) !important; box-shadow:1px 1px 0px {text_h} !important;
 }}
-
 .reset-btn .stButton > button {{
     background:{surface} !important; border:3px solid {border} !important;
     color:{text_muted} !important; box-shadow:3px 3px 0px {border} !important; height:52px !important;
@@ -317,7 +297,6 @@ input[type="password"]:active {{
     background:{surface2} !important; color:{text_h} !important;
     box-shadow:5px 5px 0px {border} !important;
 }}
-
 .toggle-btn .stButton > button {{
     background:{surface} !important; border:2px solid {border} !important;
     color:{text_muted} !important; box-shadow:2px 2px 0px {border} !important;
@@ -325,18 +304,16 @@ input[type="password"]:active {{
     padding:0 14px !important; border-radius:0px !important;
 }}
 .toggle-btn .stButton > button:hover {{
-    background:{accent} !important; border-color:{text_h} !important; color:#fff !important;
+    background:{accent} !important; border-color:{text_h} !important; color:{text_h} !important;
 }}
-
 .danger-btn .stButton > button {{
     background:transparent !important; border:2px solid #cc2222 !important;
     color:#ff4444 !important; box-shadow:2px 2px 0px #cc2222 !important;
     height:38px !important; font-size:0.78rem !important;
 }}
 .danger-btn .stButton > button:hover {{
-    background:#cc2222 !important; color:#ffffff !important;
+    background:#cc2222 !important; border-color:#cc2222 !important; color:#ffffff !important;
 }}
-
 .selesai-btn .stButton > button {{
     background:{surface} !important; border:2px solid {accent3} !important;
     color:{accent3} !important; box-shadow:2px 2px 0px {accent3} !important;
@@ -346,67 +323,63 @@ input[type="password"]:active {{
     background:{accent3} !important; color:{text_h} !important;
 }}
 
-/* ── DOWNLOAD ── */
+/* DOWNLOAD */
 .stDownloadButton > button {{
     background:{surface} !important; border:3px solid {accent3} !important;
-    color:{accent3} !important; box-shadow:5px 5px 0px {accent3} !important;
+    color:{accent3} !important; box-shadow:4px 4px 0px {accent3} !important;
     border-radius:0px !important; height:52px !important; font-size:0.9rem !important;
     font-weight:800 !important; width:100% !important; transition:all 0.1s !important;
     text-transform:uppercase !important; letter-spacing:1px !important;
 }}
 .stDownloadButton > button:hover {{
     background:{accent3} !important; color:{text_h} !important;
-    box-shadow:7px 7px 0px {border} !important; transform:translate(-2px,-2px) !important;
+    box-shadow:6px 6px 0px {border} !important; transform:translate(-2px,-2px) !important;
 }}
 
-/* ── STATS GRID ── */
+/* STATS */
 .stats-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; }}
 .stat-card {{
     background:{surface}; border:3px solid {border};
     border-radius:0px; padding:1.5rem; position:relative; overflow:hidden;
-    box-shadow: 5px 5px 0px {shadow_col};
+    box-shadow: 4px 4px 0px {shadow_col};
 }}
 .stat-card::before {{
     content:''; position:absolute; top:0; left:0; right:0; height:5px; background:{accent};
 }}
-.stat-card.green-top::before {{ background:{accent3}; box-shadow:0 0 12px {accent3}40; }}
+.stat-card.green-top::before {{ background:{accent3}; }}
 .stat-card.blue-top::before  {{ background:{accent2}; }}
-.stat-card.purple-top::before {{ background:{accent4}; }}
 .stat-label {{ color:{text_muted}; font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:0.5rem; font-family:'JetBrains Mono',monospace; }}
 .stat-value {{ color:{text_h}; font-size:1.6rem; font-weight:800; letter-spacing:-0.5px; line-height:1; }}
-.stat-value.green  {{ color:{accent3}; }}
-.stat-value.orange {{ color:{accent};  }}
-.stat-value.purple {{ color:{accent4}; }}
+.stat-value.green {{ color:{accent3}; }}
 .stat-sub {{ color:{text_dim}; font-size:0.72rem; margin-top:0.4rem; font-family:'JetBrains Mono',monospace; }}
 
-/* ── TINGKAT BADGE ── */
+/* TINGKAT BADGE */
 .tingkat-badge {{
     display:inline-flex; align-items:center; gap:6px;
-    padding:5px 14px; border-radius:0px; font-size:0.72rem; font-weight:800;
+    padding:4px 12px; border-radius:0px; font-size:0.72rem; font-weight:800;
     letter-spacing:2px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; margin-top:0.4rem;
     border:2px solid;
 }}
-.tingkat-badge.ritl {{ background:rgba(224,64,251,0.12); border-color:{accent4}; color:{accent4}; }}
-.tingkat-badge.rjtl {{ background:rgba(0,176,255,0.12);  border-color:{accent5}; color:{accent5}; }}
+.tingkat-badge.ritl {{ background:rgba(139,92,246,0.15); border-color:#a78bfa; color:#a78bfa; }}
+.tingkat-badge.rjtl {{ background:rgba(59,130,246,0.15); border-color:#60a5fa; color:#60a5fa; }}
 
-/* ── FILE BADGE ── */
+/* FILE BADGE */
 .file-badge {{
     display:inline-flex; align-items:center; gap:8px;
     background:{surface}; border:2px solid {accent3};
     color:{accent3}; padding:8px 16px; border-radius:0px;
     font-size:0.8rem; font-weight:700; font-family:'JetBrains Mono',monospace; margin:0.5rem 0;
-    box-shadow: 4px 4px 0px {accent3};
+    box-shadow: 3px 3px 0px {accent3};
 }}
 
-/* ── LOG ── */
+/* LOG */
 .log-title {{ color:{text_muted}; font-size:10px; font-weight:800; letter-spacing:3px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }}
 .log-item {{
     background:{surface}; border:2px solid {border};
     border-radius:0px; padding:0.9rem 1.1rem; margin-bottom:0.55rem;
-    transition:all 0.15s; box-shadow:3px 3px 0px {border2};
-    border-left: 4px solid {accent};
+    transition:border-color 0.15s; box-shadow:3px 3px 0px {border2};
 }}
-.log-item:hover {{ border-color:{accent}; box-shadow:4px 4px 0px {accent}; transform:translate(-1px,-1px); }}
+.log-item:hover {{ border-color:{accent}; box-shadow:3px 3px 0px {accent}; }}
 .log-item-name {{
     color:{log_name}; font-size:0.82rem; font-weight:700;
     font-family:'JetBrains Mono',monospace;
@@ -421,37 +394,36 @@ input[type="password"]:active {{
 .log-item-count {{ color:{text_muted}; font-size:0.7rem; }}
 .log-badge {{
     display:inline-flex; align-items:center;
-    padding:2px 8px; border-radius:0px; font-size:0.62rem;
+    padding:2px 7px; border-radius:0px; font-size:0.62rem;
     font-weight:800; letter-spacing:1px; font-family:'JetBrains Mono',monospace; vertical-align:middle;
     border:1.5px solid;
 }}
-.log-badge.ritl  {{ background:rgba(224,64,251,0.1);  border-color:{accent4}; color:{accent4}; }}
-.log-badge.rjtl  {{ background:rgba(0,176,255,0.1);   border-color:{accent5}; color:{accent5}; }}
-.log-badge.other {{ background:rgba(100,116,139,0.1); border-color:#94a3b8;   color:#94a3b8; }}
+.log-badge.ritl  {{ background:rgba(139,92,246,0.1); border-color:#a78bfa; color:#a78bfa; }}
+.log-badge.rjtl  {{ background:rgba(59,130,246,0.1); border-color:#60a5fa; color:#60a5fa; }}
+.log-badge.other {{ background:rgba(100,116,139,0.1); border-color:#94a3b8; color:#94a3b8; }}
 
-/* ── REKAP CARD ── */
+/* REKAP CARD */
 .rekap-card {{
     background:{surface}; border:2px solid {border};
     border-radius:0px; padding:1rem 1.25rem; margin-bottom:0.55rem;
     display:flex; align-items:center; justify-content:space-between; gap:1rem;
-    box-shadow:4px 4px 0px {border2}; transition:all 0.15s;
-    border-left: 5px solid {accent2};
+    box-shadow: 3px 3px 0px {border2}; transition:all 0.15s;
 }}
-.rekap-card:hover {{ border-color:{accent2}; box-shadow:4px 4px 0px {accent2}; transform:translate(-1px,-1px); }}
+.rekap-card:hover {{ border-color:{accent}; box-shadow:3px 3px 0px {accent}; }}
 .rekap-period {{
     color:{text_h}; font-size:0.9rem; font-weight:800;
     font-family:'JetBrains Mono',monospace; margin-bottom:0.25rem; text-transform:uppercase;
 }}
 .rekap-meta  {{ color:{text_muted}; font-size:0.72rem; font-family:'JetBrains Mono',monospace; }}
 .rekap-total {{
-    color:{accent3}; font-size:0.9rem; font-weight:800;
+    color:{accent3}; font-size:0.85rem; font-weight:800;
     font-family:'JetBrains Mono',monospace; white-space:nowrap; text-align:right;
 }}
 
-/* ── STATUS BADGE ── */
+/* STATUS BADGE */
 .status-selesai {{
     display:inline-flex; align-items:center; gap:4px;
-    background:rgba(0,229,160,0.1); border:2px solid {accent3};
+    background:rgba(0,200,122,0.1); border:2px solid {accent3};
     color:{accent3}; padding:2px 10px; border-radius:0px;
     font-size:0.65rem; font-weight:800; letter-spacing:1px; font-family:'JetBrains Mono',monospace;
 }}
@@ -464,39 +436,20 @@ input[type="password"]:active {{
 
 .log-empty {{ color:{text_dim}; font-size:0.85rem; text-align:center; padding:2rem 0; font-style:italic; }}
 
-/* ── SECTION TITLE ── */
+/* SECTION TITLE */
 .section-title {{
     color:{text_muted}; font-size:10px; font-weight:800;
     letter-spacing:3px; text-transform:uppercase; margin-bottom:1rem;
     font-family:'JetBrains Mono',monospace;
-    border-left:5px solid {accent}; padding-left:12px;
+    border-left: 4px solid {accent}; padding-left: 10px;
 }}
 
-/* ── SUMMARY STATS ── */
-.summary-grid {{
-    display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:0.6rem; margin-bottom:1rem;
-}}
-.summary-card {{
-    border-radius:0px; padding:0.9rem 1rem; border:2px solid; position:relative; overflow:hidden;
-}}
-.summary-card::after {{
-    content:''; position:absolute; bottom:0; left:0; right:0; height:3px;
-}}
-.s-konversi {{ background:rgba(255,107,53,0.08); border-color:{accent};  }}
-.s-konversi::after {{ background:{accent}; }}
-.s-selesai  {{ background:rgba(0,229,160,0.06); border-color:{accent3}; }}
-.s-selesai::after  {{ background:{accent3}; }}
-.s-pending  {{ background:rgba(255,215,0,0.06); border-color:{accent2}; }}
-.s-pending::after  {{ background:{accent2}; }}
-.s-nominal  {{ background:rgba(224,64,251,0.06); border-color:{accent4}; overflow:hidden; }}
-.s-nominal::after  {{ background:{accent4}; }}
-
-/* ── MISC ── */
+/* MISC */
 [data-testid="stAlert"] {{ border-radius:0px !important; padding:0.85rem 1rem !important; border-left:4px solid !important; }}
 hr {{ border-color:{border2} !important; margin:1.5rem 0 !important; }}
 [data-testid="stDataFrame"] {{
     border-radius:0px !important; overflow:hidden !important; border:2px solid {border} !important;
-    box-shadow:5px 5px 0px {border} !important;
+    box-shadow: 4px 4px 0px {border} !important;
 }}
 h3, .stSubheader {{
     color:{label_col} !important; font-size:0.8rem !important;
@@ -535,7 +488,6 @@ h3, .stSubheader {{
 }})();
 </script>
 """, unsafe_allow_html=True)
-
 
 # ── LOGIN ────────────────────────────────────────────────────
 if 'logged_in' not in st.session_state:
@@ -592,27 +544,11 @@ if not st.session_state.logged_in:
                 // MASUKKAN PIN UNTUK MELANJUTKAN
             </p>
         </div>
-        <div style="display:flex; justify-content:center; gap:0.5rem; margin-bottom:1rem;">
-            <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 12px;
-                border:2px solid #ff6b35; background:rgba(255,107,53,0.1);
-                color:#ff6b35; font-size:0.68rem; font-weight:700; font-family:'JetBrains Mono',monospace;">
-                ✦ Multi-file
-            </span>
-            <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 12px;
-                border:2px solid #00e5a0; background:rgba(0,229,160,0.08);
-                color:#00e5a0; font-size:0.68rem; font-weight:700; font-family:'JetBrains Mono',monospace;">
-                ✦ Auto-detect
-            </span>
-            <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 12px;
-                border:2px solid #e040fb; background:rgba(224,64,251,0.08);
-                color:#e040fb; font-size:0.68rem; font-weight:700; font-family:'JetBrains Mono',monospace;">
-                ✦ Cek duplikat
-            </span>
-            <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 12px;
-                border:2px solid #00b0ff; background:rgba(0,176,255,0.08);
-                color:#00b0ff; font-size:0.68rem; font-weight:700; font-family:'JetBrains Mono',monospace;">
-                ✦ Riwayat
-            </span>
+        <div style="display:flex; justify-content:center; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">
+            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Multi-file upload</span>
+            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Auto-detect RITL / RJTL</span>
+            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Cek duplikat SEP</span>
+            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Riwayat & rekap</span>
         </div>
     """, unsafe_allow_html=True)
 
@@ -816,11 +752,11 @@ st.markdown("""
         <div class="badge">⚡ Converter Tools &nbsp;·&nbsp; v1.0</div>
         <h1>FPK <span>Converter</span></h1>
         <p>Otomasi konversi data klaim BPJS Kesehatan ke CSV siap pakai</p>
-        <div class="chip-row">
-            <span class="chip chip-orange">✦ Multi-file upload</span>
-            <span class="chip chip-green">✦ Auto-detect RITL / RJTL</span>
-            <span class="chip chip-blue">✦ Cek duplikat SEP</span>
-            <span class="chip chip-purple">✦ Riwayat & rekap</span>
+        <div style="display:flex; justify-content:center; gap:1rem; margin-top:1rem; flex-wrap:wrap;">
+            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Multi-file upload</span>
+            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Auto-detect RITL / RJTL</span>
+            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Cek duplikat SEP</span>
+            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Riwayat & rekap</span>
         </div>
     </div>
 """, unsafe_allow_html=True)
