@@ -236,27 +236,39 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     text-transform:uppercase !important; font-family:'JetBrains Mono',monospace !important;
 }}
 
-/* ── HIDE EYE ICON (spesifik, tidak kena tombol lain) ── */
+/* ── HIDE EYE ICON ── */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {{
     display:none !important;
     visibility:hidden !important;
     pointer-events:none !important;
 }}
-[data-testid="stTextInputHideShowButton"] {{
+[data-testid="stTextInputHideShowButton"],
+button[data-testid="stTextInputHideShowButton"],
+[data-baseweb="input"] ~ button,
+[data-baseweb="input"] + div button,
+button[aria-label="Show password text"],
+button[aria-label="Hide password text"],
+button[aria-label="Show password"],
+button[aria-label="Hide password"] {{
     display:none !important;
+    visibility:hidden !important;
     width:0 !important;
+    height:0 !important;
     padding:0 !important;
     margin:0 !important;
     overflow:hidden !important;
     pointer-events:none !important;
+    position:absolute !important;
+    opacity:0 !important;
 }}
-input[type="password"] {{
+input[type="password"],
+input[type="password"]:focus,
+input[type="password"]:active {{
     -webkit-text-security: none !important;
     color: transparent !important;
     caret-color: {accent} !important;
 }}
-input[type="password"]:focus {{ color: transparent !important; }}
 
 /* ── FILE UPLOADER ── */
 [data-testid="stFileUploader"] {{ position:relative !important; }}
@@ -505,9 +517,16 @@ h3, .stSubheader {{
     selectors.forEach(function(sel) {{
       document.querySelectorAll(sel).forEach(function(el) {{
         el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('visibility', 'hidden', 'important');
         el.style.setProperty('width', '0', 'important');
-        el.style.setProperty('overflow', 'hidden', 'important');
+        el.style.setProperty('height', '0', 'important');
+        el.style.setProperty('opacity', '0', 'important');
+        el.style.setProperty('pointer-events', 'none', 'important');
+        el.style.setProperty('position', 'absolute', 'important');
       }});
+    }});
+    document.querySelectorAll('input[type="password"]').forEach(function(el) {{
+      el.style.setProperty('color', 'transparent', 'important');
     }});
   }}
   removeEyeIcons();
