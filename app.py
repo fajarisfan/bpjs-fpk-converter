@@ -236,38 +236,27 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     text-transform:uppercase !important; font-family:'JetBrains Mono',monospace !important;
 }}
 
-/* ── HIDE EYE ICON ── */
+/* ── HIDE EYE ICON (spesifik, tidak kena tombol lain) ── */
 input[type="password"]::-ms-reveal,
-input[type="password"]::-ms-clear {{ display:none !important; visibility:hidden !important; pointer-events:none !important; }}
-[data-testid="stTextInput"] button,
-[data-testid="stTextInput"] [data-testid="stTextInputHideShowButton"],
-.stTextInput button,
-div[data-baseweb="input"] button,
-div[data-baseweb="input"] [role="button"],
-input[type="password"] ~ button,
-input[type="password"] + * button {{
-    display:none !important; visibility:hidden !important;
-    width:0 !important; height:0 !important; opacity:0 !important;
-    pointer-events:none !important; position:absolute !important;
+input[type="password"]::-ms-clear {{
+    display:none !important;
+    visibility:hidden !important;
+    pointer-events:none !important;
 }}
-div[data-baseweb="input"] > div > button {{ display:none !important; }}
+[data-testid="stTextInputHideShowButton"] {{
+    display:none !important;
+    width:0 !important;
+    padding:0 !important;
+    margin:0 !important;
+    overflow:hidden !important;
+    pointer-events:none !important;
+}}
 input[type="password"] {{
     -webkit-text-security: none !important;
     color: transparent !important;
     caret-color: {accent} !important;
 }}
 input[type="password"]:focus {{ color: transparent !important; }}
-[data-baseweb="input"] [data-baseweb="icon"],
-[data-baseweb="input"] svg,
-[data-baseweb="input"] button,
-[data-baseweb="input"] span[role="button"],
-[data-baseweb="input"] div[role="button"],
-.stTextInput [data-baseweb="input"] > div:last-child,
-[data-testid="stTextInputHideShowButton"] {{
-    display:none !important; width:0 !important;
-    padding:0 !important; margin:0 !important;
-    overflow:hidden !important; pointer-events:none !important;
-}}
 
 /* ── FILE UPLOADER ── */
 [data-testid="stFileUploader"] {{ position:relative !important; }}
@@ -515,12 +504,10 @@ h3, .stSubheader {{
     ];
     selectors.forEach(function(sel) {{
       document.querySelectorAll(sel).forEach(function(el) {{
-        el.parentNode && el.parentNode.removeChild(el);
+        el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('width', '0', 'important');
+        el.style.setProperty('overflow', 'hidden', 'important');
       }});
-    }});
-    document.querySelectorAll('[data-baseweb="input"] button').forEach(function(el) {{
-      el.style.setProperty('display', 'none', 'important');
-      el.style.setProperty('width', '0', 'important');
     }});
   }}
   removeEyeIcons();
