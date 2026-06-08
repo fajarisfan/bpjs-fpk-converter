@@ -806,73 +806,244 @@ with st.expander("ℹ️ Fitur & Cara Penggunaan"):
     - Toggle **dark/light mode** lewat tombol ☀️/🌙 di pojok kanan atas
     """)
 
-uploaded_files = st.file_uploader(
-    "Upload PDF FPK (bisa lebih dari satu)",
-    type=['pdf'],
-    accept_multiple_files=True,
-    label_visibility="collapsed"
-)
+# ── TABS: PDF CONVERTER  |  KALKULATOR CSV ───────────────────
+tab_pdf, tab_csv = st.tabs(["⚡ Konversi PDF → CSV", "🧮 Kalkulator CSV"])
 
-if uploaded_files:
-    if st.button("⚡ Proses Sekarang"):
-        results = []
-        errors  = []
-        prog    = st.progress(0, text="Memproses file...")
-        total_f = len(uploaded_files)
+with tab_pdf:
+    uploaded_files = st.file_uploader(
+        "Upload PDF FPK (bisa lebih dari satu)",
+        type=['pdf'],
+        accept_multiple_files=True,
+        label_visibility="collapsed"
+    )
 
-        for i, uf in enumerate(uploaded_files):
-            prog.progress((i + 1) / total_f, text=f"Membaca: {uf.name} ({i+1}/{total_f})")
+    if uploaded_files:
+        if st.button("⚡ Proses Sekarang"):
+            results = []
+            errors  = []
+            prog    = st.progress(0, text="Memproses file...")
+            total_f = len(uploaded_files)
+
+            for i, uf in enumerate(uploaded_files):
+                prog.progress((i + 1) / total_f, text=f"Membaca: {uf.name} ({i+1}/{total_f})")
+                try:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                        tmp.write(uf.getvalue())
+                        tmp_path = tmp.name
+
+                    nama, tingkat = ambil_metadata_pdf(tmp_path)
+                    df_res        = process_data(tmp_path)
+                    total         = int(df_res['Disetujui'].sum())
+                    jumlah        = len(df_res)
+                    filename      = f"{nama}.csv"
+                    os.unlink(tmp_path)
+
+                    results.append({
+                        'filename': filename,
+                        'df'      : df_res,
+                        'total'   : total,
+                        'count'   : jumlah,
+                        'tingkat' : tingkat,
+                    })
+                    save_log({
+                        'waktu'        : now_wib().strftime("%d %b %Y, %H:%M") + " WIB",
+                        'nama_file'    : filename,
+                        'tingkat'      : tingkat,
+                        'jumlah'       : jumlah,
+                        'total'        : total,
+                        'status'       : 'Belum Diambil',
+                        'waktu_selesai': None,
+                    })
+                except Exception as e:
+                    errors.append(f"❌ {uf.name}: {e}")
+
+            prog.empty()
+            st.session_state.results = results
+            if errors:
+                for err in errors:
+                    st.error(err)
+            if results:
+                st.success(f"✅ {len(results)} file berhasil diproses!")
+
+    # ── TAMPILKAN HASIL ──────────────────────────────────────────
+    if st.session_state.get('results'):
+        results = st.session_state.results
+        if len(results) == 1:
+            render_result(results[0], idx=0)
+        else:
+            tab_labels = [f"{'🏥' if r['tingkat']=='RITL' else '🏃'} {r['tingkat']}" for r in results]
+            tabs_hasil = st.tabs(tab_labels)
+            for i, (tab_h, res) in enumerate(zip(tabs_hasil, results)):
+                with tab_h:
+                    render_result(res, idx=i)
+
+# ── TAB KALKULATOR CSV ───────────────────────────────────────
+with tab_csv:
+    _dark_c = st.session_state.get('dark_mode', True)
+    _surf_c = "#1a1a1a" if _dark_c else "#ffffff"
+    _bdr_c  = "#333333" if _dark_c else "#111111"
+    _txt_c  = "#f0f0f0" if _dark_c else "#111111"
+    _mut_c  = "#888888" if _dark_c else "#555555"
+    _bg2_c  = "#222222" if _dark_c else "#f5f0e8"
+    _acc    = "#ff6b35"
+    _grn    = "#00e5a0"
+
+    st.markdown(f"""
+    <style>
+    .csv-file-row {{
+        background: {_surf_c};
+        border: 2px solid {_bdr_c};
+        border-radius: 0px;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 3px 3px 0px {_bdr_c};
+        font-family: 'JetBrains Mono', monospace;
+    }}
+    .csv-grand {{
+        background: {_acc};
+        border: 3px solid {_txt_c};
+        border-radius: 0px;
+        padding: 1.25rem 1.5rem;
+        margin-top: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 5px 5px 0px {_txt_c};
+        font-family: 'JetBrains Mono', monospace;
+    }}
+    .csv-grand-label {{
+        color: {_txt_c}; font-size: 0.78rem; font-weight: 800;
+        letter-spacing: 2px; text-transform: uppercase;
+    }}
+    .csv-grand-value {{
+        color: {_txt_c}; font-size: 1.3rem; font-weight: 800;
+    }}
+    .csv-stat-grid {{
+        display: grid; grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.75rem; margin: 1rem 0;
+    }}
+    .csv-stat {{
+        background: {_bg2_c}; border: 2px solid {_bdr_c};
+        border-radius: 0px; padding: 1rem;
+        box-shadow: 3px 3px 0px {_bdr_c};
+        font-family: 'JetBrains Mono', monospace;
+    }}
+    .csv-stat-label {{
+        color: {_mut_c}; font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 2px; text-transform: uppercase; margin-bottom: 0.4rem;
+    }}
+    .csv-stat-val {{
+        color: {_txt_c}; font-size: 1.2rem; font-weight: 800;
+    }}
+    .csv-empty-box {{
+        border: 3px dashed {_bdr_c};
+        background: {_surf_c};
+        padding: 2.5rem;
+        text-align: center;
+        margin-top: 0.5rem;
+        font-family: 'Space Grotesk', sans-serif;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    csv_files = st.file_uploader(
+        "Upload CSV hasil konversi (No.SEP + Disetujui)",
+        type=["csv"],
+        accept_multiple_files=True,
+        key="csv_uploader",
+        label_visibility="collapsed",
+    )
+
+    if csv_files:
+        rows_per_file = []
+        total_grand   = 0
+        total_sep     = 0
+        errors_csv    = []
+
+        for cf in csv_files:
             try:
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
-                    tmp.write(uf.getvalue())
-                    tmp_path = tmp.name
-
-                nama, tingkat = ambil_metadata_pdf(tmp_path)
-                df_res        = process_data(tmp_path)
-                total         = int(df_res['Disetujui'].sum())
-                jumlah        = len(df_res)
-                filename      = f"{nama}.csv"
-                os.unlink(tmp_path)
-
-                results.append({
-                    'filename': filename,
-                    'df'      : df_res,
-                    'total'   : total,
-                    'count'   : jumlah,
-                    'tingkat' : tingkat,
+                df_c = pd.read_csv(cf)
+                col_disetujui = next(
+                    (c for c in df_c.columns if 'disetujui' in c.lower()), None
+                )
+                if col_disetujui is None:
+                    errors_csv.append(f"⚠️ {cf.name}: kolom 'Disetujui' tidak ditemukan.")
+                    continue
+                df_c[col_disetujui] = pd.to_numeric(
+                    df_c[col_disetujui].astype(str).str.replace(r'[^0-9]', '', regex=True),
+                    errors='coerce'
+                ).fillna(0)
+                subtotal  = int(df_c[col_disetujui].sum())
+                count_sep = len(df_c)
+                rows_per_file.append({
+                    'nama'    : cf.name,
+                    'sep'     : count_sep,
+                    'subtotal': subtotal,
                 })
-                save_log({
-                    'waktu'        : now_wib().strftime("%d %b %Y, %H:%M") + " WIB",
-                    'nama_file'    : filename,
-                    'tingkat'      : tingkat,
-                    'jumlah'       : jumlah,
-                    'total'        : total,
-                    'status'       : 'Belum Diambil',
-                    'waktu_selesai': None,
-                })
+                total_grand += subtotal
+                total_sep   += count_sep
             except Exception as e:
-                errors.append(f"❌ {uf.name}: {e}")
+                errors_csv.append(f"❌ {cf.name}: {e}")
 
-        prog.empty()
-        st.session_state.results = results
-        if errors:
-            for err in errors:
-                st.error(err)
-        if results:
-            st.success(f"✅ {len(results)} file berhasil diproses!")
+        for err in errors_csv:
+            st.warning(err)
 
+        if rows_per_file:
+            grand_fmt = f"Rp {total_grand:,.0f}".replace(",", ".")
+            sep_fmt   = f"{total_sep:,}".replace(",", ".")
 
-# ── TAMPILKAN HASIL ──────────────────────────────────────────
-if st.session_state.get('results'):
-    results = st.session_state.results
-    if len(results) == 1:
-        render_result(results[0], idx=0)
+            st.markdown(f"""
+            <div class="csv-stat-grid">
+                <div class="csv-stat">
+                    <div class="csv-stat-label">Total File</div>
+                    <div class="csv-stat-val">{len(rows_per_file)}</div>
+                </div>
+                <div class="csv-stat">
+                    <div class="csv-stat-label">Total SEP</div>
+                    <div class="csv-stat-val">{sep_fmt}</div>
+                </div>
+                <div class="csv-stat">
+                    <div class="csv-stat-label">Grand Total</div>
+                    <div class="csv-stat-val" style="color:{_grn}; font-size:0.85rem;">{grand_fmt}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown('<div class="section-title">📂 Rincian Per File</div>', unsafe_allow_html=True)
+            for r in rows_per_file:
+                subtotal_fmt = f"Rp {r['subtotal']:,.0f}".replace(",", ".")
+                sep_r_fmt    = f"{r['sep']:,}".replace(",", ".")
+                st.markdown(f"""
+                <div class="csv-file-row">
+                    <div>
+                        <div style="color:{_txt_c}; font-size:0.8rem; font-weight:700;">📄 {r['nama']}</div>
+                        <div style="color:{_mut_c}; font-size:0.7rem; margin-top:2px;">{sep_r_fmt} SEP</div>
+                    </div>
+                    <div style="color:{_grn}; font-size:0.85rem; font-weight:800;">{subtotal_fmt}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown(f"""
+            <div class="csv-grand">
+                <div class="csv-grand-label">⚡ Grand Total Disetujui</div>
+                <div class="csv-grand-value">{grand_fmt}</div>
+            </div>
+            """, unsafe_allow_html=True)
     else:
-        tab_labels = [f"{'🏥' if r['tingkat']=='RITL' else '🏃'} {r['tingkat']}" for r in results]
-        tabs = st.tabs(tab_labels)
-        for i, (tab, res) in enumerate(zip(tabs, results)):
-            with tab:
-                render_result(res, idx=i)
+        st.markdown(f"""
+        <div class="csv-empty-box">
+            <div style="font-size:2rem; margin-bottom:0.5rem;">📊</div>
+            <div style="color:{_txt_c}; font-weight:700; font-size:0.95rem; margin-bottom:0.3rem;">
+                Upload file CSV di atas
+            </div>
+            <div style="color:{_mut_c}; font-size:0.8rem;">
+                Bisa multiple file — format: No.SEP, Disetujui
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════
