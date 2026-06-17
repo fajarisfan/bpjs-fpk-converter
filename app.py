@@ -29,9 +29,17 @@ def _port_terbuka(port: int) -> bool:
 def start_api_backend():
     """
     Menjalankan api.py (FastAPI/uvicorn) sebagai background thread
-    di dalam proses Streamlit yang sama.
+    di dalam proses Streamlit yang sama. Ini membuat app.py bisa
+    benar-benar mengirim HTTP request ke API meski hanya dideploy
+    sebagai satu app di Streamlit Cloud (tanpa server terpisah
+    seperti Railway).
+
+    @st.cache_resource memastikan ini hanya dijalankan SEKALI per
+    siklus hidup container, bukan setiap kali Streamlit rerun.
     """
     if _port_terbuka(API_PORT):
+        # Sudah ada server jalan di port ini (misal saat development
+        # lokal kamu sengaja jalankan `uvicorn api:app` manual)
         return "already_running"
 
     def _run():
@@ -42,7 +50,7 @@ def start_api_backend():
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
 
-    # Tunggu sampai API siap (maks ~10 detik)
+    # Tunggu sampai API benar-benar siap menerima request (maks ~10 detik)
     for _ in range(20):
         if _port_terbuka(API_PORT):
             return "started"
@@ -97,6 +105,7 @@ def get_correct_pin():
 def check_pin(input_pin: str):
     correct_pin = get_correct_pin()
 
+    # Cek lockout dari session_state
     locked_until = st.session_state.get("locked_until")
     if locked_until:
         if now_wib() < locked_until:
@@ -614,7 +623,67 @@ if not st.session_state.logged_in:
     st.stop()
 
 
-# ── FUNGSI RENDER HASIL (dengan JSON Streaming) ────────────
+# ── HELPERS ──────────────────────────────────────────────────
+def panggil_api_proses(uf, timeout=60):
+    """
+    Kirim file PDF ke backend API (/api/proses) dan kembalikan
+    hasil parsing beserta detail request/response untuk ditampilkan
+    di panel debug (ala Postman).
+    """
+    endpoint = f"{API_URL}/api/proses"
+    files    = {"file": (uf.name, uf.getvalue(), "application/pdf")}
+
+    request_meta = {
+        "method": "POST",
+        "url": endpoint,
+        "headers": {"Content-Type": "multipart/form-data"},
+        "body": {"file": uf.name, "size_kb": round(len(uf.getvalue()) / 1024, 1)},
+    }
+
+    t0 = time.perf_counter()
+    try:
+        resp = requests.post(endpoint, files=files, timeout=timeout)
+        latency_ms = round((time.perf_counter() - t0) * 1000, 1)
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(
+            f"Tidak bisa menghubungi API di {endpoint}. "
+            f"Pastikan backend sudah berjalan (uvicorn api:app --port 8000)."
+        )
+    except requests.exceptions.Timeout:
+        raise RuntimeError(f"API tidak merespons dalam {timeout} detik.")
+
+    response_meta = {
+        "status_code": resp.status_code,
+        "latency_ms": latency_ms,
+    }
+
+    if resp.status_code != 200:
+        try:
+            detail = resp.json().get("detail", resp.text)
+        except Exception:
+            detail = resp.text
+        response_meta["body"] = {"detail": detail}
+        raise RuntimeError(detail, request_meta, response_meta)
+
+    payload = resp.json()
+    response_meta["body"] = {
+        "success"           : payload.get("success"),
+        "filename"          : payload.get("filename"),
+        "original_filename" : payload.get("original_filename"),
+        "tingkat"           : payload.get("tingkat"),
+        "jumlah"            : payload.get("jumlah"),
+        "total"             : payload.get("total"),
+        "duplikat"          : payload.get("duplikat"),
+        "processing_time_ms": payload.get("processing_time_ms"),
+        "file_index"        : payload.get("file_index"),
+        "total_files"       : payload.get("total_files"),
+        "data"              : f"[{len(payload.get('data', []))} baris — lihat tab Preview Data]",
+    }
+
+    df_res = pd.DataFrame(payload["data"])
+    return payload, df_res, request_meta, response_meta
+
+
 def render_result(res, idx=0):
     tingkat = res['tingkat']
     t_lower = tingkat.lower()
@@ -645,7 +714,7 @@ def render_result(res, idx=0):
 
     st.divider()
 
-    # ── PANEL DEBUG API (Postman style) ──────────────────────
+    # ── PANEL DEBUG API (ala Postman) ──────────────────────────
     api_log = res.get('api_log')
     if api_log:
         req  = api_log['request']
@@ -667,69 +736,30 @@ def render_result(res, idx=0):
             st.markdown("**Response**")
             st.code(json.dumps(resp, indent=2, ensure_ascii=False), language="json")
 
-    # ── TAB PREVIEW vs JSON STREAMING ────────────────────────
-    tab_preview, tab_json = st.tabs(["📊 Preview Data", "📦 JSON Mentah (Streaming)"])
+    st.subheader("Preview Data")
+    df_prev = res['df'].copy()
+    df_prev.insert(0, 'No', range(1, 1 + len(df_prev)))
+    # Eksplisit reorder: No → No.SEP → Disetujui (Nominal Cair)
+    df_prev = df_prev[['No', 'No.SEP', 'Disetujui']]
+    st.dataframe(df_prev, use_container_width=True, height=280, hide_index=True,
+                 column_config={
+                     "No"       : st.column_config.NumberColumn("No",           width=60),
+                     "No.SEP"   : st.column_config.TextColumn("No.SEP"),
+                     "Disetujui": st.column_config.NumberColumn("Nominal Cair", format="Rp %d"),
+                 })
 
-    with tab_preview:
-        df_prev = res['df'].copy()
-        df_prev.insert(0, 'No', range(1, 1 + len(df_prev)))
-        st.dataframe(
-            df_prev,
-            use_container_width=True,
-            height=280,
-            hide_index=True,
-            column_config={
-                "No": st.column_config.NumberColumn("No", width=60),
-                "No.SEP": st.column_config.TextColumn("No.SEP", width=200),
-                "Disetujui": st.column_config.NumberColumn("Nominal Cair", format="Rp %d", width=150),
-            }
-        )
-
-    with tab_json:
-        if api_log and 'body' in resp:
-            full_response = resp['body']
-            data_list = full_response.get('data', [])
-            total_data = len(data_list)
-            if total_data > 0:
-                placeholder = st.empty()
-                base_json = full_response.copy()
-                base_json['data'] = []
-                batch_size = 50
-                progress_bar = st.progress(0, text="⏳ Memuat JSON...")
-                for i in range(0, total_data, batch_size):
-                    end = min(i + batch_size, total_data)
-                    base_json['data'] = data_list[:end]
-                    placeholder.json(base_json)  # tampilkan JSON dengan style rapi
-                    progress = (end / total_data)
-                    progress_bar.progress(progress, text=f"📥 {end} dari {total_data} data dimuat")
-                    time.sleep(0.05)  # efek animasi
-                progress_bar.empty()
-                placeholder.json(full_response)
-                st.caption(f"✅ {total_data} data berhasil dimuat dalam JSON")
-            else:
-                st.json(full_response)
-        else:
-            st.info("Tidak ada JSON response untuk ditampilkan.")
-
-    # ── Duplikat ────────────────────────────────────────────
     dup = res['df'][res['df']['No.SEP'].duplicated(keep=False)]
     if not dup.empty:
         dup_list = ', '.join(dup['No.SEP'].unique().tolist())
         st.warning(f"⚠️ **{len(dup['No.SEP'].unique())} No.SEP duplikat ditemukan:** {dup_list}")
 
     st.divider()
-
-    # ── Download ────────────────────────────────────────────
     col1, col2 = st.columns([3, 1])
     with col1:
-        csv = res['df'].to_csv(index=False).encode('utf-8')
-        downloaded = st.download_button(
-            label="⬇ Download CSV",
-            data=csv,
-            file_name=res['filename'],
-            mime="text/csv",
-            key=f"dl_{idx}"
-        )
+        csv        = res['df'].to_csv(index=False).encode('utf-8')
+        downloaded = st.download_button(label="⬇ Download CSV", data=csv,
+                                        file_name=res['filename'], mime="text/csv",
+                                        key=f"dl_{idx}")
         if downloaded:
             update_log_status(res['filename'], 'Selesai')
             st.rerun()
@@ -739,6 +769,222 @@ def render_result(res, idx=0):
             st.session_state.results = []
             st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
+
+
+def animasi_terminal_proses(uf, dark: bool):
+    """
+    Step 1: Tampil spinner Python sambil nunggu API
+    Step 2: Setelah API balik, inject data JSON ke JS typewriter
+            yang ketik karakter per karakter kayak CMD beneran.
+    Return: (payload, df_res, req_meta, resp_meta)
+    """
+    import streamlit.components.v1 as components
+
+    surf  = "#0d0d0d" if dark else "#f5f0e8"
+    bdr   = "#333333" if dark else "#222222"
+
+    # ── Step 1: Spinner Python sambil panggil API ───────────────
+    placeholder = st.empty()
+    placeholder.markdown(f"""
+    <div style="background:{surf}; border:2px solid {bdr}; padding:1rem 1.4rem;
+        font-family:'JetBrains Mono',monospace; font-size:0.75rem;
+        box-shadow:4px 4px 0 {bdr}; color:#888;">
+        <span style="color:#ff6b35; font-weight:700; letter-spacing:2px;
+            font-size:0.68rem;">⚡ FPK CONVERTER — API</span><br><br>
+        <span style="color:#888;">$ POST /api/proses → localhost:8000</span><br>
+        <span style="color:#555;">  menunggu response</span>
+        <span style="color:#ff6b35; animation:blink 1s infinite;">█</span>
+    </div>
+    <style>@keyframes blink{{0%,100%{{opacity:1}}50%{{opacity:0}}}}</style>
+    """, unsafe_allow_html=True)
+
+    # ── Panggil API beneran ─────────────────────────────────────
+    payload, df_res, req_meta, resp_meta = panggil_api_proses(uf)
+
+    placeholder.empty()
+
+    tingkat  = payload.get("tingkat", "FPK")
+    jumlah   = payload.get("jumlah", 0)
+    total    = payload.get("total", 0)
+    duplikat = payload.get("duplikat", [])
+    lat_ms   = resp_meta.get("latency_ms", 0)
+    proc_ms  = payload.get("processing_time_ms", 0)
+    filename = payload.get("filename", "")
+    sep_list = df_res[["No.SEP", "Disetujui"]].to_dict(orient="records")
+
+    # ── Bangun string JSON yang akan diketik JS ─────────────────
+    # Format: baris per baris biar keliatan natural
+    total_fmt = f"Rp {total:,}".replace(",", ".")
+    dup_str   = json.dumps(duplikat) if duplikat else "[]"
+
+    # Bangun baris data — tiap row satu string
+    data_lines = []
+    for i, row in enumerate(sep_list):
+        sep = row["No.SEP"]
+        nom = int(row["Disetujui"])
+        comma = "," if i < len(sep_list) - 1 else ""
+        data_lines.append(
+            f'    {{"No.SEP": "{sep}", "Disetujui": {nom}}}{comma}'
+        )
+    data_block = "\n".join(data_lines)
+
+    json_text = f"""{{
+  "request": {{
+    "method": "POST",
+    "endpoint": "/api/proses",
+    "file": "{uf.name}",
+    "size_kb": {round(len(uf.getvalue())/1024, 1)}
+  }},
+  "response": {{
+    "status": 200,
+    "latency_ms": {lat_ms},
+    "processing_time_ms": {proc_ms},
+    "tingkat": "{tingkat}",
+    "jumlah": {jumlah},
+    "filename": "{filename}",
+    "duplikat": {dup_str},
+    "total_disetujui": {total},
+    "data": [
+{data_block}
+    ]
+  }},
+  "status": "DONE ✓"
+}}"""
+
+    # Kecepatan: makin banyak data makin cepet per karakter
+    # Target: animasi data selesai ~5-8 detik
+    total_chars = len(json_text)
+    # delay per char dalam ms
+    if total_chars < 500:
+        char_delay = 18
+    elif total_chars < 2000:
+        char_delay = 8
+    elif total_chars < 10000:
+        char_delay = 3
+    elif total_chars < 50000:
+        char_delay = 1
+    else:
+        char_delay = 0.3   # super cepet buat data ribuan
+
+    # Escape untuk JS string (newline → \n, quote → \")
+    json_escaped = json_text.replace("\\", "\\\\").replace("`", "\\`")
+
+    # ── Render JS Typewriter ────────────────────────────────────
+    html_code = f"""
+<div style="
+    background:#0d0d0d; border:2px solid #333; padding:0;
+    font-family:'JetBrains Mono',monospace; font-size:0.73rem;
+    box-shadow:4px 4px 0 #333; overflow:hidden;
+">
+    <!-- Header bar -->
+    <div style="background:#1a1a1a; border-bottom:1px solid #333;
+        padding:0.5rem 1rem; display:flex; align-items:center; gap:8px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:#ff5f57;"></div>
+        <div style="width:10px;height:10px;border-radius:50%;background:#febc2e;"></div>
+        <div style="width:10px;height:10px;border-radius:50%;background:#28c840;"></div>
+        <span style="color:#555; font-size:0.65rem; margin-left:8px; letter-spacing:1px;">
+            FPK-CONVERTER — API RESPONSE
+        </span>
+    </div>
+
+    <!-- Terminal body -->
+    <div id="terminal" style="
+        padding:1rem 1.2rem; height:380px; overflow-y:auto;
+        color:#f0f0f0; white-space:pre; line-height:1.7;
+        scrollbar-width:thin; scrollbar-color:#333 #0d0d0d;
+    "><span id="output"></span><span id="cursor" style="
+        color:#ff6b35; animation:blink 0.7s step-end infinite;">█</span></div>
+
+    <!-- Progress bar -->
+    <div style="background:#111; border-top:1px solid #222; padding:0.5rem 1rem;
+        display:flex; align-items:center; gap:10px;">
+        <span style="color:#555; font-size:0.65rem;">TYPING</span>
+        <div style="flex:1; height:3px; background:#222;">
+            <div id="pbar" style="height:3px; background:#ff6b35; width:0%;
+                transition:width 0.1s;"></div>
+        </div>
+        <span id="pct" style="color:#ff6b35; font-size:0.65rem; font-weight:700;">0%</span>
+    </div>
+</div>
+
+<style>
+@keyframes blink {{ 0%,100%{{opacity:1}} 50%{{opacity:0}} }}
+#terminal::-webkit-scrollbar {{ width:4px; }}
+#terminal::-webkit-scrollbar-track {{ background:#0d0d0d; }}
+#terminal::-webkit-scrollbar-thumb {{ background:#333; }}
+</style>
+
+<script>
+const RAW = `{json_escaped}`;
+const DELAY = {char_delay};
+
+// Syntax highlight tiap karakter
+function colorChar(ch, idx, text) {{
+    return ch;
+}}
+
+// Warnain output dengan regex setelah selesai
+function highlight(str) {{
+    return str
+        .replace(/("No\.SEP")/g, '<span style="color:#00b0ff;">$1</span>')
+        .replace(/("Disetujui")/g, '<span style="color:#00e5a0;">$1</span>')
+        .replace(/("request"|"response"|"status"|"method"|"endpoint"|"file"|"size_kb"|"latency_ms"|"processing_time_ms"|"tingkat"|"jumlah"|"filename"|"duplikat"|"total_disetujui"|"data")/g,
+            '<span style="color:#e040fb;">$1</span>')
+        .replace(/:\s*(\d+\.?\d*)/g, ': <span style="color:#ffd700;">$1</span>')
+        .replace(/:\s*"([^"]*)"/g, ': <span style="color:#ff6b35;">"$1"</span>')
+        .replace(/(DONE ✓)/g, '<span style="color:#00e5a0; font-weight:700;">$1</span>')
+        .replace(/(\[\]|\[)/g, '<span style="color:#888;">$1</span>')
+        .replace(/(\])/g, '<span style="color:#888;">$1</span>');
+}}
+
+const out    = document.getElementById('output');
+const cursor = document.getElementById('cursor');
+const pbar   = document.getElementById('pbar');
+const pct    = document.getElementById('pct');
+const term   = document.getElementById('terminal');
+const total  = RAW.length;
+
+let i = 0;
+let buf = '';
+
+function typeNext() {{
+    if (i >= total) {{
+        // Selesai — highlight syntax, hilangkan cursor kedip
+        out.innerHTML = highlight(buf);
+        cursor.style.display = 'none';
+        pbar.style.width = '100%';
+        pct.textContent = '100%';
+        return;
+    }}
+
+    // Batch per tick biar smooth di data besar
+    const batchSize = DELAY <= 1 ? 8 : 1;
+    for (let b = 0; b < batchSize && i < total; b++) {{
+        buf += RAW[i];
+        i++;
+    }}
+
+    out.textContent = buf;
+    term.scrollTop = term.scrollHeight;
+
+    const p = Math.round((i / total) * 100);
+    pbar.style.width = p + '%';
+    pct.textContent = p + '%';
+
+    setTimeout(typeNext, DELAY);
+}}
+
+typeNext();
+</script>
+"""
+
+    components.html(html_code, height=460, scrolling=False)
+
+    # Tunggu animasi JS selesai (estimasi)
+    estimated_sec = min((total_chars * char_delay) / 1000, 12)
+    time.sleep(estimated_sec + 0.5)
+
+    return payload, df_res, req_meta, resp_meta
 
 
 def build_chart(log_data):
@@ -827,8 +1073,9 @@ with st.expander("ℹ️ Fitur & Cara Penggunaan"):
     st.markdown("""
     ### ⚡ Konversi PDF → CSV
     - Upload satu atau beberapa PDF FPK BPJS sekaligus (maks 200MB/file)
-    - Klik **⚡ Proses Sekarang** — sistem akan menjalankan API dan menampilkan proses secara real-time
+    - Klik **⚡ Proses Sekarang** — sistem otomatis membaca isi PDF
     - Nama file CSV terdeteksi otomatis dari PDF: **FPK_RITL_MARET_2026.csv** atau **FPK_RJTL_MARET_2026.csv**
+    - Kalau upload lebih dari 1 PDF, hasil tiap file tampil di **tab terpisah**
     - Output CSV hanya berisi 2 kolom: **No.SEP** dan **Disetujui** — siap upload ke SIMRS
 
     ### ⚠️ Cek Duplikat No.SEP
@@ -838,21 +1085,34 @@ with st.expander("ℹ️ Fitur & Cara Penggunaan"):
     ### 📥 Download & Status
     - Klik **⬇ Download CSV** untuk mengunduh hasil konversi
     - Status di log otomatis berubah jadi **✓ Selesai** setelah download
+    - Kalau belum didownload, status **⏳ Belum Diambil**
+    - Bisa juga tandai manual lewat tombol **✓ Tandai** di log
 
-    ### 🔌 API Request/Response & JSON Streaming
-    - Proses konversi dilakukan oleh **backend FastAPI** yang berjalan di latar belakang
-    - Pada tab **📦 JSON Mentah (Streaming)**, Anda dapat melihat seluruh data dalam format JSON yang muncul secara bertahap (seperti efek `curl` di terminal)
-    - Di expander **🔌 API Request/Response** tersedia detail request/response lengkap seperti Postman
+    ### 🔌 API Request/Response
+    - Proses konversi sebenarnya menembak **backend API** (FastAPI) yang berjalan di proses yang sama, lewat HTTP request asli — bukan simulasi
+    - Klik expander **🔌 API Request/Response** untuk lihat detail request yang dikirim, status code, dan response JSON dari API — mirip tampilan di Postman
+    - Latency (waktu tempuh request) ditampilkan dalam milidetik
 
-    ### 📊 Rekap & Riwayat
+    ### 📅 Rekap Per Bulan
+    - Di bawah chart ada rekap ringkas per periode
+    - Tiap baris tampil: berapa kali konversi, total SEP, tingkat pelayanan, dan total nominal
+
+    ### 📊 Chart Rekap Periode
+    - Bar chart otomatis terbentuk dari riwayat konversi
+    - Warna berbeda per tingkat: **ungu = RITL**, **biru = RJTL**
+    - Sumbu Y dalam satuan juta rupiah (M)
+
+    ### 🕓 Riwayat Konversi
     - Semua aktivitas konversi tersimpan otomatis (maks 100 entri)
     - Tampil: nama file, badge RITL/RJTL, waktu konversi, total nominal, jumlah SEP, status
     - Summary di atas log: total konversi, selesai, pending, total nominal kumulatif
+    - Klik **Hapus Semua** untuk reset seluruh riwayat
 
     ### 🔑 Keamanan
     - **PIN tidak terlihat** saat diketik (seperti terminal Linux)
     - **Salah PIN 5x** → aplikasi dikunci otomatis 5 menit
     - **Session timeout 8 jam** → otomatis logout jika tidak aktif
+    - **Ganti PIN** lewat Streamlit Cloud → Settings → Secrets → ubah nilai PIN → Reboot app
     - **Logout** lewat tombol 🚪 di pojok kanan atas
 
     ### 🌙 Tema
@@ -883,89 +1143,49 @@ with tab_pdf:
     if uploaded_files:
         if st.button("⚡ Proses Sekarang"):
             results = []
-            errors = []
-            total_files = len(uploaded_files)
+            errors  = []
+            total_f = len(uploaded_files)
+            _dark   = st.session_state.get('dark_mode', True)
 
-            with st.status("⏳ Memulai proses...", expanded=True) as status:
-                for file_idx, uf in enumerate(uploaded_files):
-                    status.update(label=f"📄 Memproses {uf.name} ({file_idx+1}/{total_files})")
+            for i, uf in enumerate(uploaded_files):
+                # Header file ke-N
+                if total_f > 1:
+                    st.markdown(
+                        f'<div style="font-family:\'JetBrains Mono\',monospace; '
+                        f'font-size:0.75rem; color:#888; margin-bottom:4px;">'
+                        f'FILE {i+1}/{total_f} — {uf.name}</div>',
+                        unsafe_allow_html=True
+                    )
+                try:
+                    payload, df_res, req_meta, resp_meta = animasi_terminal_proses(uf, dark=_dark)
 
-                    # 1. Kirim file ke API /proses
-                    files = {"file": (uf.name, uf.getvalue(), "application/pdf")}
-                    try:
-                        resp_start = requests.post(f"{API_URL}/api/proses", files=files, timeout=30)
-                        if resp_start.status_code != 200:
-                            errors.append(f"❌ Gagal memulai task untuk {uf.name}: {resp_start.text}")
-                            continue
-                        task_id = resp_start.json()["task_id"]
-                        status.write(f"🆔 Task ID: {task_id}")
-                    except Exception as e:
-                        errors.append(f"❌ {uf.name}: {e}")
-                        continue
+                    filename = payload['filename']
+                    tingkat  = payload['tingkat']
+                    total    = payload['total']
+                    jumlah   = payload['jumlah']
 
-                    # 2. Polling status sampai selesai
-                    done = False
-                    last_log_count = 0
-                    while not done:
-                        time.sleep(0.3)  # polling interval
-                        try:
-                            resp_status = requests.get(f"{API_URL}/api/status/{task_id}", timeout=10)
-                            if resp_status.status_code != 200:
-                                status.write(f"⚠️ Gagal polling status: {resp_status.text}")
-                                break
-                            data = resp_status.json()
-                            logs = data.get("logs", [])
-                            # Tampilkan log baru dengan efek ketik
-                            new_logs = logs[last_log_count:]
-                            for log in new_logs:
-                                status.write(log)
-                                time.sleep(0.02)  # efek mengetik
-                            last_log_count = len(logs)
-
-                            if data["status"] == "done":
-                                result = data["result"]
-                                # Konversi ke DataFrame
-                                df_res = pd.DataFrame(result["data"])
-                                df_res = df_res.rename(columns={"no_sep": "No.SEP", "disetujui": "Disetujui"})
-                                if 'no' in df_res.columns:
-                                    df_res = df_res.drop(columns=['no'])
-
-                                results.append({
-                                    'filename': result['filename'],
-                                    'df': df_res,
-                                    'total': result['total'],
-                                    'count': result['jumlah'],
-                                    'tingkat': result['tingkat'],
-                                    'api_log': {
-                                        'request': {
-                                            'method': 'POST',
-                                            'url': f"{API_URL}/api/proses",
-                                            'body': {'file': uf.name}
-                                        },
-                                        'response': {
-                                            'status_code': 200,
-                                            'latency_ms': result.get('processing_time_ms', 0),
-                                            'body': result
-                                        }
-                                    }
-                                })
-                                save_log({
-                                    'waktu': now_wib().strftime("%d %b %Y, %H:%M") + " WIB",
-                                    'nama_file': result['filename'],
-                                    'tingkat': result['tingkat'],
-                                    'jumlah': result['jumlah'],
-                                    'total': result['total'],
-                                    'status': 'Belum Diambil',
-                                    'waktu_selesai': None,
-                                })
-                                status.write(f"✅ {uf.name} selesai diproses!")
-                                done = True
-                            elif data["status"] == "error":
-                                errors.append(f"❌ {uf.name}: {data.get('error', 'Unknown error')}")
-                                done = True
-                        except Exception as e:
-                            status.write(f"⚠️ Error polling: {e}")
-                            break
+                    results.append({
+                        'filename': filename,
+                        'df'      : df_res,
+                        'total'   : total,
+                        'count'   : jumlah,
+                        'tingkat' : tingkat,
+                        'api_log' : {'request': req_meta, 'response': resp_meta},
+                    })
+                    save_log({
+                        'waktu'        : now_wib().strftime("%d %b %Y, %H:%M") + " WIB",
+                        'nama_file'    : filename,
+                        'tingkat'      : tingkat,
+                        'jumlah'       : jumlah,
+                        'total'        : total,
+                        'status'       : 'Belum Diambil',
+                        'waktu_selesai': None,
+                    })
+                except RuntimeError as e:
+                    msg = e.args[0] if e.args else str(e)
+                    errors.append(f"❌ {uf.name}: {msg}")
+                except Exception as e:
+                    errors.append(f"❌ {uf.name}: {e}")
 
             st.session_state.results = results
             if errors:
