@@ -1,9 +1,9 @@
 streamlit
 pandas
+requests
 tabula-py
 pdfplumber
 openpyxl
-
-
-
-
+fastapi
+uvicorn[standard]
+python-multipart
