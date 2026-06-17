@@ -1,0 +1,111 @@
+import re
+import time
+import tempfile
+import os
+
+import pandas as pd
+import tabula
+import pdfplumber
+
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="FPK Converter API", version="1.0")
+
+# Izinkan dipanggil dari Streamlit (local maupun deployed)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ── LOGIC EKSTRAKSI (dipindah dari app.py, tidak diubah) ───────
+
+def ambil_metadata_pdf(pdf_path: str):
+    nama_file, tingkat = "Hasil_Konversi_FPK", "UNKNOWN"
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            text = pdf.pages[0].extract_text() or ""
+            bulan_pola = (r"(JANUARI|FEBRUARI|MARET|APRIL|MEI|JUNI|JULI|"
+                          r"AGUSTUS|SEPTEMBER|OKTOBER|NOVEMBER|DESEMBER)")
+            m_b = re.search(f"{bulan_pola}\\s+(\\d{{4}})", text, re.IGNORECASE)
+            m_t = re.search(r"Tingkat\s+Pelayanan\s*:\s*(RITL|RJTL|RITP|RJTP)", text, re.IGNORECASE)
+            if m_b:
+                bulan     = m_b.group(1).upper()
+                tahun     = m_b.group(2)
+                tingkat   = m_t.group(1).upper() if m_t else "FPK"
+                nama_file = f"FPK_{tingkat}_{bulan}_{tahun}"
+            elif m_t:
+                tingkat   = m_t.group(1).upper()
+                nama_file = f"FPK_{tingkat}"
+    except Exception as e:
+        print(f"Gagal baca metadata: {e}")
+    return nama_file, tingkat
+
+
+def process_data(pdf_path: str) -> pd.DataFrame:
+    df_list = tabula.read_pdf(pdf_path, pages='all', multiple_tables=True,
+                              lattice=True, pandas_options={'header': None})
+    if not df_list:
+        raise ValueError("PDF tidak terbaca.")
+    cleaned = [df for df in df_list if df.shape[1] >= 6 and len(df) > 1]
+    df      = pd.concat(cleaned, ignore_index=True)
+    df_data = df.iloc[:, :6].copy()
+    df_data = df_data[pd.to_numeric(df_data.iloc[:, 0], errors='coerce').notna()]
+    df_data.columns = ['No. Urut', 'No.SEP', 'Tgl. Verifikasi', 'Biaya Riil RS', 'Diajukan', 'Disetujui']
+    df_data['No.SEP'] = (df_data['No.SEP'].astype(str)
+                         .str.replace(r'[^a-zA-Z0-9]', '', regex=True).str.strip())
+    df_data['Disetujui'] = (pd.to_numeric(
+        df_data['Disetujui'].astype(str).str.replace(r'[^0-9]', '', regex=True),
+        errors='coerce').fillna(0).astype(int))
+    return df_data[['No.SEP', 'Disetujui']].reset_index(drop=True)
+
+
+# ── ENDPOINTS ────────────────────────────────────────────────
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "service": "fpk-converter-api"}
+
+
+@app.post("/api/proses")
+async def proses_pdf(file: UploadFile = File(...)):
+    t_start = time.perf_counter()
+
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File harus berformat PDF.")
+
+    tmp_path = None
+    try:
+        content = await file.read()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        nama, tingkat = ambil_metadata_pdf(tmp_path)
+        df_res        = process_data(tmp_path)
+        total         = int(df_res['Disetujui'].sum())
+        jumlah        = len(df_res)
+
+        dup = df_res[df_res['No.SEP'].duplicated(keep=False)]
+        duplikat = sorted(dup['No.SEP'].unique().tolist()) if not dup.empty else []
+
+        elapsed_ms = round((time.perf_counter() - t_start) * 1000, 1)
+
+        return {
+            "success": True,
+            "filename": f"{nama}.csv",
+            "tingkat": tingkat,
+            "jumlah": jumlah,
+            "total": total,
+            "duplikat": duplikat,
+            "data": df_res.to_dict(orient="records"),
+            "processing_time_ms": elapsed_ms,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Gagal memproses PDF: {e}")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
