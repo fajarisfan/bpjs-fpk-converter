@@ -851,20 +851,16 @@ def animasi_terminal_proses(uf, dark: bool):
   "status": "DONE ✓"
 }}"""
 
-    # Kecepatan: makin banyak data makin cepet per karakter
-    # Target: animasi data selesai ~5-8 detik
+    # Target durasi animasi: 10-12 detik apapun jumlah data
+    # Strategi: hitung batch_size (karakter per tick) dari total_chars
+    # delay per tick tetap 16ms (≈60fps smooth) — yang diatur batch_size-nya
     total_chars = len(json_text)
-    # delay per char dalam ms
-    if total_chars < 500:
-        char_delay = 18
-    elif total_chars < 2000:
-        char_delay = 8
-    elif total_chars < 10000:
-        char_delay = 3
-    elif total_chars < 50000:
-        char_delay = 1
-    else:
-        char_delay = 0.3   # super cepet buat data ribuan
+    TARGET_SEC  = 11.0          # target durasi animasi
+    TICK_MS     = 16            # delay per setTimeout (ms) — smooth 60fps
+    total_ticks = (TARGET_SEC * 1000) / TICK_MS   # berapa tick yg tersedia
+    # berapa karakter per tick biar selesai dalam target
+    batch_size  = max(1, int(total_chars / total_ticks))
+    char_delay  = TICK_MS      # selalu 16ms, yang berubah batch_size
 
     # Escape untuk JS string (newline → \n, quote → \")
     json_escaped = json_text.replace("\\", "\\\\").replace("`", "\\`")
@@ -915,13 +911,9 @@ def animasi_terminal_proses(uf, dark: bool):
 </style>
 
 <script>
-const RAW = `{json_escaped}`;
-const DELAY = {char_delay};
-
-// Syntax highlight tiap karakter
-function colorChar(ch, idx, text) {{
-    return ch;
-}}
+const RAW        = `{json_escaped}`;
+const DELAY      = {char_delay};
+const BATCH_SIZE = {batch_size};
 
 // Warnain output dengan regex setelah selesai
 function highlight(str) {{
@@ -964,9 +956,8 @@ function typeNext() {{
         return;
     }}
 
-    // Batch per tick biar smooth di data besar
-    const batchSize = DELAY <= 1 ? 8 : 1;
-    for (let b = 0; b < batchSize && i < total; b++) {{
+    // Batch per tick — dihitung Python biar total animasi ~11 detik
+    for (let b = 0; b < BATCH_SIZE && i < total; b++) {{
         buf += RAW[i];
         i++;
     }}
@@ -987,14 +978,9 @@ typeNext();
 
     components.html(html_code, height=460, scrolling=False)
 
-    # Hitung waktu tunggu exact sesuai JS:
-    # JS ngetik batch_size karakter per setTimeout(DELAY ms)
-    batch_size    = 8 if char_delay <= 1 else 1
-    total_ticks   = total_chars / batch_size
-    estimated_sec = (total_ticks * char_delay) / 1000
-    # Clamp + buffer 1.5 detik biar animasi highlight selesai dulu
-    estimated_sec = max(1.0, min(estimated_sec, 14.0)) + 1.5
-    time.sleep(estimated_sec)
+    # Python nunggu sama dengan target animasi JS + 2 detik buffer
+    # (buffer: syntax highlight + banner DONE muncul)
+    time.sleep(TARGET_SEC + 2.0)
 
     return payload, df_res, req_meta, resp_meta
 
