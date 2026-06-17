@@ -1,18 +1,64 @@
 import os
 import json
 import re
-import tempfile
+import time
+import socket
+import threading
 import pandas as pd
 import streamlit as st
-import tabula
-import pdfplumber
+import requests
 
 from datetime import datetime, timezone, timedelta
 
 # ── CONFIG ──────────────────────────────────────────────────
 st.set_page_config(page_title="FPK Converter", page_icon="⚡", layout="centered")
 
-LOG_FILE = "/tmp/log_konversi.json"
+LOG_FILE  = "/tmp/log_konversi.json"
+API_PORT  = 8000
+API_URL   = f"http://localhost:{API_PORT}"
+
+
+def _port_terbuka(port: int) -> bool:
+    """Cek apakah ada proses yang sudah listen di port ini."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex(("localhost", port)) == 0
+
+
+@st.cache_resource
+def start_api_backend():
+    """
+    Menjalankan api.py (FastAPI/uvicorn) sebagai background thread
+    di dalam proses Streamlit yang sama. Ini membuat app.py bisa
+    benar-benar mengirim HTTP request ke API meski hanya dideploy
+    sebagai satu app di Streamlit Cloud (tanpa server terpisah
+    seperti Railway).
+
+    @st.cache_resource memastikan ini hanya dijalankan SEKALI per
+    siklus hidup container, bukan setiap kali Streamlit rerun.
+    """
+    if _port_terbuka(API_PORT):
+        # Sudah ada server jalan di port ini (misal saat development
+        # lokal kamu sengaja jalankan `uvicorn api:app` manual)
+        return "already_running"
+
+    def _run():
+        import uvicorn
+        import api as api_module
+        uvicorn.run(api_module.app, host="0.0.0.0", port=API_PORT, log_level="warning")
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+    # Tunggu sampai API benar-benar siap menerima request (maks ~10 detik)
+    for _ in range(20):
+        if _port_terbuka(API_PORT):
+            return "started"
+        time.sleep(0.5)
+    return "timeout"
+
+
+_api_status = start_api_backend()
 
 def now_wib():
     return datetime.now(timezone.utc) + timedelta(hours=7)
@@ -578,44 +624,61 @@ if not st.session_state.logged_in:
 
 
 # ── HELPERS ──────────────────────────────────────────────────
-def ambil_metadata_pdf(pdf_path):
-    nama_file, tingkat = "Hasil_Konversi_FPK", "UNKNOWN"
+def panggil_api_proses(uf, timeout=60):
+    """
+    Kirim file PDF ke backend API (/api/proses) dan kembalikan
+    hasil parsing beserta detail request/response untuk ditampilkan
+    di panel debug (ala Postman).
+    """
+    endpoint = f"{API_URL}/api/proses"
+    files    = {"file": (uf.name, uf.getvalue(), "application/pdf")}
+
+    request_meta = {
+        "method": "POST",
+        "url": endpoint,
+        "headers": {"Content-Type": "multipart/form-data"},
+        "body": {"file": uf.name, "size_kb": round(len(uf.getvalue()) / 1024, 1)},
+    }
+
+    t0 = time.perf_counter()
     try:
-        with pdfplumber.open(pdf_path) as pdf:
-            text = pdf.pages[0].extract_text() or ""
-            bulan_pola = (r"(JANUARI|FEBRUARI|MARET|APRIL|MEI|JUNI|JULI|"
-                          r"AGUSTUS|SEPTEMBER|OKTOBER|NOVEMBER|DESEMBER)")
-            m_b = re.search(f"{bulan_pola}\\s+(\\d{{4}})", text, re.IGNORECASE)
-            m_t = re.search(r"Tingkat\s+Pelayanan\s*:\s*(RITL|RJTL|RITP|RJTP)", text, re.IGNORECASE)
-            if m_b:
-                bulan     = m_b.group(1).upper()
-                tahun     = m_b.group(2)
-                tingkat   = m_t.group(1).upper() if m_t else "FPK"
-                nama_file = f"FPK_{tingkat}_{bulan}_{tahun}"
-            elif m_t:
-                tingkat   = m_t.group(1).upper()
-                nama_file = f"FPK_{tingkat}"
-    except Exception as e:
-        print(f"Gagal baca metadata: {e}")
-    return nama_file, tingkat
+        resp = requests.post(endpoint, files=files, timeout=timeout)
+        latency_ms = round((time.perf_counter() - t0) * 1000, 1)
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(
+            f"Tidak bisa menghubungi API di {endpoint}. "
+            f"Pastikan backend sudah berjalan (uvicorn api:app --port 8000)."
+        )
+    except requests.exceptions.Timeout:
+        raise RuntimeError(f"API tidak merespons dalam {timeout} detik.")
 
+    response_meta = {
+        "status_code": resp.status_code,
+        "latency_ms": latency_ms,
+    }
 
-def process_data(pdf_path):
-    df_list = tabula.read_pdf(pdf_path, pages='all', multiple_tables=True,
-                              lattice=True, pandas_options={'header': None})
-    if not df_list:
-        raise ValueError("PDF tidak terbaca.")
-    cleaned = [df for df in df_list if df.shape[1] >= 6 and len(df) > 1]
-    df      = pd.concat(cleaned, ignore_index=True)
-    df_data = df.iloc[:, :6].copy()
-    df_data = df_data[pd.to_numeric(df_data.iloc[:, 0], errors='coerce').notna()]
-    df_data.columns = ['No. Urut', 'No.SEP', 'Tgl. Verifikasi', 'Biaya Riil RS', 'Diajukan', 'Disetujui']
-    df_data['No.SEP'] = (df_data['No.SEP'].astype(str)
-                         .str.replace(r'[^a-zA-Z0-9]', '', regex=True).str.strip())
-    df_data['Disetujui'] = (pd.to_numeric(
-        df_data['Disetujui'].astype(str).str.replace(r'[^0-9]', '', regex=True),
-        errors='coerce').fillna(0).astype(int))
-    return df_data[['No.SEP', 'Disetujui']].reset_index(drop=True)
+    if resp.status_code != 200:
+        try:
+            detail = resp.json().get("detail", resp.text)
+        except Exception:
+            detail = resp.text
+        response_meta["body"] = {"detail": detail}
+        raise RuntimeError(detail, request_meta, response_meta)
+
+    payload = resp.json()
+    response_meta["body"] = {
+        "success": payload.get("success"),
+        "filename": payload.get("filename"),
+        "tingkat": payload.get("tingkat"),
+        "jumlah": payload.get("jumlah"),
+        "total": payload.get("total"),
+        "duplikat": payload.get("duplikat"),
+        "processing_time_ms": payload.get("processing_time_ms"),
+        "data": f"[{len(payload.get('data', []))} baris — lihat tab Preview Data]",
+    }
+
+    df_res = pd.DataFrame(payload["data"])
+    return payload, df_res, request_meta, response_meta
 
 
 def render_result(res, idx=0):
@@ -647,6 +710,29 @@ def render_result(res, idx=0):
     """, unsafe_allow_html=True)
 
     st.divider()
+
+    # ── PANEL DEBUG API (ala Postman) ──────────────────────────
+    api_log = res.get('api_log')
+    if api_log:
+        req  = api_log['request']
+        resp = api_log['response']
+        ok   = 200 <= resp['status_code'] < 300
+        status_color = "#00e5a0" if ok else "#f87171"
+        with st.expander(f"🔌 API Request/Response — {resp['status_code']} · {resp['latency_ms']} ms"):
+            st.markdown(f"""
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; margin-bottom:0.8rem;">
+                <span style="color:#00b0ff; font-weight:700;">POST</span>
+                <span style="opacity:0.8;"> {req['url']}</span>
+                &nbsp;→&nbsp;
+                <span style="color:{status_color}; font-weight:700;">{resp['status_code']}</span>
+                <span style="opacity:0.6;"> ({resp['latency_ms']} ms)</span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("**Request**")
+            st.code(json.dumps(req, indent=2, ensure_ascii=False), language="json")
+            st.markdown("**Response**")
+            st.code(json.dumps(resp, indent=2, ensure_ascii=False), language="json")
+
     st.subheader("Preview Data")
     df_prev = res['df'].copy()
     df_prev.insert(0, 'No', range(1, 1 + len(df_prev)))
@@ -780,6 +866,11 @@ with st.expander("ℹ️ Fitur & Cara Penggunaan"):
     - Kalau belum didownload, status **⏳ Belum Diambil**
     - Bisa juga tandai manual lewat tombol **✓ Tandai** di log
 
+    ### 🔌 API Request/Response
+    - Proses konversi sebenarnya menembak **backend API** (FastAPI) yang berjalan di proses yang sama, lewat HTTP request asli — bukan simulasi
+    - Klik expander **🔌 API Request/Response** untuk lihat detail request yang dikirim, status code, dan response JSON dari API — mirip tampilan di Postman
+    - Latency (waktu tempuh request) ditampilkan dalam milidetik
+
     ### 📅 Rekap Per Bulan
     - Di bawah chart ada rekap ringkas per periode
     - Tiap baris tampil: berapa kali konversi, total SEP, tingkat pelayanan, dan total nominal
@@ -810,6 +901,16 @@ with st.expander("ℹ️ Fitur & Cara Penggunaan"):
 tab_pdf, tab_csv = st.tabs(["⚡ Konversi PDF → CSV", "🧮 Kalkulator CSV"])
 
 with tab_pdf:
+    if _api_status == "timeout":
+        st.error(
+            "⚠️ Backend API gagal start dalam waktu yang ditentukan. "
+            "Klik tombol Reset/Reboot app, atau coba refresh halaman."
+        )
+    elif _api_status == "started":
+        st.caption(f"🟢 Backend API aktif di `{API_URL}`")
+    elif _api_status == "already_running":
+        st.caption(f"🟢 Backend API terdeteksi sudah berjalan di `{API_URL}`")
+
     uploaded_files = st.file_uploader(
         "Upload PDF FPK (bisa lebih dari satu)",
         type=['pdf'],
@@ -825,18 +926,14 @@ with tab_pdf:
             total_f = len(uploaded_files)
 
             for i, uf in enumerate(uploaded_files):
-                prog.progress((i + 1) / total_f, text=f"Membaca: {uf.name} ({i+1}/{total_f})")
+                prog.progress((i + 1) / total_f, text=f"Menembak API: {uf.name} ({i+1}/{total_f})")
                 try:
-                    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
-                        tmp.write(uf.getvalue())
-                        tmp_path = tmp.name
+                    payload, df_res, req_meta, resp_meta = panggil_api_proses(uf)
 
-                    nama, tingkat = ambil_metadata_pdf(tmp_path)
-                    df_res        = process_data(tmp_path)
-                    total         = int(df_res['Disetujui'].sum())
-                    jumlah        = len(df_res)
-                    filename      = f"{nama}.csv"
-                    os.unlink(tmp_path)
+                    filename = payload['filename']
+                    tingkat  = payload['tingkat']
+                    total    = payload['total']
+                    jumlah   = payload['jumlah']
 
                     results.append({
                         'filename': filename,
@@ -844,6 +941,7 @@ with tab_pdf:
                         'total'   : total,
                         'count'   : jumlah,
                         'tingkat' : tingkat,
+                        'api_log' : {'request': req_meta, 'response': resp_meta},
                     })
                     save_log({
                         'waktu'        : now_wib().strftime("%d %b %Y, %H:%M") + " WIB",
@@ -854,6 +952,10 @@ with tab_pdf:
                         'status'       : 'Belum Diambil',
                         'waktu_selesai': None,
                     })
+                except RuntimeError as e:
+                    # Error dari panggil_api_proses bisa membawa (msg, req_meta, resp_meta)
+                    msg = e.args[0] if e.args else str(e)
+                    errors.append(f"❌ {uf.name}: {msg}")
                 except Exception as e:
                     errors.append(f"❌ {uf.name}: {e}")
 
