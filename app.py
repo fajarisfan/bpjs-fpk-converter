@@ -1160,7 +1160,6 @@ with tab_pdf:
             _dark   = st.session_state.get('dark_mode', True)
 
             for i, uf in enumerate(uploaded_files):
-                # Header file ke-N
                 if total_f > 1:
                     st.markdown(
                         f'<div style="font-family:\'JetBrains Mono\',monospace; '
@@ -1199,15 +1198,34 @@ with tab_pdf:
                 except Exception as e:
                     errors.append(f"❌ {uf.name}: {e}")
 
-            st.session_state.results = results
-            if errors:
-                for err in errors:
-                    st.error(err)
-            # ✅ success message sengaja TIDAK ditampilkan di sini
-            # biar nggak muncul sebelum animasi JS selesai ngetik.
-            # render_result di bawah sudah cukup sebagai konfirmasi visual.
+            # Simpan ke session_state, rerun biar halaman fresh
+            # success message + render_result muncul SETELAH rerun
+            # → dijamin animasi JS udah selesai sebelum apapun muncul
+            st.session_state.results  = results
+            st.session_state.errors   = errors
+            st.session_state.show_done = True
+            st.rerun()
 
     # ── TAMPILKAN HASIL ──────────────────────────────────────────
+    # show_done = True artinya baru selesai proses (setelah rerun)
+    # → animasi JS udah pasti kelar, aman nampilin hasil
+    if st.session_state.get('show_done'):
+        errors  = st.session_state.pop('errors', [])
+        results = st.session_state.get('results', [])
+        st.session_state.show_done = False
+
+        if errors:
+            for err in errors:
+                st.error(err)
+        if results:
+            total_sep = sum(r['count'] for r in results)
+            total_nom = sum(r['total'] for r in results)
+            nom_fmt   = f"Rp {total_nom:,}".replace(",", ".")
+            st.success(
+                f"✅ {len(results)} file berhasil diproses — "
+                f"{total_sep} SEP — {nom_fmt}"
+            )
+
     if st.session_state.get('results'):
         results = st.session_state.results
         if len(results) == 1:
