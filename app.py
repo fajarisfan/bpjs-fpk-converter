@@ -19,6 +19,7 @@ API_URL   = f"http://localhost:{API_PORT}"
 
 
 def _port_terbuka(port: int) -> bool:
+    """Cek apakah ada proses yang sudah listen di port ini."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.5)
         return s.connect_ex(("localhost", port)) == 0
@@ -26,14 +27,30 @@ def _port_terbuka(port: int) -> bool:
 
 @st.cache_resource
 def start_api_backend():
+    """
+    Menjalankan api.py (FastAPI/uvicorn) sebagai background thread
+    di dalam proses Streamlit yang sama. Ini membuat app.py bisa
+    benar-benar mengirim HTTP request ke API meski hanya dideploy
+    sebagai satu app di Streamlit Cloud (tanpa server terpisah
+    seperti Railway).
+
+    @st.cache_resource memastikan ini hanya dijalankan SEKALI per
+    siklus hidup container, bukan setiap kali Streamlit rerun.
+    """
     if _port_terbuka(API_PORT):
+        # Sudah ada server jalan di port ini (misal saat development
+        # lokal kamu sengaja jalankan `uvicorn api:app` manual)
         return "already_running"
+
     def _run():
         import uvicorn
         import api as api_module
         uvicorn.run(api_module.app, host="0.0.0.0", port=API_PORT, log_level="warning")
+
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
+
+    # Tunggu sampai API benar-benar siap menerima request (maks ~10 detik)
     for _ in range(20):
         if _port_terbuka(API_PORT):
             return "started"
@@ -69,13 +86,13 @@ def update_log_status(nama_file: str, status: str):
     log = load_log()
     for item in log:
         if item.get('nama_file') == nama_file:
-            item['status'] = status
+            item['status']        = status
             item['waktu_selesai'] = now_wib().strftime("%d %b %Y, %H:%M") + " WIB" if status == "Selesai" else None
             break
     with open(LOG_FILE, "w") as f:
         json.dump(log[:100], f, ensure_ascii=False, indent=2)
 
-# ── PIN ─────────────────────────────────────────────────────
+# ── PIN (via st.secrets) ─────────────────────────────────────
 MAX_ATTEMPT = 5
 LOCKOUT_MIN = 5
 
@@ -87,16 +104,19 @@ def get_correct_pin():
 
 def check_pin(input_pin: str):
     correct_pin = get_correct_pin()
+
+    # Cek lockout dari session_state
     locked_until = st.session_state.get("locked_until")
     if locked_until:
         if now_wib() < locked_until:
             sisa = int((locked_until - now_wib()).total_seconds() // 60) + 1
             return False, f"🔒 Terlalu banyak percobaan. Coba lagi dalam **{sisa} menit**."
         else:
-            st.session_state.attempts = 0
+            st.session_state.attempts    = 0
             st.session_state.locked_until = None
+
     if input_pin == correct_pin:
-        st.session_state.attempts = 0
+        st.session_state.attempts    = 0
         st.session_state.locked_until = None
         return True, ""
     else:
@@ -107,7 +127,7 @@ def check_pin(input_pin: str):
             return False, f"🔒 PIN salah {MAX_ATTEMPT}x. Dikunci selama **{LOCKOUT_MIN} menit**."
         return False, f"❌ PIN salah. Sisa percobaan: **{sisa_attempt}x**."
 
-def change_pin(pin_lama, pin_baru, pin_konfirm):
+def change_pin(pin_lama: str, pin_baru: str, pin_konfirm: str):
     correct_pin = get_correct_pin()
     if pin_lama != correct_pin:
         return False, "❌ PIN lama tidak cocok."
@@ -180,6 +200,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
 .stApp {{ background-color: {bg}; }}
 .block-container {{ padding-top: 1.5rem; max-width: 680px; }}
 
+/* HEADER */
 .app-header {{ text-align:center; padding:2.5rem 2rem 1.5rem; margin-bottom:0.5rem; }}
 .app-header .badge {{
     display:inline-block;
@@ -202,6 +223,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
 }}
 .app-header p {{ color:{text_body}; font-size:0.95rem; margin-top:0.8rem; font-weight:500; }}
 
+/* EXPANDER */
 [data-testid="stExpander"] {{
     background:{surface} !important; border:3px solid {border} !important;
     border-radius:0px !important; overflow:hidden !important; margin-bottom:1rem !important;
@@ -217,6 +239,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     font-size:0.9rem !important; line-height:1.7 !important;
 }}
 
+/* TABS */
 [data-testid="stTabs"] [data-testid="stTab"] {{
     background:{surface} !important; border:2px solid {border} !important;
     border-radius:0px !important; color:{text_muted} !important;
@@ -228,6 +251,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     border-color:{text_h} !important; color:{text_h} !important;
 }}
 
+/* INPUT */
 .stTextInput > div > div > input {{
     background:{input_bg} !important; border:3px solid {input_bdr} !important;
     border-radius:0px !important; color:{input_col} !important;
@@ -247,6 +271,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
     text-transform:uppercase !important; font-family:'JetBrains Mono',monospace !important;
 }}
 
+/* HIDE EYE ICON */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {{
     display:none !important; visibility:hidden !important; pointer-events:none !important;
@@ -272,6 +297,7 @@ input[type="password"]:active {{
     caret-color: {accent} !important;
 }}
 
+/* FILE UPLOADER */
 [data-testid="stFileUploader"] {{ position:relative !important; }}
 [data-testid="stFileUploader"] section {{
     background:{surface} !important; border:3px dashed {border} !important;
@@ -293,6 +319,7 @@ input[type="password"]:active {{
     box-shadow: 3px 3px 0px {text_h} !important; text-transform:uppercase !important;
 }}
 
+/* BUTTONS */
 .stButton > button {{
     background:{accent} !important;
     color:{text_h} !important; border:3px solid {text_h} !important; border-radius:0px !important;
@@ -342,6 +369,7 @@ input[type="password"]:active {{
     background:{accent3} !important; color:{text_h} !important;
 }}
 
+/* DOWNLOAD */
 .stDownloadButton > button {{
     background:{surface} !important; border:3px solid {accent3} !important;
     color:{accent3} !important; box-shadow:4px 4px 0px {accent3} !important;
@@ -354,6 +382,7 @@ input[type="password"]:active {{
     box-shadow:6px 6px 0px {border} !important; transform:translate(-2px,-2px) !important;
 }}
 
+/* STATS */
 .stats-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; }}
 .stat-card {{
     background:{surface}; border:3px solid {border};
@@ -370,6 +399,7 @@ input[type="password"]:active {{
 .stat-value.green {{ color:{accent3}; }}
 .stat-sub {{ color:{text_dim}; font-size:0.72rem; margin-top:0.4rem; font-family:'JetBrains Mono',monospace; }}
 
+/* TINGKAT BADGE */
 .tingkat-badge {{
     display:inline-flex; align-items:center; gap:6px;
     padding:4px 12px; border-radius:0px; font-size:0.72rem; font-weight:800;
@@ -379,6 +409,7 @@ input[type="password"]:active {{
 .tingkat-badge.ritl {{ background:rgba(139,92,246,0.15); border-color:#a78bfa; color:#a78bfa; }}
 .tingkat-badge.rjtl {{ background:rgba(59,130,246,0.15); border-color:#60a5fa; color:#60a5fa; }}
 
+/* FILE BADGE */
 .file-badge {{
     display:inline-flex; align-items:center; gap:8px;
     background:{surface}; border:2px solid {accent3};
@@ -387,6 +418,7 @@ input[type="password"]:active {{
     box-shadow: 3px 3px 0px {accent3};
 }}
 
+/* LOG */
 .log-title {{ color:{text_muted}; font-size:10px; font-weight:800; letter-spacing:3px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }}
 .log-item {{
     background:{surface}; border:2px solid {border};
@@ -416,6 +448,7 @@ input[type="password"]:active {{
 .log-badge.rjtl  {{ background:rgba(59,130,246,0.1); border-color:#60a5fa; color:#60a5fa; }}
 .log-badge.other {{ background:rgba(100,116,139,0.1); border-color:#94a3b8; color:#94a3b8; }}
 
+/* REKAP CARD */
 .rekap-card {{
     background:{surface}; border:2px solid {border};
     border-radius:0px; padding:1rem 1.25rem; margin-bottom:0.55rem;
@@ -433,6 +466,7 @@ input[type="password"]:active {{
     font-family:'JetBrains Mono',monospace; white-space:nowrap; text-align:right;
 }}
 
+/* STATUS BADGE */
 .status-selesai {{
     display:inline-flex; align-items:center; gap:4px;
     background:rgba(0,200,122,0.1); border:2px solid {accent3};
@@ -448,6 +482,7 @@ input[type="password"]:active {{
 
 .log-empty {{ color:{text_dim}; font-size:0.85rem; text-align:center; padding:2rem 0; font-style:italic; }}
 
+/* SECTION TITLE */
 .section-title {{
     color:{text_muted}; font-size:10px; font-weight:800;
     letter-spacing:3px; text-transform:uppercase; margin-bottom:1rem;
@@ -455,6 +490,7 @@ input[type="password"]:active {{
     border-left: 4px solid {accent}; padding-left: 10px;
 }}
 
+/* MISC */
 [data-testid="stAlert"] {{ border-radius:0px !important; padding:0.85rem 1rem !important; border-left:4px solid !important; }}
 hr {{ border-color:{border2} !important; margin:1.5rem 0 !important; }}
 [data-testid="stDataFrame"] {{
@@ -507,13 +543,14 @@ if 'dark_mode' not in st.session_state:
 
 inject_css(st.session_state.dark_mode)
 
+# Session timeout — 8 jam
 SESSION_TIMEOUT_HOURS = 8
 if st.session_state.logged_in:
     login_time = st.session_state.get("login_time")
     if login_time:
         elapsed = (now_wib() - datetime.fromisoformat(login_time)).total_seconds() / 3600
         if elapsed > SESSION_TIMEOUT_HOURS:
-            st.session_state.logged_in = False
+            st.session_state.logged_in  = False
             st.session_state.login_time = None
             st.rerun()
 
@@ -561,6 +598,7 @@ if not st.session_state.logged_in:
         </div>
     """, unsafe_allow_html=True)
 
+    # Cek lockout
     locked_until = st.session_state.get("locked_until")
     is_locked_now = False
     if locked_until:
@@ -569,7 +607,7 @@ if not st.session_state.logged_in:
             sisa = int((locked_until - now_wib()).total_seconds() // 60) + 1
             st.error(f"🔒 Terlalu banyak percobaan salah. Coba lagi dalam **{sisa} menit**.")
         else:
-            st.session_state.attempts = 0
+            st.session_state.attempts    = 0
             st.session_state.locked_until = None
 
     if not is_locked_now:
@@ -577,14 +615,75 @@ if not st.session_state.logged_in:
         if st.button("Masuk →", key="btn_masuk"):
             ok, msg = check_pin(pin_input)
             if ok:
-                st.session_state.logged_in = True
+                st.session_state.logged_in  = True
                 st.session_state.login_time = now_wib().isoformat()
                 st.rerun()
             else:
                 st.error(msg)
     st.stop()
 
-# ── RENDER HASIL ────────────────────────────────────────────
+
+# ── HELPERS ──────────────────────────────────────────────────
+def panggil_api_proses(uf, timeout=60):
+    """
+    Kirim file PDF ke backend API (/api/proses) dan kembalikan
+    hasil parsing beserta detail request/response untuk ditampilkan
+    di panel debug (ala Postman).
+    """
+    endpoint = f"{API_URL}/api/proses"
+    files    = {"file": (uf.name, uf.getvalue(), "application/pdf")}
+
+    request_meta = {
+        "method": "POST",
+        "url": endpoint,
+        "headers": {"Content-Type": "multipart/form-data"},
+        "body": {"file": uf.name, "size_kb": round(len(uf.getvalue()) / 1024, 1)},
+    }
+
+    t0 = time.perf_counter()
+    try:
+        resp = requests.post(endpoint, files=files, timeout=timeout)
+        latency_ms = round((time.perf_counter() - t0) * 1000, 1)
+    except requests.exceptions.ConnectionError:
+        raise RuntimeError(
+            f"Tidak bisa menghubungi API di {endpoint}. "
+            f"Pastikan backend sudah berjalan (uvicorn api:app --port 8000)."
+        )
+    except requests.exceptions.Timeout:
+        raise RuntimeError(f"API tidak merespons dalam {timeout} detik.")
+
+    response_meta = {
+        "status_code": resp.status_code,
+        "latency_ms": latency_ms,
+    }
+
+    if resp.status_code != 200:
+        try:
+            detail = resp.json().get("detail", resp.text)
+        except Exception:
+            detail = resp.text
+        response_meta["body"] = {"detail": detail}
+        raise RuntimeError(detail, request_meta, response_meta)
+
+    payload = resp.json()
+    response_meta["body"] = {
+        "success"           : payload.get("success"),
+        "filename"          : payload.get("filename"),
+        "original_filename" : payload.get("original_filename"),
+        "tingkat"           : payload.get("tingkat"),
+        "jumlah"            : payload.get("jumlah"),
+        "total"             : payload.get("total"),
+        "duplikat"          : payload.get("duplikat"),
+        "processing_time_ms": payload.get("processing_time_ms"),
+        "file_index"        : payload.get("file_index"),
+        "total_files"       : payload.get("total_files"),
+        "data"              : f"[{len(payload.get('data', []))} baris — lihat tab Preview Data]",
+    }
+
+    df_res = pd.DataFrame(payload["data"])
+    return payload, df_res, request_meta, response_meta
+
+
 def render_result(res, idx=0):
     tingkat = res['tingkat']
     t_lower = tingkat.lower()
@@ -615,11 +714,12 @@ def render_result(res, idx=0):
 
     st.divider()
 
+    # ── PANEL DEBUG API (ala Postman) ──────────────────────────
     api_log = res.get('api_log')
     if api_log:
-        req = api_log['request']
+        req  = api_log['request']
         resp = api_log['response']
-        ok = 200 <= resp['status_code'] < 300
+        ok   = 200 <= resp['status_code'] < 300
         status_color = "#00e5a0" if ok else "#f87171"
         with st.expander(f"🔌 API Request/Response — {resp['status_code']} · {resp['latency_ms']} ms"):
             st.markdown(f"""
@@ -636,49 +736,17 @@ def render_result(res, idx=0):
             st.markdown("**Response**")
             st.code(json.dumps(resp, indent=2, ensure_ascii=False), language="json")
 
-    tab_preview, tab_json = st.tabs(["📊 Preview Data", "📦 JSON Mentah (Streaming)"])
-
-    with tab_preview:
-        df_prev = res['df'].copy()
-        df_prev.insert(0, 'No', range(1, 1 + len(df_prev)))
-        df_prev = df_prev[['No', 'No.SEP', 'Disetujui']]
-        st.dataframe(
-            df_prev,
-            use_container_width=True,
-            height=280,
-            hide_index=True,
-            column_config={
-                "No": st.column_config.NumberColumn("No", width=60),
-                "No.SEP": st.column_config.TextColumn("No.SEP", width=200),
-                "Disetujui": st.column_config.NumberColumn("Nominal Cair", format="Rp %d", width=150),
-            }
-        )
-
-    with tab_json:
-        if api_log and 'body' in resp:
-            full_response = resp['body']
-            data_list = full_response.get('data', [])
-            total_data = len(data_list)
-            if total_data > 0:
-                placeholder = st.empty()
-                base_json = full_response.copy()
-                base_json['data'] = []
-                batch_size = 50
-                progress_bar = st.progress(0, text="⏳ Memuat JSON...")
-                for i in range(0, total_data, batch_size):
-                    end = min(i + batch_size, total_data)
-                    base_json['data'] = data_list[:end]
-                    placeholder.json(base_json)
-                    progress = (end / total_data)
-                    progress_bar.progress(progress, text=f"📥 {end} dari {total_data} data dimuat")
-                    time.sleep(0.05)
-                progress_bar.empty()
-                placeholder.json(full_response)
-                st.caption(f"✅ {total_data} data berhasil dimuat dalam JSON")
-            else:
-                st.json(full_response)
-        else:
-            st.info("Tidak ada JSON response untuk ditampilkan.")
+    st.subheader("Preview Data")
+    df_prev = res['df'].copy()
+    df_prev.insert(0, 'No', range(1, 1 + len(df_prev)))
+    # Eksplisit reorder: No → No.SEP → Disetujui (Nominal Cair)
+    df_prev = df_prev[['No', 'No.SEP', 'Disetujui']]
+    st.dataframe(df_prev, use_container_width=True, height=280, hide_index=True,
+                 column_config={
+                     "No"       : st.column_config.NumberColumn("No",           width=60),
+                     "No.SEP"   : st.column_config.TextColumn("No.SEP"),
+                     "Disetujui": st.column_config.NumberColumn("Nominal Cair", format="Rp %d"),
+                 })
 
     dup = res['df'][res['df']['No.SEP'].duplicated(keep=False)]
     if not dup.empty:
@@ -686,17 +754,12 @@ def render_result(res, idx=0):
         st.warning(f"⚠️ **{len(dup['No.SEP'].unique())} No.SEP duplikat ditemukan:** {dup_list}")
 
     st.divider()
-
     col1, col2 = st.columns([3, 1])
     with col1:
-        csv = res['df'].to_csv(index=False).encode('utf-8')
-        downloaded = st.download_button(
-            label="⬇ Download CSV",
-            data=csv,
-            file_name=res['filename'],
-            mime="text/csv",
-            key=f"dl_{idx}"
-        )
+        csv        = res['df'].to_csv(index=False).encode('utf-8')
+        downloaded = st.download_button(label="⬇ Download CSV", data=csv,
+                                        file_name=res['filename'], mime="text/csv",
+                                        key=f"dl_{idx}")
         if downloaded:
             update_log_status(res['filename'], 'Selesai')
             st.rerun()
@@ -708,6 +771,220 @@ def render_result(res, idx=0):
         st.markdown('</div>', unsafe_allow_html=True)
 
 
+def animasi_terminal_proses(uf, dark: bool):
+    """
+    Step 1: Tampil spinner Python sambil nunggu API
+    Step 2: Setelah API balik, inject data JSON ke JS typewriter
+            yang ketik karakter per karakter kayak CMD beneran.
+    Return: (payload, df_res, req_meta, resp_meta)
+    """
+    import streamlit.components.v1 as components
+
+    surf  = "#0d0d0d" if dark else "#f5f0e8"
+    bdr   = "#333333" if dark else "#222222"
+
+    # ── Step 1: Spinner Python sambil panggil API ───────────────
+    placeholder = st.empty()
+    placeholder.markdown(f"""
+    <div style="background:{surf}; border:2px solid {bdr}; padding:1rem 1.4rem;
+        font-family:'JetBrains Mono',monospace; font-size:0.75rem;
+        box-shadow:4px 4px 0 {bdr}; color:#888;">
+        <span style="color:#ff6b35; font-weight:700; letter-spacing:2px;
+            font-size:0.68rem;">⚡ FPK CONVERTER — API</span><br><br>
+        <span style="color:#888;">$ POST /api/proses → localhost:8000</span><br>
+        <span style="color:#555;">  menunggu response</span>
+        <span style="color:#ff6b35; animation:blink 1s infinite;">█</span>
+    </div>
+    <style>@keyframes blink{{0%,100%{{opacity:1}}50%{{opacity:0}}}}</style>
+    """, unsafe_allow_html=True)
+
+    # ── Panggil API beneran ─────────────────────────────────────
+    payload, df_res, req_meta, resp_meta = panggil_api_proses(uf)
+
+    placeholder.empty()
+
+    tingkat  = payload.get("tingkat", "FPK")
+    jumlah   = payload.get("jumlah", 0)
+    total    = payload.get("total", 0)
+    duplikat = payload.get("duplikat", [])
+    lat_ms   = resp_meta.get("latency_ms", 0)
+    proc_ms  = payload.get("processing_time_ms", 0)
+    filename = payload.get("filename", "")
+    sep_list = df_res[["No.SEP", "Disetujui"]].to_dict(orient="records")
+
+    # ── Bangun string JSON yang akan diketik JS ─────────────────
+    # Format: baris per baris biar keliatan natural
+    total_fmt = f"Rp {total:,}".replace(",", ".")
+    dup_str   = json.dumps(duplikat) if duplikat else "[]"
+
+    # Bangun baris data — tiap row satu string
+    data_lines = []
+    for i, row in enumerate(sep_list):
+        sep = row["No.SEP"]
+        nom = int(row["Disetujui"])
+        comma = "," if i < len(sep_list) - 1 else ""
+        data_lines.append(
+            f'    {{"No.SEP": "{sep}", "Disetujui": {nom}}}{comma}'
+        )
+    data_block = "\n".join(data_lines)
+
+    json_text = f"""{{
+  "request": {{
+    "method": "POST",
+    "endpoint": "/api/proses",
+    "file": "{uf.name}",
+    "size_kb": {round(len(uf.getvalue())/1024, 1)}
+  }},
+  "response": {{
+    "status": 200,
+    "latency_ms": {lat_ms},
+    "processing_time_ms": {proc_ms},
+    "tingkat": "{tingkat}",
+    "jumlah": {jumlah},
+    "filename": "{filename}",
+    "duplikat": {dup_str},
+    "total_disetujui": {total},
+    "data": [
+{data_block}
+    ]
+  }},
+  "status": "DONE ✓"
+}}"""
+
+    # Target durasi animasi: 10-12 detik apapun jumlah data
+    # Strategi: hitung batch_size (karakter per tick) dari total_chars
+    # delay per tick tetap 16ms (≈60fps smooth) — yang diatur batch_size-nya
+    total_chars = len(json_text)
+    TARGET_SEC  = 11.0          # target durasi animasi
+    TICK_MS     = 16            # delay per setTimeout (ms) — smooth 60fps
+    total_ticks = (TARGET_SEC * 1000) / TICK_MS   # berapa tick yg tersedia
+    # berapa karakter per tick biar selesai dalam target
+    batch_size  = max(1, int(total_chars / total_ticks))
+    char_delay  = TICK_MS      # selalu 16ms, yang berubah batch_size
+
+    # Escape untuk JS string (newline → \n, quote → \")
+    json_escaped = json_text.replace("\\", "\\\\").replace("`", "\\`")
+
+    # ── Render JS Typewriter ────────────────────────────────────
+    html_code = f"""
+<div style="
+    background:#0d0d0d; border:2px solid #333; padding:0;
+    font-family:'JetBrains Mono',monospace; font-size:0.73rem;
+    box-shadow:4px 4px 0 #333; overflow:hidden;
+">
+    <!-- Header bar -->
+    <div style="background:#1a1a1a; border-bottom:1px solid #333;
+        padding:0.5rem 1rem; display:flex; align-items:center; gap:8px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:#ff5f57;"></div>
+        <div style="width:10px;height:10px;border-radius:50%;background:#febc2e;"></div>
+        <div style="width:10px;height:10px;border-radius:50%;background:#28c840;"></div>
+        <span style="color:#555; font-size:0.65rem; margin-left:8px; letter-spacing:1px;">
+            FPK-CONVERTER — API RESPONSE
+        </span>
+    </div>
+
+    <!-- Terminal body -->
+    <div id="terminal" style="
+        padding:1rem 1.2rem; height:380px; overflow-y:auto;
+        color:#f0f0f0; white-space:pre; line-height:1.7;
+        scrollbar-width:thin; scrollbar-color:#333 #0d0d0d;
+    "><span id="output"></span><span id="cursor" style="
+        color:#ff6b35; animation:blink 0.7s step-end infinite;">█</span></div>
+
+    <!-- Progress bar -->
+    <div style="background:#111; border-top:1px solid #222; padding:0.5rem 1rem;
+        display:flex; align-items:center; gap:10px;">
+        <span style="color:#555; font-size:0.65rem;">TYPING</span>
+        <div style="flex:1; height:3px; background:#222;">
+            <div id="pbar" style="height:3px; background:#ff6b35; width:0%;
+                transition:width 0.1s;"></div>
+        </div>
+        <span id="pct" style="color:#ff6b35; font-size:0.65rem; font-weight:700;">0%</span>
+    </div>
+</div>
+
+<style>
+@keyframes blink {{ 0%,100%{{opacity:1}} 50%{{opacity:0}} }}
+#terminal::-webkit-scrollbar {{ width:4px; }}
+#terminal::-webkit-scrollbar-track {{ background:#0d0d0d; }}
+#terminal::-webkit-scrollbar-thumb {{ background:#333; }}
+</style>
+
+<script>
+const RAW        = `{json_escaped}`;
+const DELAY      = {char_delay};
+const BATCH_SIZE = {batch_size};
+
+// Warnain output dengan regex setelah selesai
+function highlight(str) {{
+    return str
+        .replace(/("No\.SEP")/g, '<span style="color:#00b0ff;">$1</span>')
+        .replace(/("Disetujui")/g, '<span style="color:#00e5a0;">$1</span>')
+        .replace(/("request"|"response"|"status"|"method"|"endpoint"|"file"|"size_kb"|"latency_ms"|"processing_time_ms"|"tingkat"|"jumlah"|"filename"|"duplikat"|"total_disetujui"|"data")/g,
+            '<span style="color:#e040fb;">$1</span>')
+        .replace(/:\s*(\d+\.?\d*)/g, ': <span style="color:#ffd700;">$1</span>')
+        .replace(/:\s*"([^"]*)"/g, ': <span style="color:#ff6b35;">"$1"</span>')
+        .replace(/(DONE ✓)/g, '<span style="color:#00e5a0; font-weight:700;">$1</span>')
+        .replace(/(\[\]|\[)/g, '<span style="color:#888;">$1</span>')
+        .replace(/(\])/g, '<span style="color:#888;">$1</span>');
+}}
+
+const out    = document.getElementById('output');
+const cursor = document.getElementById('cursor');
+const pbar   = document.getElementById('pbar');
+const pct    = document.getElementById('pct');
+const term   = document.getElementById('terminal');
+const total  = RAW.length;
+
+let i = 0;
+let buf = '';
+
+function typeNext() {{
+    if (i >= total) {{
+        // Selesai — highlight syntax, hilangkan cursor kedip
+        out.innerHTML = highlight(buf);
+        cursor.style.display = 'none';
+        pbar.style.width = '100%';
+        pct.textContent = '100%';
+        pct.style.color = '#00e5a0';
+        document.getElementById('pbar').style.background = '#00e5a0';
+        // Banner DONE muncul setelah animasi selesai
+        const banner = document.createElement('div');
+        banner.style.cssText = 'background:#00e5a0;color:#0d0d0d;font-family:JetBrains Mono,monospace;font-size:0.72rem;font-weight:800;letter-spacing:2px;padding:0.5rem 1.2rem;text-align:center;border-top:2px solid #333;';
+        banner.textContent = '\u2713 KONVERSI SELESAI — DATA SIAP DIDOWNLOAD';
+        document.getElementById('terminal').parentElement.appendChild(banner);
+        return;
+    }}
+
+    // Batch per tick — dihitung Python biar total animasi ~11 detik
+    for (let b = 0; b < BATCH_SIZE && i < total; b++) {{
+        buf += RAW[i];
+        i++;
+    }}
+
+    out.textContent = buf;
+    term.scrollTop = term.scrollHeight;
+
+    const p = Math.round((i / total) * 100);
+    pbar.style.width = p + '%';
+    pct.textContent = p + '%';
+
+    setTimeout(typeNext, DELAY);
+}}
+
+typeNext();
+</script>
+"""
+
+    components.html(html_code, height=460, scrolling=False)
+
+    # Python nunggu sama dengan target animasi JS + 2 detik buffer
+    # (buffer: syntax highlight + banner DONE muncul)
+    time.sleep(TARGET_SEC + 2.0)
+
+    return payload, df_res, req_meta, resp_meta
+
+
 def build_chart(log_data):
     if not log_data:
         return None
@@ -715,16 +992,16 @@ def build_chart(log_data):
                    "JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"]
     records = {}
     for item in log_data:
-        m = re.search(r'FPK_(?:RITL|RJTL|RITP|RJTP|FPK)?_?([A-Z]+)_(\d{4})', item['nama_file'])
+        m      = re.search(r'FPK_(?:RITL|RJTL|RITP|RJTP|FPK)?_?([A-Z]+)_(\d{4})', item['nama_file'])
         period = f"{m.group(1)} {m.group(2)}" if m else "Lainnya"
-        tkt = item.get('tingkat', 'FPK')
-        key = (period, tkt)
+        tkt    = item.get('tingkat', 'FPK')
+        key    = (period, tkt)
         records[key] = records.get(key, 0) + item['total']
     if not records:
         return None
-    periods = sorted(set(k[0] for k in records),
-                     key=lambda x: (x.split()[-1], bulan_order.index(x.split()[0])
-                                    if x.split()[0] in bulan_order else 99))
+    periods  = sorted(set(k[0] for k in records),
+                      key=lambda x: (x.split()[-1], bulan_order.index(x.split()[0])
+                                     if x.split()[0] in bulan_order else 99))
     tingkats = sorted(set(k[1] for k in records))
     rows = []
     for p in periods:
@@ -739,6 +1016,7 @@ def build_chart(log_data):
 # HALAMAN UTAMA
 # ══════════════════════════════════════════════════════════════
 
+# Top bar
 col_sp, col_theme, col_pin, col_logout = st.columns([4, 1, 1, 1])
 
 with col_theme:
@@ -763,16 +1041,18 @@ with col_logout:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
+# Form ganti PIN
 if st.session_state.get("show_pin_form"):
     with st.expander("🔑 Ganti PIN", expanded=True):
         st.info("💡 Untuk ganti PIN, ubah nilai **PIN** di **Streamlit Cloud → Settings → Secrets**, lalu klik **Reboot app**.")
-        p_lama = st.text_input("PIN Lama", type="password", placeholder="", key="p_lama")
-        p_baru = st.text_input("PIN Baru", type="password", placeholder="", key="p_baru")
+        p_lama    = st.text_input("PIN Lama",            type="password", placeholder="", key="p_lama")
+        p_baru    = st.text_input("PIN Baru",            type="password", placeholder="", key="p_baru")
         p_konfirm = st.text_input("Konfirmasi PIN Baru", type="password", placeholder="", key="p_konfirm")
         if st.button("Simpan PIN Baru", key="save_pin_btn"):
             ok, msg = change_pin(p_lama, p_baru, p_konfirm)
             st.warning(msg) if not ok else st.success(msg)
 
+# Header
 st.markdown("""
     <div class="app-header">
         <div class="badge">⚡ Converter Tools &nbsp;·&nbsp; v1.0</div>
@@ -791,8 +1071,9 @@ with st.expander("ℹ️ Fitur & Cara Penggunaan"):
     st.markdown("""
     ### ⚡ Konversi PDF → CSV
     - Upload satu atau beberapa PDF FPK BPJS sekaligus (maks 200MB/file)
-    - Klik **⚡ Proses Sekarang** — sistem akan menjalankan API dan menampilkan proses secara real-time
+    - Klik **⚡ Proses Sekarang** — sistem otomatis membaca isi PDF
     - Nama file CSV terdeteksi otomatis dari PDF: **FPK_RITL_MARET_2026.csv** atau **FPK_RJTL_MARET_2026.csv**
+    - Kalau upload lebih dari 1 PDF, hasil tiap file tampil di **tab terpisah**
     - Output CSV hanya berisi 2 kolom: **No.SEP** dan **Disetujui** — siap upload ke SIMRS
 
     ### ⚠️ Cek Duplikat No.SEP
@@ -802,35 +1083,53 @@ with st.expander("ℹ️ Fitur & Cara Penggunaan"):
     ### 📥 Download & Status
     - Klik **⬇ Download CSV** untuk mengunduh hasil konversi
     - Status di log otomatis berubah jadi **✓ Selesai** setelah download
+    - Kalau belum didownload, status **⏳ Belum Diambil**
+    - Bisa juga tandai manual lewat tombol **✓ Tandai** di log
 
-    ### 🔌 API Request/Response & JSON Streaming
-    - Proses konversi dilakukan oleh **backend FastAPI** yang berjalan di latar belakang
-    - Pada tab **📦 JSON Mentah (Streaming)**, Anda dapat melihat seluruh data dalam format JSON yang muncul secara bertahap (seperti efek `curl` di terminal)
-    - Di expander **🔌 API Request/Response** tersedia detail request/response lengkap seperti Postman
+    ### 🔌 API Request/Response
+    - Proses konversi sebenarnya menembak **backend API** (FastAPI) yang berjalan di proses yang sama, lewat HTTP request asli — bukan simulasi
+    - Klik expander **🔌 API Request/Response** untuk lihat detail request yang dikirim, status code, dan response JSON dari API — mirip tampilan di Postman
+    - Latency (waktu tempuh request) ditampilkan dalam milidetik
 
-    ### 📊 Rekap & Riwayat
+    ### 📅 Rekap Per Bulan
+    - Di bawah chart ada rekap ringkas per periode
+    - Tiap baris tampil: berapa kali konversi, total SEP, tingkat pelayanan, dan total nominal
+
+    ### 📊 Chart Rekap Periode
+    - Bar chart otomatis terbentuk dari riwayat konversi
+    - Warna berbeda per tingkat: **ungu = RITL**, **biru = RJTL**
+    - Sumbu Y dalam satuan juta rupiah (M)
+
+    ### 🕓 Riwayat Konversi
     - Semua aktivitas konversi tersimpan otomatis (maks 100 entri)
     - Tampil: nama file, badge RITL/RJTL, waktu konversi, total nominal, jumlah SEP, status
     - Summary di atas log: total konversi, selesai, pending, total nominal kumulatif
+    - Klik **Hapus Semua** untuk reset seluruh riwayat
 
     ### 🔑 Keamanan
     - **PIN tidak terlihat** saat diketik (seperti terminal Linux)
     - **Salah PIN 5x** → aplikasi dikunci otomatis 5 menit
     - **Session timeout 8 jam** → otomatis logout jika tidak aktif
+    - **Ganti PIN** lewat Streamlit Cloud → Settings → Secrets → ubah nilai PIN → Reboot app
     - **Logout** lewat tombol 🚪 di pojok kanan atas
 
     ### 🌙 Tema
     - Toggle **dark/light mode** lewat tombol ☀️/🌙 di pojok kanan atas
     """)
 
-# ── TABS ──────────────────────────────────────────────────────
+# ── TABS: PDF CONVERTER  |  KALKULATOR CSV ───────────────────
 tab_pdf, tab_csv = st.tabs(["⚡ Konversi PDF → CSV", "🧮 Kalkulator CSV"])
 
 with tab_pdf:
     if _api_status == "timeout":
-        st.error("⚠️ Backend API gagal start. Refresh halaman.")
-    elif _api_status in ("started", "already_running"):
+        st.error(
+            "⚠️ Backend API gagal start dalam waktu yang ditentukan. "
+            "Klik tombol Reset/Reboot app, atau coba refresh halaman."
+        )
+    elif _api_status == "started":
         st.caption(f"🟢 Backend API aktif di `{API_URL}`")
+    elif _api_status == "already_running":
+        st.caption(f"🟢 Backend API terdeteksi sudah berjalan di `{API_URL}`")
 
     uploaded_files = st.file_uploader(
         "Upload PDF FPK (bisa lebih dari satu)",
@@ -842,95 +1141,76 @@ with tab_pdf:
     if uploaded_files:
         if st.button("⚡ Proses Sekarang"):
             results = []
-            errors = []
-            total_files = len(uploaded_files)
+            errors  = []
+            total_f = len(uploaded_files)
+            _dark   = st.session_state.get('dark_mode', True)
 
-            with st.status("⏳ Memulai proses...", expanded=True) as status:
-                for file_idx, uf in enumerate(uploaded_files):
-                    status.update(label=f"📄 Memproses {uf.name} ({file_idx+1}/{total_files})")
+            for i, uf in enumerate(uploaded_files):
+                if total_f > 1:
+                    st.markdown(
+                        f'<div style="font-family:\'JetBrains Mono\',monospace; '
+                        f'font-size:0.75rem; color:#888; margin-bottom:4px;">'
+                        f'FILE {i+1}/{total_f} — {uf.name}</div>',
+                        unsafe_allow_html=True
+                    )
+                try:
+                    payload, df_res, req_meta, resp_meta = animasi_terminal_proses(uf, dark=_dark)
 
-                    # 1. Kirim file ke API /proses
-                    files = {"file": (uf.name, uf.getvalue(), "application/pdf")}
-                    try:
-                        resp_start = requests.post(f"{API_URL}/api/proses", files=files, timeout=30)
-                        if resp_start.status_code != 200:
-                            errors.append(f"❌ Gagal memulai task untuk {uf.name}: {resp_start.text}")
-                            continue
-                        task_id = resp_start.json()["task_id"]
-                        status.write(f"🆔 Task ID: {task_id}")
-                    except Exception as e:
-                        errors.append(f"❌ {uf.name}: {e}")
-                        continue
+                    filename = payload['filename']
+                    tingkat  = payload['tingkat']
+                    total    = payload['total']
+                    jumlah   = payload['jumlah']
 
-                    # 2. Polling status sampai selesai
-                    done = False
-                    last_log_count = 0
-                    while not done:
-                        time.sleep(0.2)  # polling interval
-                        try:
-                            resp_status = requests.get(f"{API_URL}/api/status/{task_id}", timeout=10)
-                            if resp_status.status_code != 200:
-                                status.write(f"⚠️ Gagal polling status: {resp_status.text}")
-                                break
-                            data = resp_status.json()
-                            logs = data.get("logs", [])
-                            # Tampilkan log baru dengan efek ketik
-                            new_logs = logs[last_log_count:]
-                            for log in new_logs:
-                                status.write(log)
-                                time.sleep(0.01)  # efek mengetik
-                            last_log_count = len(logs)
+                    results.append({
+                        'filename': filename,
+                        'df'      : df_res,
+                        'total'   : total,
+                        'count'   : jumlah,
+                        'tingkat' : tingkat,
+                        'api_log' : {'request': req_meta, 'response': resp_meta},
+                    })
+                    save_log({
+                        'waktu'        : now_wib().strftime("%d %b %Y, %H:%M") + " WIB",
+                        'nama_file'    : filename,
+                        'tingkat'      : tingkat,
+                        'jumlah'       : jumlah,
+                        'total'        : total,
+                        'status'       : 'Belum Diambil',
+                        'waktu_selesai': None,
+                    })
+                except RuntimeError as e:
+                    msg = e.args[0] if e.args else str(e)
+                    errors.append(f"❌ {uf.name}: {msg}")
+                except Exception as e:
+                    errors.append(f"❌ {uf.name}: {e}")
 
-                            if data["status"] == "done":
-                                result = data["result"]
-                                df_res = pd.DataFrame(result["data"])
-                                df_res = df_res.rename(columns={"no_sep": "No.SEP", "disetujui": "Disetujui"})
-                                if 'no' in df_res.columns:
-                                    df_res = df_res.drop(columns=['no'])
+            # Simpan ke session_state, rerun biar halaman fresh
+            # success message + render_result muncul SETELAH rerun
+            # → dijamin animasi JS udah selesai sebelum apapun muncul
+            st.session_state.results  = results
+            st.session_state.errors   = errors
+            st.session_state.show_done = True
+            st.rerun()
 
-                                results.append({
-                                    'filename': result['filename'],
-                                    'df': df_res,
-                                    'total': result['total'],
-                                    'count': result['jumlah'],
-                                    'tingkat': result['tingkat'],
-                                    'api_log': {
-                                        'request': {
-                                            'method': 'POST',
-                                            'url': f"{API_URL}/api/proses",
-                                            'body': {'file': uf.name}
-                                        },
-                                        'response': {
-                                            'status_code': 200,
-                                            'latency_ms': result.get('processing_time_ms', 0),
-                                            'body': result
-                                        }
-                                    }
-                                })
-                                save_log({
-                                    'waktu': now_wib().strftime("%d %b %Y, %H:%M") + " WIB",
-                                    'nama_file': result['filename'],
-                                    'tingkat': result['tingkat'],
-                                    'jumlah': result['jumlah'],
-                                    'total': result['total'],
-                                    'status': 'Belum Diambil',
-                                    'waktu_selesai': None,
-                                })
-                                status.write(f"✅ {uf.name} selesai diproses!")
-                                done = True
-                            elif data["status"] == "error":
-                                errors.append(f"❌ {uf.name}: {data.get('error', 'Unknown error')}")
-                                done = True
-                        except Exception as e:
-                            status.write(f"⚠️ Error polling: {e}")
-                            break
+    # ── TAMPILKAN HASIL ──────────────────────────────────────────
+    # show_done = True artinya baru selesai proses (setelah rerun)
+    # → animasi JS udah pasti kelar, aman nampilin hasil
+    if st.session_state.get('show_done'):
+        errors  = st.session_state.pop('errors', [])
+        results = st.session_state.get('results', [])
+        st.session_state.show_done = False
 
-            st.session_state.results = results
-            if errors:
-                for err in errors:
-                    st.error(err)
-            if results:
-                st.success(f"✅ {len(results)} file berhasil diproses!")
+        if errors:
+            for err in errors:
+                st.error(err)
+        if results:
+            total_sep = sum(r['count'] for r in results)
+            total_nom = sum(r['total'] for r in results)
+            nom_fmt   = f"Rp {total_nom:,}".replace(",", ".")
+            st.success(
+                f"✅ {len(results)} file berhasil diproses — "
+                f"{total_sep} SEP — {nom_fmt}"
+            )
 
     if st.session_state.get('results'):
         results = st.session_state.results
@@ -943,7 +1223,7 @@ with tab_pdf:
                 with tab_h:
                     render_result(res, idx=i)
 
-# ── TAB KALKULATOR CSV ──────────────────────────────────────
+# ── TAB KALKULATOR CSV ───────────────────────────────────────
 with tab_csv:
     _dark_c = st.session_state.get('dark_mode', True)
     _surf_c = "#1a1a1a" if _dark_c else "#ffffff"
@@ -1118,6 +1398,7 @@ with tab_csv:
 st.divider()
 log_data = load_log()
 
+# Monthly rekap
 if log_data:
     bulan_order = ["JANUARI","FEBRUARI","MARET","APRIL","MEI","JUNI",
                    "JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"]
@@ -1152,6 +1433,7 @@ if log_data:
         """, unsafe_allow_html=True)
     st.divider()
 
+# Chart
 if log_data:
     st.markdown('<div class="section-title">📊 Rekap Per Periode</div>', unsafe_allow_html=True)
     df_chart = build_chart(log_data)
@@ -1160,6 +1442,7 @@ if log_data:
                      color=["#e040fb","#00b0ff","#00e5a0","#ff6b35"][:len(df_chart.columns)])
     st.divider()
 
+# Log summary stats
 if log_data:
     total_entri   = len(log_data)
     total_selesai = sum(1 for x in log_data if x.get('status') == 'Selesai')
@@ -1204,6 +1487,7 @@ if log_data:
     </div>
     """, unsafe_allow_html=True)
 
+# Log header
 col_title, col_hapus = st.columns([4, 1])
 with col_title:
     st.markdown('<div class="log-title">🕓 Riwayat Konversi</div>', unsafe_allow_html=True)
