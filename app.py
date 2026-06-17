@@ -954,6 +954,13 @@ function typeNext() {{
         cursor.style.display = 'none';
         pbar.style.width = '100%';
         pct.textContent = '100%';
+        pct.style.color = '#00e5a0';
+        document.getElementById('pbar').style.background = '#00e5a0';
+        // Banner DONE muncul setelah animasi selesai
+        const banner = document.createElement('div');
+        banner.style.cssText = 'background:#00e5a0;color:#0d0d0d;font-family:JetBrains Mono,monospace;font-size:0.72rem;font-weight:800;letter-spacing:2px;padding:0.5rem 1.2rem;text-align:center;border-top:2px solid #333;';
+        banner.textContent = '\u2713 KONVERSI SELESAI — DATA SIAP DIDOWNLOAD';
+        document.getElementById('terminal').parentElement.appendChild(banner);
         return;
     }}
 
@@ -980,9 +987,14 @@ typeNext();
 
     components.html(html_code, height=460, scrolling=False)
 
-    # Tunggu animasi JS selesai (estimasi)
-    estimated_sec = min((total_chars * char_delay) / 1000, 12)
-    time.sleep(estimated_sec + 0.5)
+    # Hitung waktu tunggu exact sesuai JS:
+    # JS ngetik batch_size karakter per setTimeout(DELAY ms)
+    batch_size    = 8 if char_delay <= 1 else 1
+    total_ticks   = total_chars / batch_size
+    estimated_sec = (total_ticks * char_delay) / 1000
+    # Clamp + buffer 1.5 detik biar animasi highlight selesai dulu
+    estimated_sec = max(1.0, min(estimated_sec, 14.0)) + 1.5
+    time.sleep(estimated_sec)
 
     return payload, df_res, req_meta, resp_meta
 
@@ -1191,8 +1203,9 @@ with tab_pdf:
             if errors:
                 for err in errors:
                     st.error(err)
-            if results:
-                st.success(f"✅ {len(results)} file berhasil diproses!")
+            # ✅ success message sengaja TIDAK ditampilkan di sini
+            # biar nggak muncul sebelum animasi JS selesai ngetik.
+            # render_result di bawah sudah cukup sebagai konfirmasi visual.
 
     # ── TAMPILKAN HASIL ──────────────────────────────────────────
     if st.session_state.get('results'):
