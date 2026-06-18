@@ -801,14 +801,16 @@ def animasi_terminal_proses(uf, dark: bool):
             delay per baris = processing_time_ms / jumlah_sep
             → animasi durasinya sama persis kayak waktu API beneran kerja
     """
-    acc  = "#ff6b35"
-    grn  = "#00e5a0"
-    yel  = "#ffd700"
-    dim  = "#555555"
-    blu  = "#00b0ff"
-    surf = "#0d0d0d" if dark else "#f5f0e8"
-    bdr  = "#2a2a2a" if dark else "#222222"
-    txt  = "#f0f0f0" if dark else "#111111"
+    acc      = "#ff6b35"
+    grn      = "#00e5a0"
+    yel      = "#ffd700"
+    dim      = "#555555"
+    blu      = "#00b0ff"
+    surf     = "#0d0d0d" if dark else "#f5f0e8"
+    bdr      = "#2a2a2a" if dark else "#222222"
+    bdr_pnl  = "#444444" if dark else "#333333"
+    txt      = "#f0f0f0" if dark else "#111111"
+    title_c  = "#888888" if dark else "#666666"
 
     term = st.empty()
 
@@ -819,10 +821,10 @@ def animasi_terminal_proses(uf, dark: bool):
             f'<div style="margin:0;line-height:1.65;">{l}</div>' for l in visible
         )
         term.markdown(f"""
-        <div style="background:{surf};border:2px solid {bdr};padding:1rem 1.2rem;
+        <div style="background:{surf};border:2px solid {bdr_pnl};padding:1rem 1.2rem;
             font-family:'JetBrains Mono',monospace;font-size:0.74rem;
-            box-shadow:4px 4px 0 {bdr};height:360px;overflow:hidden;">
-            <div style="color:{acc};font-weight:700;font-size:0.65rem;
+            box-shadow:4px 4px 0 {bdr_pnl};height:360px;overflow:hidden;">
+            <div style="color:{title_c};font-weight:700;font-size:0.65rem;
                 letter-spacing:2px;border-bottom:1px solid {bdr};
                 padding-bottom:0.35rem;margin-bottom:0.6rem;">
                 API RESPONSE
