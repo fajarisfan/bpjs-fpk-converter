@@ -11,7 +11,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 
 # ── CONFIG ──────────────────────────────────────────────────
-st.set_page_config(page_title="FPK Converter", page_icon="⚡", layout="centered")
+st.set_page_config(page_title="FPK Converter", page_icon="📄", layout="centered")
 
 LOG_FILE  = "/tmp/log_konversi.json"
 API_PORT  = 8000
@@ -559,7 +559,6 @@ if not st.session_state.logged_in:
                 background:#ff6b35; border:3px solid {_txt};
                 padding:6px 20px; margin-bottom:1.8rem;
                 box-shadow:5px 5px 0px {_txt};">
-                <span style="font-size:14px;">⚡</span>
                 <span style="font-family:'JetBrains Mono',monospace; font-size:11px;
                     font-weight:800; color:{_txt}; letter-spacing:2px;">
                     FPK CONVERTER &nbsp;·&nbsp; V1.0
@@ -733,7 +732,7 @@ def render_result(res, idx=0):
         f'<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;'
         f'border:2px solid {badge_color};color:{badge_color};font-size:0.72rem;font-weight:800;'
         f'letter-spacing:2px;text-transform:uppercase;font-family:JetBrains Mono,monospace;">'
-        f'⚡ {t_label}</div>'
+        f'{t_label}</div>'
         f'</div>',
         unsafe_allow_html=True
     )
@@ -826,7 +825,7 @@ def animasi_terminal_proses(uf, dark: bool):
             <div style="color:{acc};font-weight:700;font-size:0.65rem;
                 letter-spacing:2px;border-bottom:1px solid {bdr};
                 padding-bottom:0.35rem;margin-bottom:0.6rem;">
-                ⚡ FPK CONVERTER — API RESPONSE
+                API RESPONSE
             </div>
             <div style="overflow:hidden;height:300px;">{inner}</div>
         </div>
@@ -990,7 +989,7 @@ if st.session_state.get("show_pin_form"):
 # Header
 st.markdown("""
     <div class="app-header">
-        <div class="badge">⚡ FPK Converter &nbsp;·&nbsp; v1.0</div>
+        <div class="badge">FPK Converter &nbsp;·&nbsp; v1.0</div>
         <h1>FPK <span>Converter</span></h1>
         <p>Konversi data klaim BPJS Kesehatan ke CSV</p>
     </div>
@@ -998,7 +997,7 @@ st.markdown("""
 
 
 # ── TABS: PDF CONVERTER  |  KALKULATOR CSV ───────────────────
-tab_pdf, tab_csv = st.tabs(["⚡ Konversi PDF → CSV", "🧮 Kalkulator CSV"])
+tab_pdf, tab_csv = st.tabs(["Konversi PDF → CSV", "🧮 Kalkulator CSV"])
 
 with tab_pdf:
     if _api_status == "timeout":
@@ -1012,7 +1011,7 @@ with tab_pdf:
     )
 
     if uploaded_files:
-        if st.button("⚡ Proses Sekarang"):
+        if st.button("Proses Sekarang"):
             results = []
             errors  = []
             total_f = len(uploaded_files)
@@ -1243,7 +1242,7 @@ with tab_csv:
 
             st.markdown(f"""
             <div class="csv-grand">
-                <div class="csv-grand-label">⚡ Grand Total Disetujui</div>
+                <div class="csv-grand-label">Grand Total Disetujui</div>
                 <div class="csv-grand-value">{grand_fmt}</div>
             </div>
             """, unsafe_allow_html=True)
@@ -1418,7 +1417,6 @@ st.markdown(f"""
         <div style="display:inline-flex; align-items:center; gap:8px;
             background:#ff6b35; border:3px solid #333;
             padding:6px 20px; margin-bottom:0.8rem; box-shadow:4px 4px 0px #333;">
-            <span style="font-size:14px;">⚡</span>
             <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem;
                 font-weight:800; color:#fff; letter-spacing:2px;">FPK CONVERTER</span>
         </div>
