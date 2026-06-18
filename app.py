@@ -773,217 +773,134 @@ def render_result(res, idx=0):
 
 def animasi_terminal_proses(uf, dark: bool):
     """
-    Step 1: Tampil spinner Python sambil nunggu API
-    Step 2: Setelah API balik, inject data JSON ke JS typewriter
-            yang ketik karakter per karakter kayak CMD beneran.
-    Return: (payload, df_res, req_meta, resp_meta)
+    Step 1: Spinner Python sambil API proses PDF
+    Step 2: Pure Python ketik No.SEP satu-satu di terminal
+            delay per baris = processing_time_ms / jumlah_sep
+            → animasi durasinya sama persis kayak waktu API beneran kerja
     """
-    import streamlit.components.v1 as components
+    acc  = "#ff6b35"
+    grn  = "#00e5a0"
+    yel  = "#ffd700"
+    dim  = "#555555"
+    blu  = "#00b0ff"
+    surf = "#0d0d0d" if dark else "#f5f0e8"
+    bdr  = "#2a2a2a" if dark else "#222222"
+    txt  = "#f0f0f0" if dark else "#111111"
 
-    surf  = "#0d0d0d" if dark else "#f5f0e8"
-    bdr   = "#333333" if dark else "#222222"
+    term = st.empty()
 
-    # ── Step 1: Spinner Python sambil panggil API ───────────────
-    placeholder = st.empty()
-    placeholder.markdown(f"""
-    <div style="background:{surf}; border:2px solid {bdr}; padding:1rem 1.4rem;
-        font-family:'JetBrains Mono',monospace; font-size:0.75rem;
-        box-shadow:4px 4px 0 {bdr}; color:#888;">
-        <span style="color:#ff6b35; font-weight:700; letter-spacing:2px;
-            font-size:0.68rem;">⚡ FPK CONVERTER — API</span><br><br>
-        <span style="color:#888;">$ POST /api/proses → localhost:8000</span><br>
-        <span style="color:#555;">  menunggu response</span>
-        <span style="color:#ff6b35; animation:blink 1s infinite;">█</span>
-    </div>
-    <style>@keyframes blink{{0%,100%{{opacity:1}}50%{{opacity:0}}}}</style>
-    """, unsafe_allow_html=True)
+    def render(lines):
+        # Tampil 40 baris terakhir biar nggak overflow
+        visible   = lines[-40:]
+        inner     = "".join(
+            f'<div style="margin:0;line-height:1.65;">{l}</div>' for l in visible
+        )
+        term.markdown(f"""
+        <div style="background:{surf};border:2px solid {bdr};padding:1rem 1.2rem;
+            font-family:'JetBrains Mono',monospace;font-size:0.74rem;
+            box-shadow:4px 4px 0 {bdr};height:360px;overflow:hidden;">
+            <div style="color:{acc};font-weight:700;font-size:0.65rem;
+                letter-spacing:2px;border-bottom:1px solid {bdr};
+                padding-bottom:0.35rem;margin-bottom:0.6rem;">
+                ⚡ FPK CONVERTER — API RESPONSE
+            </div>
+            <div style="overflow:hidden;height:300px;">{inner}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    def ln(text, color=None):
+        c = color or txt
+        return f'<span style="color:{c};">{text}</span>'
+
+    lines = []
+
+    # ── Step 1: Spinner sambil nunggu API ──────────────────────
+    lines.append(ln('$ POST /api/proses → localhost:8000', acc))
+    lines.append(ln(f'  file    : {uf.name}', dim))
+    lines.append(ln(f'  size    : {round(len(uf.getvalue())/1024, 1)} KB', dim))
+    lines.append(ln('  status  : waiting...', dim))
+    render(lines)
 
     # ── Panggil API beneran ─────────────────────────────────────
     payload, df_res, req_meta, resp_meta = panggil_api_proses(uf)
-
-    placeholder.empty()
 
     tingkat  = payload.get("tingkat", "FPK")
     jumlah   = payload.get("jumlah", 0)
     total    = payload.get("total", 0)
     duplikat = payload.get("duplikat", [])
+    proc_ms  = payload.get("processing_time_ms", 1000)
     lat_ms   = resp_meta.get("latency_ms", 0)
-    proc_ms  = payload.get("processing_time_ms", 0)
     filename = payload.get("filename", "")
     sep_list = df_res[["No.SEP", "Disetujui"]].to_dict(orient="records")
 
-    # ── Bangun string JSON yang akan diketik JS ─────────────────
-    # Format: baris per baris biar keliatan natural
-    total_fmt = f"Rp {total:,}".replace(",", ".")
-    dup_str   = json.dumps(duplikat) if duplikat else "[]"
+    # ── Step 2: Tampil metadata response ───────────────────────
+    lines[-1] = ln(f'  status  : 200 OK — {lat_ms} ms', grn)
+    lines.append(ln(f'  tingkat : {tingkat}', grn))
+    lines.append(ln(f'  jumlah  : {jumlah} SEP', grn))
+    lines.append(ln(f'  proses  : {proc_ms} ms', grn))
+    lines.append(ln(''))
+    lines.append(ln('{', txt))
+    lines.append(ln(f'  "file"    : "{filename}",', yel))
+    lines.append(ln(f'  "tingkat" : "{tingkat}",', yel))
+    lines.append(ln(f'  "jumlah"  : {jumlah},', yel))
+    lines.append(ln('  "data"    : [', txt))
+    render(lines)
+    time.sleep(0.3)
 
-    # Bangun baris data — tiap row satu string
-    data_lines = []
+    # ── Step 3: Ketik No.SEP satu-satu ─────────────────────────
+    # delay per baris = processing_time_ms / jumlah_sep
+    # → durasi animasi sama persis kayak waktu API beneran proses
+    row_count    = max(1, jumlah)
+    delay_sec    = (proc_ms / row_count) / 1000   # convert ms ke detik
+    # Clamp: min 0.01 detik (jangan instan), max 0.5 detik (jangan kelamaan per baris)
+    delay_sec    = max(0.01, min(0.5, delay_sec))
+
+    prog = st.empty()
+
     for i, row in enumerate(sep_list):
-        sep = row["No.SEP"]
-        nom = int(row["Disetujui"])
-        comma = "," if i < len(sep_list) - 1 else ""
-        data_lines.append(
-            f'    {{"No.SEP": "{sep}", "Disetujui": {nom}}}{comma}'
+        sep     = str(row["No.SEP"])
+        nom     = int(row["Disetujui"])
+        nom_fmt = f"Rp {nom:,}".replace(",", ".")
+        is_last = i == len(sep_list) - 1
+        comma   = "" if is_last else ","
+
+        lines.append(
+            f'<span style="color:{blu};">    {{"No.SEP": "</span>' +
+            f'<span style="color:{grn};">{sep}</span>' +
+            f'<span style="color:{blu};">", "Disetujui": </span>' +
+            f'<span style="color:{yel};">{nom}</span>' +
+            f'<span style="color:{blu};">}}{comma}</span>'
         )
-    data_block = "\n".join(data_lines)
+        render(lines)
 
-    json_text = f"""{{
-  "request": {{
-    "method": "POST",
-    "endpoint": "/api/proses",
-    "file": "{uf.name}",
-    "size_kb": {round(len(uf.getvalue())/1024, 1)}
-  }},
-  "response": {{
-    "status": 200,
-    "latency_ms": {lat_ms},
-    "processing_time_ms": {proc_ms},
-    "tingkat": "{tingkat}",
-    "jumlah": {jumlah},
-    "filename": "{filename}",
-    "duplikat": {dup_str},
-    "total_disetujui": {total},
-    "data": [
-{data_block}
-    ]
-  }},
-  "status": "DONE ✓"
-}}"""
+        # Progress counter di bawah terminal
+        pct = int(((i + 1) / row_count) * 100)
+        prog.markdown(
+            f'<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.7rem;' +
+            f'color:{dim};display:flex;align-items:center;gap:10px;margin-top:4px;">' +
+            f'<span style="color:{grn};font-weight:700;">{i+1:,} / {row_count:,} SEP</span>' +
+            f'<div style="flex:1;height:3px;background:#222;">' +
+            f'<div style="width:{pct}%;height:3px;background:{grn};"></div></div>' +
+            f'<span style="color:{acc};font-weight:700;">{pct}%</span></div>',
+            unsafe_allow_html=True
+        )
 
-    # Target durasi animasi: 10-12 detik apapun jumlah data
-    # Strategi: hitung batch_size (karakter per tick) dari total_chars
-    # delay per tick tetap 16ms (≈60fps smooth) — yang diatur batch_size-nya
-    total_chars = len(json_text)
-    TARGET_SEC  = 11.0          # target durasi animasi
-    TICK_MS     = 16            # delay per setTimeout (ms) — smooth 60fps
-    total_ticks = (TARGET_SEC * 1000) / TICK_MS   # berapa tick yg tersedia
-    # berapa karakter per tick biar selesai dalam target
-    batch_size  = max(1, int(total_chars / total_ticks))
-    char_delay  = TICK_MS      # selalu 16ms, yang berubah batch_size
+        time.sleep(delay_sec)
 
-    # Escape untuk JS string (newline → \n, quote → \")
-    json_escaped = json_text.replace("\\", "\\\\").replace("`", "\\`")
+    # ── Step 4: Footer ──────────────────────────────────────────
+    prog.empty()
+    total_fmt = f"Rp {total:,}".replace(",", ".")
+    lines.append(ln('  ],', txt))
+    lines.append(ln(f'  "total_disetujui" : {total},', yel))
+    if duplikat:
+        lines.append(ln(f'  "duplikat"        : {len(duplikat)} SEP,', "#ff4444"))
+    lines.append(ln('  "status"          : "DONE ✓"', grn))
+    lines.append(ln('}', txt))
+    render(lines)
+    time.sleep(0.5)
 
-    # ── Render JS Typewriter ────────────────────────────────────
-    html_code = f"""
-<div style="
-    background:#0d0d0d; border:2px solid #333; padding:0;
-    font-family:'JetBrains Mono',monospace; font-size:0.73rem;
-    box-shadow:4px 4px 0 #333; overflow:hidden;
-">
-    <!-- Header bar -->
-    <div style="background:#1a1a1a; border-bottom:1px solid #333;
-        padding:0.5rem 1rem; display:flex; align-items:center; gap:8px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:#ff5f57;"></div>
-        <div style="width:10px;height:10px;border-radius:50%;background:#febc2e;"></div>
-        <div style="width:10px;height:10px;border-radius:50%;background:#28c840;"></div>
-        <span style="color:#555; font-size:0.65rem; margin-left:8px; letter-spacing:1px;">
-            FPK-CONVERTER — API RESPONSE
-        </span>
-    </div>
-
-    <!-- Terminal body -->
-    <div id="terminal" style="
-        padding:1rem 1.2rem; height:380px; overflow-y:auto;
-        color:#f0f0f0; white-space:pre; line-height:1.7;
-        scrollbar-width:thin; scrollbar-color:#333 #0d0d0d;
-    "><span id="output"></span><span id="cursor" style="
-        color:#ff6b35; animation:blink 0.7s step-end infinite;">█</span></div>
-
-    <!-- Progress bar -->
-    <div style="background:#111; border-top:1px solid #222; padding:0.5rem 1rem;
-        display:flex; align-items:center; gap:10px;">
-        <span style="color:#555; font-size:0.65rem;">TYPING</span>
-        <div style="flex:1; height:3px; background:#222;">
-            <div id="pbar" style="height:3px; background:#ff6b35; width:0%;
-                transition:width 0.1s;"></div>
-        </div>
-        <span id="pct" style="color:#ff6b35; font-size:0.65rem; font-weight:700;">0%</span>
-    </div>
-</div>
-
-<style>
-@keyframes blink {{ 0%,100%{{opacity:1}} 50%{{opacity:0}} }}
-#terminal::-webkit-scrollbar {{ width:4px; }}
-#terminal::-webkit-scrollbar-track {{ background:#0d0d0d; }}
-#terminal::-webkit-scrollbar-thumb {{ background:#333; }}
-</style>
-
-<script>
-const RAW        = `{json_escaped}`;
-const DELAY      = {char_delay};
-const BATCH_SIZE = {batch_size};
-
-// Warnain output dengan regex setelah selesai
-function highlight(str) {{
-    return str
-        .replace(/("No\.SEP")/g, '<span style="color:#00b0ff;">$1</span>')
-        .replace(/("Disetujui")/g, '<span style="color:#00e5a0;">$1</span>')
-        .replace(/("request"|"response"|"status"|"method"|"endpoint"|"file"|"size_kb"|"latency_ms"|"processing_time_ms"|"tingkat"|"jumlah"|"filename"|"duplikat"|"total_disetujui"|"data")/g,
-            '<span style="color:#e040fb;">$1</span>')
-        .replace(/:\s*(\d+\.?\d*)/g, ': <span style="color:#ffd700;">$1</span>')
-        .replace(/:\s*"([^"]*)"/g, ': <span style="color:#ff6b35;">"$1"</span>')
-        .replace(/(DONE ✓)/g, '<span style="color:#00e5a0; font-weight:700;">$1</span>')
-        .replace(/(\[\]|\[)/g, '<span style="color:#888;">$1</span>')
-        .replace(/(\])/g, '<span style="color:#888;">$1</span>');
-}}
-
-const out    = document.getElementById('output');
-const cursor = document.getElementById('cursor');
-const pbar   = document.getElementById('pbar');
-const pct    = document.getElementById('pct');
-const term   = document.getElementById('terminal');
-const total  = RAW.length;
-
-let i = 0;
-let buf = '';
-
-function typeNext() {{
-    if (i >= total) {{
-        // Selesai — highlight syntax, hilangkan cursor kedip
-        out.innerHTML = highlight(buf);
-        cursor.style.display = 'none';
-        pbar.style.width = '100%';
-        pct.textContent = '100%';
-        pct.style.color = '#00e5a0';
-        document.getElementById('pbar').style.background = '#00e5a0';
-        // Banner DONE muncul setelah animasi selesai
-        const banner = document.createElement('div');
-        banner.style.cssText = 'background:#00e5a0;color:#0d0d0d;font-family:JetBrains Mono,monospace;font-size:0.72rem;font-weight:800;letter-spacing:2px;padding:0.5rem 1.2rem;text-align:center;border-top:2px solid #333;';
-        banner.textContent = '\u2713 KONVERSI SELESAI — DATA SIAP DIDOWNLOAD';
-        document.getElementById('terminal').parentElement.appendChild(banner);
-        return;
-    }}
-
-    // Batch per tick — dihitung Python biar total animasi ~11 detik
-    for (let b = 0; b < BATCH_SIZE && i < total; b++) {{
-        buf += RAW[i];
-        i++;
-    }}
-
-    out.textContent = buf;
-    term.scrollTop = term.scrollHeight;
-
-    const p = Math.round((i / total) * 100);
-    pbar.style.width = p + '%';
-    pct.textContent = p + '%';
-
-    setTimeout(typeNext, DELAY);
-}}
-
-typeNext();
-</script>
-"""
-
-    components.html(html_code, height=460, scrolling=False)
-
-    # Python nunggu sama dengan target animasi JS + 2 detik buffer
-    # (buffer: syntax highlight + banner DONE muncul)
-    time.sleep(TARGET_SEC + 2.0)
-
+    term.empty()
     return payload, df_res, req_meta, resp_meta
-
 
 def build_chart(log_data):
     if not log_data:
