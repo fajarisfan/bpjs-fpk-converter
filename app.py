@@ -27,16 +27,7 @@ def _port_terbuka(port: int) -> bool:
 
 @st.cache_resource
 def start_api_backend():
-    """
-    Menjalankan api.py (FastAPI/uvicorn) sebagai background thread
-    di dalam proses Streamlit yang sama. Ini membuat app.py bisa
-    benar-benar mengirim HTTP request ke API meski hanya dideploy
-    sebagai satu app di Streamlit Cloud (tanpa server terpisah
-    seperti Railway).
-
-    @st.cache_resource memastikan ini hanya dijalankan SEKALI per
-    siklus hidup container, bukan setiap kali Streamlit rerun.
-    """
+    """Jalankan FastAPI backend sebagai background thread."""
     if _port_terbuka(API_PORT):
         # Sudah ada server jalan di port ini (misal saat development
         # lokal kamu sengaja jalankan `uvicorn api:app` manual)
@@ -590,12 +581,7 @@ if not st.session_state.logged_in:
                 // MASUKKAN PIN UNTUK MELANJUTKAN
             </p>
         </div>
-        <div style="display:flex; justify-content:center; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Multi-file upload</span>
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Auto-detect RITL / RJTL</span>
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Cek duplikat SEP</span>
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Riwayat & rekap</span>
-        </div>
+
     """, unsafe_allow_html=True)
 
     # Cek lockout
@@ -707,7 +693,7 @@ def render_result(res, idx=0):
         <div class="stat-card blue-top" style="grid-column:1/-1;">
             <div class="stat-label">Tingkat Pelayanan</div>
             <div class="tingkat-badge {t_lower}">{t_label}</div>
-            <div class="stat-sub" style="margin-top:0.6rem;">terdeteksi otomatis dari PDF</div>
+
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -972,84 +958,22 @@ if st.session_state.get("show_pin_form"):
 # Header
 st.markdown("""
     <div class="app-header">
-        <div class="badge">⚡ Converter Tools &nbsp;·&nbsp; v1.0</div>
+        <div class="badge">⚡ FPK Converter &nbsp;·&nbsp; v1.0</div>
         <h1>FPK <span>Converter</span></h1>
-        <p>Otomasi konversi data klaim BPJS Kesehatan ke CSV siap pakai</p>
-        <div style="display:flex; justify-content:center; gap:1rem; margin-top:1rem; flex-wrap:wrap;">
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Multi-file upload</span>
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Auto-detect RITL / RJTL</span>
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Cek duplikat SEP</span>
-            <span style="font-size:0.72rem; color:#475569; display:flex; align-items:center; gap:4px;">✦ Riwayat & rekap</span>
-        </div>
+        <p>Konversi data klaim BPJS Kesehatan ke CSV</p>
     </div>
 """, unsafe_allow_html=True)
 
-with st.expander("ℹ️ Fitur & Cara Penggunaan"):
-    st.markdown("""
-    ### ⚡ Konversi PDF → CSV
-    - Upload satu atau beberapa PDF FPK BPJS sekaligus (maks 200MB/file)
-    - Klik **⚡ Proses Sekarang** — sistem otomatis membaca isi PDF
-    - Nama file CSV terdeteksi otomatis dari PDF: **FPK_RITL_MARET_2026.csv** atau **FPK_RJTL_MARET_2026.csv**
-    - Kalau upload lebih dari 1 PDF, hasil tiap file tampil di **tab terpisah**
-    - Output CSV hanya berisi 2 kolom: **No.SEP** dan **Disetujui** — siap upload ke SIMRS
-
-    ### ⚠️ Cek Duplikat No.SEP
-    - Setelah diproses, sistem otomatis cek apakah ada **No.SEP yang muncul lebih dari sekali**
-    - Kalau ada duplikat, muncul warning kuning beserta daftar No.SEP yang bermasalah
-
-    ### 📥 Download & Status
-    - Klik **⬇ Download CSV** untuk mengunduh hasil konversi
-    - Status di log otomatis berubah jadi **✓ Selesai** setelah download
-    - Kalau belum didownload, status **⏳ Belum Diambil**
-    - Bisa juga tandai manual lewat tombol **✓ Tandai** di log
-
-    ### 🔌 API Request/Response
-    - Proses konversi sebenarnya menembak **backend API** (FastAPI) yang berjalan di proses yang sama, lewat HTTP request asli — bukan simulasi
-    - Klik expander **🔌 API Request/Response** untuk lihat detail request yang dikirim, status code, dan response JSON dari API — mirip tampilan di Postman
-    - Latency (waktu tempuh request) ditampilkan dalam milidetik
-
-    ### 📅 Rekap Per Bulan
-    - Di bawah chart ada rekap ringkas per periode
-    - Tiap baris tampil: berapa kali konversi, total SEP, tingkat pelayanan, dan total nominal
-
-    ### 📊 Chart Rekap Periode
-    - Bar chart otomatis terbentuk dari riwayat konversi
-    - Warna berbeda per tingkat: **ungu = RITL**, **biru = RJTL**
-    - Sumbu Y dalam satuan juta rupiah (M)
-
-    ### 🕓 Riwayat Konversi
-    - Semua aktivitas konversi tersimpan otomatis (maks 100 entri)
-    - Tampil: nama file, badge RITL/RJTL, waktu konversi, total nominal, jumlah SEP, status
-    - Summary di atas log: total konversi, selesai, pending, total nominal kumulatif
-    - Klik **Hapus Semua** untuk reset seluruh riwayat
-
-    ### 🔑 Keamanan
-    - **PIN tidak terlihat** saat diketik (seperti terminal Linux)
-    - **Salah PIN 5x** → aplikasi dikunci otomatis 5 menit
-    - **Session timeout 8 jam** → otomatis logout jika tidak aktif
-    - **Ganti PIN** lewat Streamlit Cloud → Settings → Secrets → ubah nilai PIN → Reboot app
-    - **Logout** lewat tombol 🚪 di pojok kanan atas
-
-    ### 🌙 Tema
-    - Toggle **dark/light mode** lewat tombol ☀️/🌙 di pojok kanan atas
-    """)
 
 # ── TABS: PDF CONVERTER  |  KALKULATOR CSV ───────────────────
 tab_pdf, tab_csv = st.tabs(["⚡ Konversi PDF → CSV", "🧮 Kalkulator CSV"])
 
 with tab_pdf:
     if _api_status == "timeout":
-        st.error(
-            "⚠️ Backend API gagal start dalam waktu yang ditentukan. "
-            "Klik tombol Reset/Reboot app, atau coba refresh halaman."
-        )
-    elif _api_status == "started":
-        st.caption(f"🟢 Backend API aktif di `{API_URL}`")
-    elif _api_status == "already_running":
-        st.caption(f"🟢 Backend API terdeteksi sudah berjalan di `{API_URL}`")
+        st.error("⚠️ Backend API gagal start. Coba refresh halaman.")
 
     uploaded_files = st.file_uploader(
-        "Upload PDF FPK (bisa lebih dari satu)",
+        "Upload PDF FPK",
         type=['pdf'],
         accept_multiple_files=True,
         label_visibility="collapsed"
@@ -1101,17 +1025,13 @@ with tab_pdf:
                 except Exception as e:
                     errors.append(f"❌ {uf.name}: {e}")
 
-            # Simpan ke session_state, rerun biar halaman fresh
-            # success message + render_result muncul SETELAH rerun
-            # → dijamin animasi JS udah selesai sebelum apapun muncul
+
             st.session_state.results  = results
             st.session_state.errors   = errors
             st.session_state.show_done = True
             st.rerun()
 
     # ── TAMPILKAN HASIL ──────────────────────────────────────────
-    # show_done = True artinya baru selesai proses (setelah rerun)
-    # → animasi JS udah pasti kelar, aman nampilin hasil
     if st.session_state.get('show_done'):
         errors  = st.session_state.pop('errors', [])
         results = st.session_state.get('results', [])
