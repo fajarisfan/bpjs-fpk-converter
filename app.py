@@ -750,11 +750,9 @@ def render_result(res, idx=0):
             update_log_status(res['filename'], 'Selesai')
             st.rerun()
     with col2:
-        st.markdown('<div class="reset-btn">', unsafe_allow_html=True)
         if st.button("Reset", key=f"reset_{idx}"):
             st.session_state.results = []
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def animasi_terminal_proses(uf, dark: bool):
@@ -924,25 +922,19 @@ col_sp, col_theme, col_pin, col_logout = st.columns([4, 1, 1, 1])
 
 with col_theme:
     icon = st.session_state.get('_toggle_icon', '☀️')
-    st.markdown('<div class="toggle-btn">', unsafe_allow_html=True)
     if st.button(icon, help="Ganti tema", key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
 with col_pin:
-    st.markdown('<div class="toggle-btn">', unsafe_allow_html=True)
     if st.button("🔑", help="Ganti PIN", key="open_pin"):
         st.session_state.show_pin_form = not st.session_state.get("show_pin_form", False)
-    st.markdown('</div>', unsafe_allow_html=True)
 
 with col_logout:
-    st.markdown('<div class="toggle-btn">', unsafe_allow_html=True)
     if st.button("🚪", help="Logout", key="logout_btn"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # Form ganti PIN
 if st.session_state.get("show_pin_form"):
@@ -1330,12 +1322,10 @@ with col_title:
     st.markdown('<div class="log-title">🕓 Riwayat Konversi</div>', unsafe_allow_html=True)
 with col_hapus:
     if log_data:
-        st.markdown('<div class="danger-btn">', unsafe_allow_html=True)
         if st.button("Hapus Semua", key="hapus_log"):
             hapus_log()
             st.session_state.results = []
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
 if not log_data:
     st.markdown('<div class="log-empty">Belum ada riwayat konversi.</div>', unsafe_allow_html=True)
@@ -1371,11 +1361,9 @@ else:
         if status != 'Selesai':
             col_a, col_b = st.columns([5, 1])
             with col_b:
-                st.markdown('<div class="selesai-btn" style="margin-top:-0.4rem;">', unsafe_allow_html=True)
                 if st.button("✓ Tandai", key=f"tandai_{i}"):
                     update_log_status(item['nama_file'], 'Selesai')
                     st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
 
 # ── FOOTER ───────────────────────────────────────────────────
 _dark     = st.session_state.get('dark_mode', True)
@@ -1390,7 +1378,7 @@ st.markdown(f"""
         <div style="display:inline-flex; align-items:center; gap:8px;
             background:#ff6b35; border:3px solid #333;
             padding:6px 20px; margin-bottom:0.8rem; box-shadow:4px 4px 0px #333;">
-            <span style="font-size:14px;">⚡</span>
+            <span style="font-size:14px;">🚀</span>
             <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem;
                 font-weight:800; color:#fff; letter-spacing:2px;">FPK CONVERTER</span>
         </div>
