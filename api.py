@@ -45,6 +45,50 @@ def ambil_metadata_pdf(pdf_path: str):
     return nama_file, tingkat
 
 
+def validasi_format_pdf(pdf_path: str):
+    """
+    Cek apakah PDF yang diupload benar-benar dokumen 'RINCIAN DATA HASIL
+    VERIFIKASI' (FPK BPJS Kesehatan), bukan dokumen lain yang kebetulan
+    juga berformat .pdf.
+
+    Penanda wajib (semua harus ada di halaman pertama):
+      1. Judul dokumen "RINCIAN DATA HASIL VERIFIKASI"
+      2. Label "Nama RS"
+      3. Label "Tingkat Pelayanan"
+      4. Header kolom tabel: "No.SEP" dan "Disetujui"
+    """
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            if len(pdf.pages) == 0:
+                return False, "PDF tidak memiliki halaman."
+            text = pdf.pages[0].extract_text() or ""
+    except Exception as e:
+        return False, f"PDF tidak bisa dibuka/dibaca: {e}"
+
+    penanda_wajib = {
+        "judul dokumen 'RINCIAN DATA HASIL VERIFIKASI'": r"RINCIAN\s+DATA\s+HASIL\s+VERIFIKASI",
+        "label 'Nama RS'": r"Nama\s+RS",
+        "label 'Tingkat Pelayanan'": r"Tingkat\s+Pelayanan",
+        "kolom 'No.SEP'": r"No\.?\s*SEP",
+        "kolom 'Disetujui'": r"Disetujui",
+    }
+
+    hilang = [
+        nama for nama, pola in penanda_wajib.items()
+        if not re.search(pola, text, re.IGNORECASE)
+    ]
+
+    if hilang:
+        detail = ", ".join(hilang)
+        return False, (
+            "Format PDF tidak sesuai. PDF harus berupa dokumen "
+            "'RINCIAN DATA HASIL VERIFIKASI' (FPK BPJS Kesehatan). "
+            f"Penanda yang tidak ditemukan: {detail}."
+        )
+
+    return True, ""
+
+
 def process_data(pdf_path: str) -> pd.DataFrame:
     df_list = tabula.read_pdf(pdf_path, pages='all', multiple_tables=True,
                               lattice=True, pandas_options={'header': None})
@@ -81,6 +125,11 @@ async def _proses_satu_file(file: UploadFile, file_index: int = 0, total_files: 
             tmp_path = tmp.name
 
         nama, tingkat = ambil_metadata_pdf(tmp_path)
+
+        ok, pesan_error = validasi_format_pdf(tmp_path)
+        if not ok:
+            raise ValueError(pesan_error)
+
         df_res        = process_data(tmp_path)
         total         = int(df_res['Disetujui'].sum())
         jumlah        = len(df_res)
@@ -114,6 +163,9 @@ async def proses_pdf(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="File harus berformat PDF.")
     try:
         return await _proses_satu_file(file, file_index=0, total_files=1)
+    except ValueError as e:
+        # Error validasi format PDF: pesannya sudah jelas, tidak perlu dibungkus lagi.
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Gagal memproses PDF: {e}")
 
