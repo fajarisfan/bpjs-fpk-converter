@@ -671,32 +671,72 @@ def panggil_api_proses(uf, timeout=60):
 
 
 def render_result(res, idx=0):
-    tingkat = res['tingkat']
-    t_lower = tingkat.lower()
-    t_label = ("🏥 Rawat Inap (RITL)" if tingkat == "RITL"
-               else "🏃 Rawat Jalan (RJTL)" if tingkat == "RJTL" else tingkat)
+    tingkat  = res['tingkat']
+    t_lower  = tingkat.lower()
+    t_label  = ("🏥 Rawat Inap (RITL)" if tingkat == "RITL"
+                else "🏃 Rawat Jalan (RJTL)" if tingkat == "RJTL" else tingkat)
     total_rp = f"Rp {res['total']:,.0f}".replace(",", ".")
 
-    st.markdown(f'<div class="file-badge">📄 {res["filename"]}</div>', unsafe_allow_html=True)
-    st.markdown(f"""
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">Jumlah Data</div>
-            <div class="stat-value orange">{res['count']}</div>
-            <div class="stat-sub">SEP records</div>
-        </div>
-        <div class="stat-card green-top">
-            <div class="stat-label">Total Nominal</div>
-            <div class="stat-value green">{total_rp}</div>
-            <div class="stat-sub">total disetujui</div>
-        </div>
-        <div class="stat-card blue-top" style="grid-column:1/-1;">
-            <div class="stat-label">Tingkat Pelayanan</div>
-            <div class="tingkat-badge {t_lower}">{t_label}</div>
+    _dark   = st.session_state.get("dark_mode", True)
+    surf    = "#1a1a1a" if _dark else "#ffffff"
+    bdr     = "#333333" if _dark else "#111111"
+    bdr2    = "#2a2a2a" if _dark else "#dddddd"
+    txt_h   = "#f0f0f0" if _dark else "#111111"
+    txt_m   = "#888888" if _dark else "#555555"
+    acc     = "#ff6b35"
+    grn     = "#00e5a0"
+    yel     = "#ffd700"
+    shadow  = acc if _dark else bdr
 
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    badge_color = "#a78bfa" if tingkat == "RITL" else "#60a5fa"
+
+    # File badge
+    st.markdown(
+        f'<div style="display:inline-flex;align-items:center;gap:8px;'
+        f'background:{surf};border:2px solid {grn};color:{grn};'
+        f'padding:8px 16px;font-size:0.8rem;font-weight:700;'
+        f'font-family:JetBrains Mono,monospace;margin:0.5rem 0;'
+        f'box-shadow:3px 3px 0 {grn};">📄 {res["filename"]}</div>',
+        unsafe_allow_html=True
+    )
+
+    # Stats — 3 card terpisah biar aman dari HTML parsing
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.markdown(
+            f'<div style="background:{surf};border:3px solid {bdr};padding:1.5rem;'
+            f'box-shadow:4px 4px 0 {shadow};border-top:5px solid {acc};">'
+            f'<div style="color:{txt_m};font-size:9px;font-weight:700;letter-spacing:2px;'
+            f'text-transform:uppercase;font-family:JetBrains Mono,monospace;margin-bottom:0.5rem;">Jumlah Data</div>'
+            f'<div style="color:{txt_h};font-size:1.6rem;font-weight:800;line-height:1;">{res["count"]}</div>'
+            f'<div style="color:{txt_m};font-size:0.72rem;margin-top:0.4rem;font-family:JetBrains Mono,monospace;">SEP records</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    with col_b:
+        st.markdown(
+            f'<div style="background:{surf};border:3px solid {bdr};padding:1.5rem;'
+            f'box-shadow:4px 4px 0 {shadow};border-top:5px solid {grn};">'
+            f'<div style="color:{txt_m};font-size:9px;font-weight:700;letter-spacing:2px;'
+            f'text-transform:uppercase;font-family:JetBrains Mono,monospace;margin-bottom:0.5rem;">Total Nominal</div>'
+            f'<div style="color:{grn};font-size:1.4rem;font-weight:800;line-height:1;">{total_rp}</div>'
+            f'<div style="color:{txt_m};font-size:0.72rem;margin-top:0.4rem;font-family:JetBrains Mono,monospace;">total disetujui</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+    st.markdown(
+        f'<div style="background:{surf};border:3px solid {bdr};padding:1.2rem 1.5rem;'
+        f'box-shadow:4px 4px 0 {shadow};border-top:5px solid {yel};margin-top:1rem;">'
+        f'<div style="color:{txt_m};font-size:9px;font-weight:700;letter-spacing:2px;'
+        f'text-transform:uppercase;font-family:JetBrains Mono,monospace;margin-bottom:0.6rem;">Tingkat Pelayanan</div>'
+        f'<div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;'
+        f'border:2px solid {badge_color};color:{badge_color};font-size:0.72rem;font-weight:800;'
+        f'letter-spacing:2px;text-transform:uppercase;font-family:JetBrains Mono,monospace;">'
+        f'⚡ {t_label}</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
     st.divider()
 
@@ -1378,7 +1418,7 @@ st.markdown(f"""
         <div style="display:inline-flex; align-items:center; gap:8px;
             background:#ff6b35; border:3px solid #333;
             padding:6px 20px; margin-bottom:0.8rem; box-shadow:4px 4px 0px #333;">
-            <span style="font-size:14px;">🚀</span>
+            <span style="font-size:14px;">⚡</span>
             <span style="font-family:'JetBrains Mono',monospace; font-size:0.78rem;
                 font-weight:800; color:#fff; letter-spacing:2px;">FPK CONVERTER</span>
         </div>
