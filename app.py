@@ -117,7 +117,7 @@ def change_pin(pin_lama, pin_baru, pin_konfirm):
         return False, "❌ Konfirmasi PIN tidak cocok."
     return False, "⚠️ Untuk ganti PIN, ubah nilai **PIN** di Streamlit Secrets dashboard, lalu reboot app."
 
-# ── THEME CSS: BENTO GRID MODERN ──────────────────────────
+# ── THEME CSS: BENTO GRID MODERN (tanpa ⚡) ──────────────
 def inject_css(dark: bool):
     if dark:
         bg          = "#0f0f0f"
@@ -134,7 +134,7 @@ def inject_css(dark: bool):
         label_col   = "#aaaaaa"
         shadow      = "rgba(0,0,0,0.5)"
         toggle_icon = "☀️"
-        toggle_tip  = "Light Mode"
+        toggle_tip  = "Mode Terang"
         accent      = "#ff6b35"
         accent2     = "#ffd700"
         accent3     = "#00c47a"
@@ -153,7 +153,7 @@ def inject_css(dark: bool):
         label_col   = "#555555"
         shadow      = "rgba(0,0,0,0.06)"
         toggle_icon = "🌙"
-        toggle_tip  = "Dark Mode"
+        toggle_tip  = "Mode Gelap"
         accent      = "#ff6b35"
         accent2     = "#ffd700"
         accent3     = "#00c47a"
@@ -283,6 +283,29 @@ def inject_css(dark: bool):
         color: #fff !important;
     }}
 
+    /* ── TOP BAR BUTTONS (mini) ──────────────────────────── */
+    .top-btn .stButton > button {{
+        background: transparent !important;
+        color: {text_muted} !important;
+        border: 1px solid {border} !important;
+        border-radius: 40px !important;
+        padding: 0.2rem 1rem !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        box-shadow: none !important;
+        width: auto !important;
+        min-width: 60px;
+        height: 32px !important;
+        transition: all 0.15s ease;
+    }}
+    .top-btn .stButton > button:hover {{
+        background: {surface2} !important;
+        color: {text_h} !important;
+        border-color: {accent} !important;
+        transform: none;
+        box-shadow: 0 2px 8px {shadow} !important;
+    }}
+
     /* ── FILE UPLOADER ────────────────────────────────────── */
     [data-testid="stFileUploader"] section {{
         background: {surface};
@@ -312,26 +335,48 @@ def inject_css(dark: bool):
         border-color: {accent} !important;
     }}
 
-    /* ── INPUT ────────────────────────────────────────────── */
+    /* ── INPUT (PIN) ──────────────────────────────────────── */
     .stTextInput > div > div > input {{
         background: {input_bg} !important;
         border: 2px solid {input_bdr} !important;
         border-radius: 12px !important;
-        color: {input_col} !important;
+        color: transparent !important;
         padding: 14px 18px !important;
         font-family: 'JetBrains Mono', monospace !important;
         letter-spacing: 2px !important;
+        caret-color: {accent} !important;
     }}
     .stTextInput > div > div > input:focus {{
         border-color: {accent} !important;
         box-shadow: 0 0 0 3px rgba(255,107,53,0.15) !important;
         outline: none !important;
+        color: transparent !important;
     }}
     .stTextInput label {{
         color: {label_col} !important;
         font-weight: 600 !important;
         font-size: 0.8rem !important;
         letter-spacing: 0.5px;
+    }}
+
+    /* ── HIDE EYE ICON ───────────────────────────────────── */
+    [data-testid="stTextInputHideShowButton"],
+    button[aria-label="Show password"],
+    button[aria-label="Hide password"],
+    button[aria-label="Show password text"],
+    button[aria-label="Hide password text"],
+    [data-baseweb="input"] ~ button,
+    [data-baseweb="input"] + div button {{
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        opacity: 0 !important;
     }}
 
     /* ── DATAFRAME ────────────────────────────────────────── */
@@ -509,7 +554,7 @@ if not st.session_state.logged_in:
             st.session_state.attempts = 0
             st.session_state.locked_until = None
     if not is_locked_now:
-        pin_input = st.text_input("PIN AKSES", type="password", placeholder="", key="pin_login")
+        pin_input = st.text_input("PIN AKSES", type="password", placeholder="", key="pin_login", autocomplete="off")
         if st.button("Masuk →", key="btn_masuk"):
             ok, msg = check_pin(pin_input)
             if ok:
@@ -802,27 +847,36 @@ def build_chart(log_data):
 
 
 # ══════════════════════════════════════════════════════════════
-# HALAMAN UTAMA — BENTO LAYOUT
+# HALAMAN UTAMA — BENTO LAYOUT (tanpa ⚡)
 # ══════════════════════════════════════════════════════════════
 
-# Top bar
+# Top bar — minimalis, tanpa ikon mencolok
 col_sp, col_theme, col_pin, col_logout = st.columns([4, 1, 1, 1])
+
 with col_theme:
     icon = st.session_state.get('_toggle_icon', '☀️')
-    if st.button(icon, help="Ganti tema", key="theme_toggle"):
+    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
+    if st.button(icon, help=st.session_state.get('_toggle_tip', 'Ganti tema'), key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
 with col_pin:
-    if st.button("🔑", help="Ganti PIN", key="open_pin"):
+    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
+    if st.button("PIN", help="Ganti PIN", key="open_pin"):
         st.session_state.show_pin_form = not st.session_state.get("show_pin_form", False)
+    st.markdown('</div>', unsafe_allow_html=True)
+
 with col_logout:
-    if st.button("🚪", help="Logout", key="logout_btn"):
+    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
+    if st.button("Keluar", help="Logout", key="logout_btn"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if st.session_state.get("show_pin_form"):
-    with st.expander("🔑 Ganti PIN", expanded=True):
+    with st.expander("Ganti PIN", expanded=True):
         st.info("💡 Untuk ganti PIN, ubah nilai **PIN** di **Streamlit Cloud → Settings → Secrets**, lalu klik **Reboot app**.")
         p_lama = st.text_input("PIN Lama", type="password", placeholder="", key="p_lama")
         p_baru = st.text_input("PIN Baru", type="password", placeholder="", key="p_baru")
@@ -834,14 +888,14 @@ if st.session_state.get("show_pin_form"):
 # Header
 st.markdown("""
     <div class="app-header">
-        <div class="badge">⚡ FPK Converter · v1.0</div>
+        <div class="badge">FPK Converter · v1.0</div>
         <h1>FPK <span>Converter</span></h1>
         <p>Konversi data klaim BPJS Kesehatan ke CSV</p>
     </div>
 """, unsafe_allow_html=True)
 
 # ── TABS ──────────────────────────────────────────────────────
-tab_pdf, tab_csv = st.tabs(["⚡ Konversi PDF → CSV", "🧮 Kalkulator CSV"])
+tab_pdf, tab_csv = st.tabs(["Konversi PDF → CSV", "Kalkulator CSV"])
 
 with tab_pdf:
     if _api_status == "timeout":
@@ -857,7 +911,7 @@ with tab_pdf:
     )
 
     if uploaded_files:
-        if st.button("⚡ Proses Sekarang", use_container_width=True):
+        if st.button("Proses Sekarang", use_container_width=True):
             results = []
             errors = []
             total_f = len(uploaded_files)
@@ -1054,7 +1108,7 @@ with tab_csv:
                 """, unsafe_allow_html=True)
             st.markdown(f"""
             <div class="csv-grand">
-                <div class="csv-grand-label">⚡ Grand Total Disetujui</div>
+                <div class="csv-grand-label">Grand Total Disetujui</div>
                 <div class="csv-grand-value">{grand_fmt}</div>
             </div>
             """, unsafe_allow_html=True)
