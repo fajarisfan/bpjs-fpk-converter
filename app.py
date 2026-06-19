@@ -149,6 +149,10 @@ def inject_css(dark: bool):
         login_shadow = "rgba(0,0,0,0.5)"
         login_txt   = "#f0f0f0"
         login_sub   = "#888888"
+        term_bg     = "#0d0d0d"
+        term_border = "#444444"
+        term_text   = "#f0f0f0"
+        term_title  = "#888888"
     else:
         bg          = "#f6f4f0"
         surface     = "#ffffff"
@@ -173,6 +177,10 @@ def inject_css(dark: bool):
         login_shadow = "rgba(0,0,0,0.08)"
         login_txt   = "#1a1a1a"
         login_sub   = "#666666"
+        term_bg     = "#f5f0e8"
+        term_border = "#cccccc"
+        term_text   = "#1a1a1a"
+        term_title  = "#666666"
 
     st.session_state._toggle_icon = toggle_icon
     st.session_state._toggle_tip  = toggle_tip
@@ -475,6 +483,37 @@ def inject_css(dark: bool):
         border-left: 5px solid !important;
     }}
 
+    /* ── TERMINAL ─────────────────────────────────────────── */
+    .terminal-box {{
+        background: {term_bg} !important;
+        border: 2px solid {term_border} !important;
+        border-radius: 16px !important;
+        padding: 1rem 1.2rem !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 0.74rem !important;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4) !important;
+        height: 360px;
+        overflow: hidden;
+        color: {term_text};
+    }}
+    .terminal-box .term-title {{
+        color: {term_title};
+        font-weight: 700;
+        font-size: 0.65rem;
+        letter-spacing: 2px;
+        border-bottom: 1px solid {term_border};
+        padding-bottom: 0.35rem;
+        margin-bottom: 0.6rem;
+    }}
+    .terminal-box .term-body {{
+        overflow: hidden;
+        height: 300px;
+        color: {term_text};
+    }}
+    .terminal-box .term-body span {{
+        color: {term_text};
+    }}
+
     /* ── LOG ITEMS ────────────────────────────────────────── */
     .log-item {{
         background: {log_bg} !important;
@@ -739,6 +778,13 @@ def inject_css(dark: bool):
         .login-card h2 {{
             font-size: 1.2rem !important;
         }}
+        .terminal-box {{
+            height: 300px !important;
+            font-size: 0.68rem !important;
+        }}
+        .terminal-box .term-body {{
+            height: 240px !important;
+        }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -773,7 +819,6 @@ if not st.session_state.logged_in:
         </div>
     </div>
     <script>
-        // Pindahkan input Streamlit ke dalam container
         document.addEventListener('DOMContentLoaded', function() {
             const container = document.getElementById('pin_container');
             const inputs = document.querySelectorAll('input[type="password"]');
@@ -794,7 +839,6 @@ if not st.session_state.logged_in:
     </script>
     """, unsafe_allow_html=True)
     
-    # Streamlit input & button (hanya satu, tidak double)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         pin_input = st.text_input("", type="password", placeholder="", key="pin_login", label_visibility="collapsed", autocomplete="off")
@@ -963,20 +1007,28 @@ def animasi_terminal_proses(uf, dark: bool):
     yel = ACCENT
     dim = "#555555"
     blu = "#00b0ff"
-    surf = "#0d0d0d" if dark else "#f5f0e8"
-    bdr_pnl = "#444444" if dark else "#333333"
-    txt = "#f0f0f0" if dark else "#111111"
-    title_c = "#888888" if dark else "#666666"
+    
+    # Warna terminal disesuaikan dengan tema
+    if dark:
+        surf = "#0d0d0d"
+        bdr_pnl = "#444444"
+        txt = "#f0f0f0"
+        title_c = "#888888"
+    else:
+        surf = "#f5f0e8"
+        bdr_pnl = "#cccccc"
+        txt = "#1a1a1a"
+        title_c = "#666666"
 
     term = st.empty()
 
     def render(lines):
         visible = lines[-40:]
-        inner = "".join(f'<div style="margin:0;line-height:1.65;">{l}</div>' for l in visible)
+        inner = "".join(f'<div style="margin:0;line-height:1.65;color:{txt};">{l}</div>' for l in visible)
         term.markdown(f"""
-        <div style="background:{surf};border:2px solid {bdr_pnl};border-radius:16px;padding:1rem 1.2rem;font-family:'JetBrains Mono',monospace;font-size:0.74rem;box-shadow:0 8px 30px rgba(0,0,0,0.4);height:360px;overflow:hidden;">
-            <div style="color:{title_c};font-weight:700;font-size:0.65rem;letter-spacing:2px;border-bottom:1px solid {bdr_pnl};padding-bottom:0.35rem;margin-bottom:0.6rem;">API RESPONSE</div>
-            <div style="overflow:hidden;height:300px;">{inner}</div>
+        <div class="terminal-box">
+            <div class="term-title">API RESPONSE</div>
+            <div class="term-body">{inner}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1037,7 +1089,7 @@ def animasi_terminal_proses(uf, dark: bool):
         prog.markdown(
             f'<div style="font-family:JetBrains Mono,monospace;font-size:0.7rem;color:{dim};display:flex;align-items:center;gap:10px;margin-top:4px;">'
             f'<span style="color:{grn};font-weight:700;">{i+1:,} / {row_count:,} SEP</span>'
-            f'<div style="flex:1;height:3px;background:#222;border-radius:4px;"><div style="width:{pct}%;height:3px;background:{grn};border-radius:4px;"></div></div>'
+            f'<div style="flex:1;height:3px;background:{surf};border-radius:4px;"><div style="width:{pct}%;height:3px;background:{grn};border-radius:4px;"></div></div>'
             f'<span style="color:{acc};font-weight:700;">{pct}%</span></div>',
             unsafe_allow_html=True
         )
