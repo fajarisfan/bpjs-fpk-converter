@@ -10,15 +10,14 @@ import requests
 
 from datetime import datetime, timezone, timedelta
 
-# ── KONFIGURASI WARNA ──────────────────────────────────────
+# ── WARNA ──────────────────────────────────────────────────
 PRIMARY_COLOR = "#ff6b35"
 SECONDARY     = "#00c47a"
 ACCENT        = "#ffd700"
 
-# ── SETUP PAGE ──────────────────────────────────────────────
 st.set_page_config(page_title="FPK Converter", page_icon="📄", layout="wide")
 
-# ── INISIALISASI SESSION STATE ─────────────────────────────
+# ── SESSION STATE ──────────────────────────────────────────
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'dark_mode' not in st.session_state:
@@ -43,12 +42,10 @@ LOG_FILE  = "/tmp/log_konversi.json"
 API_PORT  = 8000
 API_URL   = f"http://localhost:{API_PORT}"
 
-
-def _port_terbuka(port: int) -> bool:
+def _port_terbuka(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.5)
         return s.connect_ex(("localhost", port)) == 0
-
 
 @st.cache_resource
 def start_api_backend():
@@ -66,7 +63,6 @@ def start_api_backend():
         time.sleep(0.5)
     return "timeout"
 
-
 _api_status = start_api_backend()
 
 def now_wib():
@@ -81,7 +77,7 @@ def load_log():
             return []
     return []
 
-def save_log(entry: dict):
+def save_log(entry):
     log = load_log()
     log.insert(0, entry)
     with open(LOG_FILE, "w") as f:
@@ -91,7 +87,7 @@ def hapus_log():
     if os.path.exists(LOG_FILE):
         os.remove(LOG_FILE)
 
-def update_log_status(nama_file: str, status: str):
+def update_log_status(nama_file, status):
     log = load_log()
     for item in log:
         if item.get('nama_file') == nama_file:
@@ -111,7 +107,7 @@ def get_correct_pin():
     except Exception:
         return "1234"
 
-def check_pin(input_pin: str):
+def check_pin(input_pin):
     correct_pin = get_correct_pin()
     locked_until = st.session_state.get("locked_until")
     if locked_until:
@@ -143,93 +139,73 @@ def change_pin(pin_lama, pin_baru, pin_konfirm):
         return False, "❌ Konfirmasi PIN tidak cocok."
     return False, "⚠️ Untuk ganti PIN, ubah nilai **PIN** di Streamlit Secrets dashboard, lalu reboot app."
 
-# ── THEME CSS ──────────────────────────────────────────────
-def inject_css(dark: bool):
+# ── CSS ─────────────────────────────────────────────────────
+def inject_css(dark):
     if dark:
-        bg          = "#0a0a0a"
-        surface     = "#141414"
-        surface2    = "#1e1e1e"
-        border      = "#242424"
-        border2     = "#333333"
-        text_h      = "#f0f0f0"
-        text_body   = "#b0b0b0"
-        text_muted  = "#666666"
-        text_dim    = "#3a3a3a"
-        input_bg    = "#0d0d0d"
-        input_bdr   = "#2a2a2a"
-        input_col   = "#f0f0f0"
-        label_col   = "#888888"
-        shadow      = "rgba(0,0,0,0.7)"
+        bg = "#0a0a0a"
+        surface = "#141414"
+        border = "#242424"
+        text_h = "#f0f0f0"
+        text_muted = "#666666"
+        input_bg = "#0d0d0d"
+        input_bdr = "#2a2a2a"
+        shadow = "rgba(0,0,0,0.7)"
         toggle_icon = "☀️"
-        toggle_tip  = "Mode Terang"
-        log_bg      = "#141414"
-        log_border  = "#242424"
-        login_bg    = "#141414"
+        toggle_tip = "Mode Terang"
+        log_bg = "#141414"
+        log_border = "#242424"
+        login_bg = "#141414"
         login_border = "#242424"
         login_shadow = "rgba(0,0,0,0.6)"
-        login_txt   = "#f0f0f0"
-        login_sub   = "#777777"
+        login_txt = "#f0f0f0"
+        login_sub = "#777777"
         radio_color = "#f0f0f0"
-        radio_bg    = "#141414"
+        radio_bg = "#141414"
         radio_border = "#242424"
-        hero_bg     = "#141414"
-        hero_stat   = "#1e1e1e"
+        hero_bg = "#141414"
+        hero_stat = "#1e1e1e"
         hero_stat_b = "#282828"
-        bottom_bg   = "#0a0a0a"
-        bottom_bdr  = "#1e1e1e"
     else:
-        bg          = "#f5f4f2"
-        surface     = "#ffffff"
-        surface2    = "#f0eee9"
-        border      = "#e4e2dd"
-        border2     = "#d0cec9"
-        text_h      = "#1a1a1a"
-        text_body   = "#444444"
-        text_muted  = "#888888"
-        text_dim    = "#cccccc"
-        input_bg    = "#ffffff"
-        input_bdr   = "#d5d3ce"
-        input_col   = "#1a1a1a"
-        label_col   = "#666666"
-        shadow      = "rgba(0,0,0,0.07)"
+        bg = "#f5f4f2"
+        surface = "#ffffff"
+        border = "#e4e2dd"
+        text_h = "#1a1a1a"
+        text_muted = "#888888"
+        input_bg = "#ffffff"
+        input_bdr = "#d5d3ce"
+        shadow = "rgba(0,0,0,0.07)"
         toggle_icon = "🌙"
-        toggle_tip  = "Mode Gelap"
-        log_bg      = "#ffffff"
-        log_border  = "#e0ddd8"
-        login_bg    = "#ffffff"
+        toggle_tip = "Mode Gelap"
+        log_bg = "#ffffff"
+        log_border = "#e0ddd8"
+        login_bg = "#ffffff"
         login_border = "#e0ddd8"
         login_shadow = "rgba(0,0,0,0.08)"
-        login_txt   = "#1a1a1a"
-        login_sub   = "#666666"
+        login_txt = "#1a1a1a"
+        login_sub = "#666666"
         radio_color = "#1a1a1a"
-        radio_bg    = "#ffffff"
+        radio_bg = "#ffffff"
         radio_border = "#e0ddd8"
-        hero_bg     = "#ffffff"
-        hero_stat   = "#f5f4f2"
+        hero_bg = "#ffffff"
+        hero_stat = "#f5f4f2"
         hero_stat_b = "#e8e6e1"
-        bottom_bg   = "#ffffff"
-        bottom_bdr  = "#e4e2dd"
 
     st.session_state._toggle_icon = toggle_icon
-    st.session_state._toggle_tip  = toggle_tip
+    st.session_state._toggle_tip = toggle_tip
 
     st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
-
-    /* ── GLOBAL RESET ─── */
     #MainMenu {{visibility:hidden;}}
     footer {{visibility:hidden;}}
     header {{visibility:hidden;}}
     .stApp {{ background: {bg}; }}
     .block-container {{
         max-width: 560px !important;
-        padding: 0 1rem 6rem !important;
+        padding: 0 1rem 4rem !important;
         margin: 0 auto !important;
     }}
-
-    /* ── PIN INPUT ─── */
     .stTextInput input[type="password"],
     input[type="password"] {{
         color: transparent !important;
@@ -253,8 +229,6 @@ def inject_css(dark: bool):
         padding: 0 !important;
         margin: 0 !important;
     }}
-
-    /* ── RADIO PILLS ─── */
     .stRadio > div {{
         display: flex !important;
         gap: 0.75rem !important;
@@ -290,8 +264,6 @@ def inject_css(dark: bool):
         padding-left: 1.6rem !important;
         padding-right: 1.6rem !important;
     }}
-
-    /* ── BENTO CARD ─── */
     .bento {{
         background: {surface};
         border-radius: 22px;
@@ -326,8 +298,6 @@ def inject_css(dark: bool):
         color: {text_muted};
         margin-top: 0.25rem;
     }}
-
-    /* ── HERO CARD ─── */
     .hero-card {{
         background: {hero_bg};
         border: 1px solid {border};
@@ -394,8 +364,6 @@ def inject_css(dark: bool):
         color: {text_h};
         line-height: 1.1;
     }}
-
-    /* ── TOP NAV ─── */
     .top-nav {{
         display: flex;
         align-items: center;
@@ -421,8 +389,6 @@ def inject_css(dark: bool):
         display: flex;
         gap: 0.5rem;
     }}
-
-    /* ── TOP NAV ICON BUTTONS ─── */
     .icon-btn-wrap .stButton > button {{
         background: {surface} !important;
         color: {text_muted} !important;
@@ -447,134 +413,6 @@ def inject_css(dark: bool):
         transform: none !important;
         box-shadow: none !important;
     }}
-
-    /* ── APP HEADER ─── */
-    .app-header {{
-        text-align: center;
-        padding: 0.5rem 0 1.25rem;
-    }}
-    .app-header .badge {{
-        display: inline-block;
-        background: {PRIMARY_COLOR};
-        color: #fff;
-        font-size: 0.65rem;
-        font-weight: 800;
-        letter-spacing: 2px;
-        padding: 0.25rem 1.2rem;
-        border-radius: 40px;
-        margin-bottom: 0.75rem;
-        text-transform: uppercase;
-    }}
-    .app-header h1 {{
-        font-size: 2.4rem !important;
-        font-weight: 900 !important;
-        color: {text_h} !important;
-        letter-spacing: -1.5px;
-        margin: 0 !important;
-        line-height: 1.1 !important;
-    }}
-    .app-header h1 span {{
-        color: {PRIMARY_COLOR};
-        border-bottom: 4px solid {PRIMARY_COLOR};
-        padding-bottom: 2px;
-    }}
-    .app-header p {{
-        color: {text_body};
-        font-size: 0.9rem;
-        margin-top: 0.4rem;
-        font-weight: 400;
-    }}
-
-    /* ── LOGIN PAGE ─── */
-    .login-wrapper {{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 85vh;
-        padding: 1rem;
-    }}
-    .login-card {{
-        background: {login_bg};
-        border-radius: 36px;
-        padding: 2.5rem 1.75rem 2rem;
-        max-width: 380px;
-        width: 100%;
-        border: 1px solid {login_border};
-        box-shadow: 0 32px 80px {login_shadow};
-        text-align: center;
-    }}
-    .login-app-badge {{
-        display: inline-flex;
-        align-items: center;
-        background: {PRIMARY_COLOR};
-        border-radius: 40px;
-        padding: 0.3rem 1.1rem;
-        margin-bottom: 1.5rem;
-    }}
-    .login-app-badge span {{
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.65rem;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: 2px;
-    }}
-    .login-icon-ring {{
-        width: 72px;
-        height: 72px;
-        border-radius: 50%;
-        background: rgba(255,107,53,0.1);
-        border: 2px solid rgba(255,107,53,0.2);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1rem;
-        font-size: 2rem;
-    }}
-    .login-card h2 {{
-        font-size: 1.55rem;
-        font-weight: 800;
-        color: {login_txt};
-        margin: 0 0 0.3rem 0;
-        letter-spacing: -0.5px;
-    }}
-    .login-card .sub {{
-        font-size: 0.85rem;
-        color: {login_sub};
-        margin-bottom: 1.75rem;
-        font-weight: 400;
-    }}
-    .login-input-wrap {{
-        margin-bottom: 1rem;
-    }}
-    .login-input-wrap input {{
-        width: 100%;
-        padding: 15px 18px;
-        background: {input_bg};
-        border: 1.5px solid {input_bdr};
-        border-radius: 18px;
-        color: transparent !important;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 1.4rem;
-        letter-spacing: 8px;
-        outline: none;
-        transition: border-color 0.2s;
-        text-align: center;
-        caret-color: {PRIMARY_COLOR};
-        box-sizing: border-box;
-    }}
-    .login-input-wrap input:focus {{
-        border-color: {PRIMARY_COLOR};
-        box-shadow: 0 0 0 4px rgba(255,107,53,0.12);
-    }}
-    .login-footer-text {{
-        font-size: 0.65rem;
-        color: {login_sub};
-        margin-top: 1.25rem;
-        opacity: 0.5;
-        font-family: 'JetBrains Mono', monospace;
-    }}
-
-    /* ── MAIN CTA BUTTON ─── */
     .stButton > button {{
         background: {PRIMARY_COLOR} !important;
         color: #fff !important;
@@ -607,8 +445,6 @@ def inject_css(dark: bool):
         background: {SECONDARY} !important;
         color: #fff !important;
     }}
-
-    /* ── FILE UPLOADER ─── */
     [data-testid="stFileUploader"] section {{
         background: {surface};
         border: 2px dashed {border};
@@ -620,8 +456,6 @@ def inject_css(dark: bool):
         border-color: {PRIMARY_COLOR};
         background: {surface2};
     }}
-
-    /* ── TABS ─── */
     [data-testid="stTabs"] [data-testid="stTab"] {{
         border-radius: 50px !important;
         padding: 0.4rem 1.4rem !important;
@@ -640,15 +474,11 @@ def inject_css(dark: bool):
     [data-testid="stTabContent"] {{
         padding-top: 1rem !important;
     }}
-
-    /* ── DATAFRAME ─── */
     [data-testid="stDataFrame"] {{
         border-radius: 18px !important;
         overflow: hidden !important;
         border: 1px solid {border} !important;
     }}
-
-    /* ── EXPANDER ─── */
     [data-testid="stExpander"] {{
         border-radius: 18px !important;
         border: 1px solid {border} !important;
@@ -656,14 +486,10 @@ def inject_css(dark: bool):
         overflow: hidden;
         box-shadow: 0 2px 12px {shadow};
     }}
-
-    /* ── ALERT ─── */
     [data-testid="stAlert"] {{
         border-radius: 14px !important;
         border-left: 4px solid !important;
     }}
-
-    /* ── LOG ITEMS ─── */
     .log-item {{
         background: {log_bg} !important;
         border: 1px solid {log_border} !important;
@@ -696,8 +522,6 @@ def inject_css(dark: bool):
     }}
     .log-item .log-meta .sep {{ color: {text_dim}; }}
     .log-item .log-meta .total {{ color: {SECONDARY}; font-weight: 700; }}
-
-    /* ── BADGES ─── */
     .log-badge {{
         display: inline-flex;
         align-items: center;
@@ -754,8 +578,6 @@ def inject_css(dark: bool):
         align-items: center;
         gap: 4px;
     }}
-
-    /* ── REKAP CARD ─── */
     .rekap-card {{
         background: {surface} !important;
         border: 1px solid {border} !important;
@@ -779,8 +601,6 @@ def inject_css(dark: bool):
         color: {SECONDARY}; font-weight: 800; font-size: 0.82rem;
         font-family: 'JetBrains Mono', monospace; white-space: nowrap;
     }}
-
-    /* ── SECTION TITLE ─── */
     .section-title {{
         font-size: 0.65rem;
         font-weight: 800;
@@ -792,8 +612,6 @@ def inject_css(dark: bool):
         padding-left: 10px;
         font-family: 'JetBrains Mono', monospace;
     }}
-
-    /* ── SUMMARY GRID ─── */
     .summary-grid {{
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -808,8 +626,6 @@ def inject_css(dark: bool):
     }}
     .summary-grid .bento .value {{ font-size: 1.2rem !important; }}
     .summary-grid .bento .label {{ font-size: 0.58rem !important; }}
-
-    /* ── TINGKAT BADGE ─── */
     .tingkat-badge {{
         display: inline-flex;
         align-items: center;
@@ -825,51 +641,6 @@ def inject_css(dark: bool):
     }}
     .tingkat-badge.ritl {{ background: rgba(139,92,246,0.10); border-color: #a78bfa; color: #a78bfa; }}
     .tingkat-badge.rjtl {{ background: rgba(59,130,246,0.10); border-color: #60a5fa; color: #60a5fa; }}
-
-    /* ── BOTTOM NAV ─── */
-    .bottom-nav-bar {{
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
-        background: {bottom_bg};
-        border-top: 1px solid {bottom_bdr};
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        padding: 0.6rem 0 0.9rem;
-        z-index: 999;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-    }}
-    .bottom-nav-item {{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 3px;
-        cursor: pointer;
-        padding: 0.2rem 1.5rem;
-        border-radius: 14px;
-        transition: background 0.15s ease;
-    }}
-    .bottom-nav-item:hover {{ background: {surface2}; }}
-    .bottom-nav-icon {{
-        font-size: 1.2rem;
-        line-height: 1;
-    }}
-    .bottom-nav-label {{
-        font-size: 0.58rem;
-        font-weight: 700;
-        color: {text_muted};
-        letter-spacing: 0.3px;
-    }}
-    .bottom-nav-label.active {{ color: {PRIMARY_COLOR}; }}
-    .bottom-nav-dot {{
-        width: 4px; height: 4px;
-        border-radius: 50%;
-        background: {PRIMARY_COLOR};
-        margin-top: 1px;
-    }}
-
-    /* ── MISC ─── */
     hr {{ border-color: {border} !important; margin: 1.5rem 0 !important; opacity: 0.4; }}
     [data-testid="stStatusWidget"] {{
         border-radius: 16px !important;
@@ -877,10 +648,8 @@ def inject_css(dark: bool):
         background: {surface} !important;
         padding: 0.75rem !important;
     }}
-
-    /* ── RESPONSIVE ─── */
     @media (max-width: 600px) {{
-        .block-container {{ padding: 0 0.75rem 6rem !important; }}
+        .block-container {{ padding: 0 0.75rem 4rem !important; }}
         .hero-title {{ font-size: 1.5rem !important; }}
         .bento {{ padding: 1rem 1.1rem !important; }}
         .login-card {{ padding: 2rem 1.25rem 1.75rem !important; }}
@@ -902,15 +671,12 @@ if st.session_state.logged_in:
 
 if not st.session_state.logged_in:
     inject_css(st.session_state.dark_mode)
-
-    # Theme toggle — pojok kanan atas
     col_empty, col_theme_login = st.columns([8, 1])
     with col_theme_login:
         icon = "☀️" if st.session_state.dark_mode else "🌙"
         if st.button(icon, help="Ganti tema", key="login_theme_toggle"):
             st.session_state.dark_mode = not st.session_state.dark_mode
             st.rerun()
-
     st.markdown("""
     <div class="login-wrapper">
         <div class="login-card">
@@ -921,13 +687,9 @@ if not st.session_state.logged_in:
         </div>
     </div>
     """, unsafe_allow_html=True)
-
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        pin_input = st.text_input(
-            "", type="password", placeholder="",
-            key="pin_login", label_visibility="collapsed", autocomplete="off"
-        )
+        pin_input = st.text_input("", type="password", placeholder="", key="pin_login", label_visibility="collapsed", autocomplete="off")
         if st.button("Masuk →", key="btn_masuk", use_container_width=True):
             ok, msg = check_pin(pin_input)
             if ok:
@@ -936,14 +698,7 @@ if not st.session_state.logged_in:
                 st.rerun()
             else:
                 st.error(msg)
-
-    st.markdown("""
-    <div style="text-align:center;margin-top:0.5rem;">
-        <span style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;opacity:0.35;">
-            v1.0 · privasi terlindungi
-        </span>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center;margin-top:0.5rem;"><span style="font-family:JetBrains Mono,monospace;font-size:0.62rem;opacity:0.35;">v1.0 · privasi terlindungi</span></div>', unsafe_allow_html=True)
     st.stop()
 
 # ── SETELAH LOGIN ──────────────────────────────────────────
@@ -952,7 +707,7 @@ inject_css(st.session_state.dark_mode)
 # ── HELPERS ──────────────────────────────────────────────────
 def panggil_api_proses(uf, timeout=60):
     endpoint = f"{API_URL}/api/proses"
-    files    = {"file": (uf.name, uf.getvalue(), "application/pdf")}
+    files = {"file": (uf.name, uf.getvalue(), "application/pdf")}
     request_meta = {
         "method": "POST",
         "url": endpoint,
@@ -988,7 +743,6 @@ def panggil_api_proses(uf, timeout=60):
     }
     df_res = pd.DataFrame(payload["data"])
     return payload, df_res, request_meta, response_meta
-
 
 def render_result(res, idx=0):
     tingkat = res['tingkat']
@@ -1097,7 +851,6 @@ def render_result(res, idx=0):
             st.session_state.results = []
             st.rerun()
 
-
 def animasi_terminal_proses(uf, dark: bool):
     acc = PRIMARY_COLOR
     grn = SECONDARY
@@ -1110,7 +863,6 @@ def animasi_terminal_proses(uf, dark: bool):
     title_c = "#888888" if dark else "#666666"
 
     term = st.empty()
-
     def render(lines):
         visible = lines[-40:]
         inner = "".join(f'<div style="margin:0;line-height:1.65;">{l}</div>' for l in visible)
@@ -1197,7 +949,6 @@ def animasi_terminal_proses(uf, dark: bool):
     term.empty()
     return payload, df_res, req_meta, resp_meta
 
-
 def build_chart(log_data):
     if not log_data:
         return None
@@ -1229,19 +980,17 @@ def build_chart(log_data):
 # HALAMAN UTAMA
 # ══════════════════════════════════════════════════════════════
 
-# ── TOP NAV ──────────────────────────────────────────────────
 log_data_for_hero = load_log()
-_total_konversi  = len(log_data_for_hero)
-_total_selesai   = sum(1 for x in log_data_for_hero if x.get('status') == 'Selesai')
-_total_pending   = _total_konversi - _total_selesai
-_total_nominal   = sum(x['total'] for x in log_data_for_hero)
-# Format nominal penuh
-if _total_nominal >= 1_000_000:
-    _nom_hero = f"Rp {_total_nominal/1_000_000:.1f}M"
-else:
-    _nom_hero = f"Rp {_total_nominal:,.0f}".replace(",", ".")
+_total_konversi = len(log_data_for_hero)
+_total_selesai = sum(1 for x in log_data_for_hero if x.get('status') == 'Selesai')
+_total_pending = _total_konversi - _total_selesai
+_total_nominal = sum(x['total'] for x in log_data_for_hero)
 
-st.markdown(f"""
+# ── Format nominal PENUH ────────────────────────────────────
+_nominal_str = f"Rp {_total_nominal:,.0f}".replace(",", ".")
+
+# ── TOP NAV ──────────────────────────────────────────────────
+st.markdown("""
 <div class="top-nav">
     <div class="top-nav-logo"><span>FPK CONVERTER</span></div>
     <div class="top-nav-actions" id="top-nav-right"></div>
@@ -1294,7 +1043,7 @@ st.markdown(f"""
         </div>
         <div class="hero-stat">
             <div class="hero-stat-label">Total Nominal</div>
-            <div class="hero-stat-value" style="color:#a78bfa;font-size:1rem;">{_nom_hero}</div>
+            <div class="hero-stat-value" style="color:#a78bfa;font-size:1rem;">{_nominal_str}</div>
         </div>
     </div>
 </div>
@@ -1627,7 +1376,8 @@ else:
         else:
             status_html = '<span class="status-pending">⏳ Belum Diambil</span>'
             footer_extra = ''
-        st.markdown(f"""
+        # ── BUAT HTML UTUH ──────────────────────────────────
+        html = f'''
         <div class="log-item">
             <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:0.35rem;">
                 <span class="log-name">📄 {item['nama_file']}</span>
@@ -1644,7 +1394,8 @@ else:
                 {footer_extra}
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        '''
+        st.markdown(html, unsafe_allow_html=True)
         if status != 'Selesai':
             if st.button("✓ Tandai Selesai", key=f"tandai_{i}"):
                 update_log_status(item['nama_file'], 'Selesai')
@@ -1653,9 +1404,8 @@ else:
 # ── FOOTER ───────────────────────────────────────────────────
 _dark_ft = st.session_state.get('dark_mode', True)
 _ft_border = "rgba(255,255,255,0.05)" if _dark_ft else "rgba(0,0,0,0.05)"
-_ft_txt1   = "#888" if _dark_ft else "#555"
-_ft_txt2   = "#666" if _dark_ft else "#999"
-
+_ft_txt1 = "#888" if _dark_ft else "#555"
+_ft_txt2 = "#666" if _dark_ft else "#999"
 st.markdown(f"""
 <div style="text-align:center;padding:1.5rem 0 0.5rem;margin-top:1.5rem;border-top:1px solid {_ft_border};">
     <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:{_ft_txt1};margin-bottom:0.25rem;">
@@ -1664,33 +1414,6 @@ st.markdown(f"""
     <div style="font-size:0.6rem;color:{_ft_txt2};">Versi 1.0 · 2025 · All Rights Reserved</div>
     <div style="display:inline-block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);border-radius:40px;padding:3px 14px;margin-top:0.5rem;">
         <span style="font-size:0.58rem;color:#f87171;">⚠️ Hak Cipta Pribadi — Dilarang digandakan tanpa izin</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ── BOTTOM NAV BAR ───────────────────────────────────────────
-_bot_bg  = "#0a0a0a" if _dark_ft else "#ffffff"
-_bot_bdr = "#1e1e1e" if _dark_ft else "#e4e2dd"
-_bot_mut = "#555555" if _dark_ft else "#aaaaaa"
-
-st.markdown(f"""
-<div class="bottom-nav-bar">
-    <div class="bottom-nav-item">
-        <div class="bottom-nav-icon">📄</div>
-        <div class="bottom-nav-label active">Konversi</div>
-        <div class="bottom-nav-dot"></div>
-    </div>
-    <div class="bottom-nav-item">
-        <div class="bottom-nav-icon">📅</div>
-        <div class="bottom-nav-label">Rekap</div>
-    </div>
-    <div class="bottom-nav-item">
-        <div class="bottom-nav-icon">🕓</div>
-        <div class="bottom-nav-label">Riwayat</div>
-    </div>
-    <div class="bottom-nav-item">
-        <div class="bottom-nav-icon">⚙️</div>
-        <div class="bottom-nav-label">Setelan</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
