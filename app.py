@@ -117,7 +117,7 @@ def change_pin(pin_lama, pin_baru, pin_konfirm):
         return False, "❌ Konfirmasi PIN tidak cocok."
     return False, "⚠️ Untuk ganti PIN, ubah nilai **PIN** di Streamlit Secrets dashboard, lalu reboot app."
 
-# ── THEME CSS: BENTO GRID MODERN (tanpa ⚡) ──────────────
+# ── THEME CSS: BENTO GRID MODERN (Figma-grade) ──────────
 def inject_css(dark: bool):
     if dark:
         bg          = "#0f0f0f"
@@ -138,6 +138,9 @@ def inject_css(dark: bool):
         accent      = "#ff6b35"
         accent2     = "#ffd700"
         accent3     = "#00c47a"
+        accent_dark = "#ff8a5c"
+        bg_grad     = "linear-gradient(145deg, #0f0f0f, #1a1a1a)"
+        card_grad   = "linear-gradient(145deg, #1a1a1a, #222222)"
     else:
         bg          = "#f6f4f0"
         surface     = "#ffffff"
@@ -157,6 +160,9 @@ def inject_css(dark: bool):
         accent      = "#ff6b35"
         accent2     = "#ffd700"
         accent3     = "#00c47a"
+        accent_dark = "#e05a2a"
+        bg_grad     = "linear-gradient(145deg, #f6f4f0, #f0ede8)"
+        card_grad   = "linear-gradient(145deg, #ffffff, #f8f6f2)"
 
     st.session_state._toggle_icon = toggle_icon
     st.session_state._toggle_tip  = toggle_tip
@@ -172,53 +178,59 @@ def inject_css(dark: bool):
     #MainMenu {{visibility:hidden;}}
     footer {{visibility:hidden;}}
     header {{visibility:hidden;}}
-    .stApp {{ background: {bg}; }}
+    .stApp {{
+        background: {bg_grad};
+        min-height: 100vh;
+    }}
     .block-container {{
         max-width: 1200px !important;
-        padding-top: 1.5rem !important;
-        padding-bottom: 2rem !important;
+        padding: 2rem 2.5rem !important;
     }}
 
     /* ── BENTO CARD ──────────────────────────────────────── */
     .bento {{
-        background: {surface};
-        border-radius: 20px;
-        padding: 1.5rem 1.8rem;
+        background: {card_grad};
+        border-radius: 28px;
+        padding: 1.8rem 2rem;
         border: 1px solid {border};
-        box-shadow: 0 8px 30px {shadow};
-        transition: all 0.25s ease;
-        margin-bottom: 1rem;
+        box-shadow: 0 8px 32px {shadow};
+        transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        margin-bottom: 1.25rem;
+        backdrop-filter: blur(4px);
     }}
     .bento:hover {{
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px {shadow};
+        transform: translateY(-6px) scale(1.01);
+        box-shadow: 0 16px 48px {shadow};
+        border-color: {accent};
     }}
     .bento .label {{
-        font-size: 0.7rem;
+        font-size: 0.75rem;
         text-transform: uppercase;
-        letter-spacing: 1.5px;
+        letter-spacing: 0.08em;
         color: {text_muted};
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.4rem;
         font-weight: 600;
     }}
     .bento .value {{
-        font-size: 2rem;
+        font-size: 2.2rem;
         font-weight: 700;
         color: {text_h};
         line-height: 1.2;
+        letter-spacing: -0.02em;
     }}
     .bento .value.accent {{ color: {accent}; }}
     .bento .value.green  {{ color: {accent3}; }}
     .bento .sub {{
-        font-size: 0.75rem;
+        font-size: 0.8rem;
         color: {text_muted};
-        margin-top: 0.3rem;
+        margin-top: 0.4rem;
+        font-weight: 400;
     }}
 
     /* ── HEADER ───────────────────────────────────────────── */
     .app-header {{
         text-align: center;
-        padding: 1.5rem 0 2rem;
+        padding: 1.5rem 0 2.5rem;
     }}
     .app-header .badge {{
         display: inline-block;
@@ -226,11 +238,12 @@ def inject_css(dark: bool):
         color: #fff;
         font-size: 0.7rem;
         font-weight: 700;
-        letter-spacing: 1.5px;
-        padding: 0.3rem 1.5rem;
-        border-radius: 40px;
+        letter-spacing: 0.08em;
+        padding: 0.3rem 1.8rem;
+        border-radius: 60px;
         margin-bottom: 1rem;
         text-transform: uppercase;
+        box-shadow: 0 4px 16px rgba(255,107,53,0.25);
     }}
     .app-header h1 {{
         font-size: 2.8rem !important;
@@ -246,174 +259,132 @@ def inject_css(dark: bool):
     }}
     .app-header p {{
         color: {text_body};
-        font-size: 1rem;
+        font-size: 1.05rem;
         margin-top: 0.5rem;
         font-weight: 400;
     }}
 
     /* ── BUTTONS ──────────────────────────────────────────── */
     .stButton > button {{
-        background: {accent} !important;
+        background: linear-gradient(135deg, {accent}, {accent_dark}) !important;
         color: #fff !important;
         border: none !important;
-        border-radius: 40px !important;
-        padding: 0.6rem 2rem !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        box-shadow: 0 4px 14px rgba(255,107,53,0.3) !important;
-        transition: all 0.2s ease !important;
+        border-radius: 60px !important;
+        padding: 0.8rem 2.4rem !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        box-shadow: 0 8px 24px rgba(255,107,53,0.35) !important;
+        transition: all 0.25s ease !important;
         width: 100% !important;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.03em;
     }}
     .stButton > button:hover {{
-        transform: scale(1.02);
-        box-shadow: 0 6px 24px rgba(255,107,53,0.4) !important;
+        transform: scale(1.03) translateY(-2px);
+        box-shadow: 0 12px 32px rgba(255,107,53,0.45) !important;
+    }}
+    .stButton > button:active {{
+        transform: scale(0.97) translateY(0);
     }}
 
     .stDownloadButton > button {{
         background: {surface} !important;
         color: {accent3} !important;
         border: 2px solid {accent3} !important;
-        border-radius: 40px !important;
+        border-radius: 60px !important;
         font-weight: 600 !important;
         box-shadow: none !important;
+        transition: all 0.2s ease !important;
     }}
     .stDownloadButton > button:hover {{
         background: {accent3} !important;
         color: #fff !important;
+        transform: scale(1.02);
     }}
 
-    /* ── NAVBAR ───────────────────────────────────────────── */
-    .app-navbar {{
-        position: fixed;
-        top: 0; left: 0; right: 0;
-        z-index: 9999;
-        background: {bg}ee;
-        border-bottom: 1px solid {border};
-        padding: 0 1.5rem;
-        height: 52px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-    }}
-    .app-navbar .nav-brand {{
-        font-family: "JetBrains Mono", monospace;
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 2px;
-        color: {text_muted};
-        text-transform: uppercase;
-    }}
-    .app-navbar .nav-brand span {{ color: {accent}; }}
-    .app-navbar .nav-actions {{
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }}
-    .nav-pill {{
-        font-family: "JetBrains Mono", monospace;
-        font-size: 0.65rem;
-        font-weight: 700;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        padding: 5px 14px;
-        border-radius: 40px;
-        border: 1px solid {border};
-        background: transparent;
-        color: {text_muted};
-        cursor: pointer;
-        transition: all 0.15s ease;
-        white-space: nowrap;
-    }}
-    .nav-pill:hover {{ background: {surface2}; color: {text_h}; border-color: {accent}; }}
-    .nav-pill.danger:hover {{ background: #cc2222; color: #fff; border-color: #cc2222; }}
-    /* Geser konten bawah agar tidak ketutup navbar */
-    .block-container {{ padding-top: 4.5rem !important; }}
-    /* Nav button wrapper — angkat ke posisi navbar */
-    .nav-btn-wrap {{
-        position: fixed !important;
-        top: 10px !important;
-        z-index: 10000 !important;
-    }}
-    .nav-btn-wrap .stButton > button {{
+    /* ── TOP BAR BUTTONS (mini) ──────────────────────────── */
+    .top-btn .stButton > button {{
         background: transparent !important;
         color: {text_muted} !important;
         border: 1px solid {border} !important;
-        border-radius: 40px !important;
-        padding: 4px 14px !important;
-        font-size: 0.65rem !important;
-        font-weight: 700 !important;
-        font-family: "JetBrains Mono", monospace !important;
-        letter-spacing: 1.5px !important;
-        text-transform: uppercase !important;
+        border-radius: 60px !important;
+        padding: 0.25rem 1.2rem !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
         box-shadow: none !important;
         width: auto !important;
-        min-width: unset !important;
-        height: 32px !important;
-        transition: all 0.15s ease !important;
+        min-width: 60px;
+        height: 34px !important;
+        transition: all 0.2s ease;
+        letter-spacing: 0.02em;
     }}
-    .nav-btn-wrap .stButton > button:hover {{
+    .top-btn .stButton > button:hover {{
         background: {surface2} !important;
         color: {text_h} !important;
         border-color: {accent} !important;
-        transform: none !important;
-        box-shadow: none !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px {shadow} !important;
     }}
-    .danger-wrap .stButton > button:hover {{
-        background: #cc2222 !important;
-        color: #fff !important;
-        border-color: #cc2222 !important;
-    }}
-    /* Posisi masing-masing tombol dari kanan */
-    div[data-testid="column"]:nth-last-child(3) .nav-btn-wrap {{ right: 200px; }}
-    div[data-testid="column"]:nth-last-child(2) .nav-btn-wrap {{ right: 110px; }}
-    div[data-testid="column"]:nth-last-child(1) .nav-btn-wrap {{ right: 16px; }}
 
     /* ── FILE UPLOADER ────────────────────────────────────── */
     [data-testid="stFileUploader"] section {{
         background: {surface};
         border: 2px dashed {border};
-        border-radius: 20px;
-        padding: 2rem 1.5rem;
-        transition: border-color 0.2s;
+        border-radius: 24px;
+        padding: 2.5rem 2rem;
+        transition: all 0.25s ease;
     }}
     [data-testid="stFileUploader"] section:hover {{
         border-color: {accent};
         background: {surface2};
+        transform: scale(1.01);
+    }}
+    [data-testid="stFileUploaderDropzoneInstructions"] {{
+        color: {text_muted} !important;
+        font-size: 0.9rem !important;
+    }}
+    [data-testid="stFileUploaderDropzoneInstructions"] span {{
+        color: {accent} !important;
+        font-weight: 600 !important;
     }}
 
     /* ── TABS ────────────────────────────────────────────── */
     [data-testid="stTabs"] [data-testid="stTab"] {{
-        border-radius: 40px !important;
-        padding: 0.3rem 1.4rem !important;
+        border-radius: 60px !important;
+        padding: 0.4rem 1.6rem !important;
         background: transparent !important;
         color: {text_muted} !important;
         border: 1px solid transparent !important;
         font-weight: 600;
-        font-size: 0.85rem;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }}
+    [data-testid="stTabs"] [data-testid="stTab"]:hover {{
+        background: {surface2} !important;
+        color: {text_h} !important;
     }}
     [data-testid="stTabs"] [aria-selected="true"] {{
         background: {accent} !important;
         color: #fff !important;
         border-color: {accent} !important;
+        box-shadow: 0 4px 16px rgba(255,107,53,0.25);
     }}
 
     /* ── INPUT (PIN) ──────────────────────────────────────── */
     .stTextInput > div > div > input {{
         background: {input_bg} !important;
         border: 2px solid {input_bdr} !important;
-        border-radius: 12px !important;
+        border-radius: 16px !important;
         color: transparent !important;
-        padding: 14px 18px !important;
+        padding: 16px 20px !important;
         font-family: 'JetBrains Mono', monospace !important;
         letter-spacing: 2px !important;
         caret-color: {accent} !important;
+        font-size: 1rem !important;
+        transition: all 0.2s ease;
     }}
     .stTextInput > div > div > input:focus {{
         border-color: {accent} !important;
-        box-shadow: 0 0 0 3px rgba(255,107,53,0.15) !important;
+        box-shadow: 0 0 0 4px rgba(255,107,53,0.12) !important;
         outline: none !important;
         color: transparent !important;
     }}
@@ -421,7 +392,7 @@ def inject_css(dark: bool):
         color: {label_col} !important;
         font-weight: 600 !important;
         font-size: 0.8rem !important;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.05em;
     }}
 
     /* ── HIDE EYE ICON ───────────────────────────────────── */
@@ -446,58 +417,73 @@ def inject_css(dark: bool):
 
     /* ── DATAFRAME ────────────────────────────────────────── */
     [data-testid="stDataFrame"] {{
-        border-radius: 16px !important;
+        border-radius: 20px !important;
         overflow: hidden !important;
         border: 1px solid {border} !important;
+        box-shadow: 0 4px 16px {shadow};
     }}
 
     /* ── EXPANDER ─────────────────────────────────────────── */
     [data-testid="stExpander"] {{
-        border-radius: 16px !important;
+        border-radius: 20px !important;
         border: 1px solid {border} !important;
         background: {surface} !important;
         overflow: hidden;
-        box-shadow: 0 4px 16px {shadow};
+        box-shadow: 0 4px 20px {shadow};
+        transition: all 0.2s ease;
+    }}
+    [data-testid="stExpander"]:hover {{
+        border-color: {accent};
+        box-shadow: 0 8px 28px {shadow};
+    }}
+    [data-testid="stExpander"] summary {{
+        font-weight: 600 !important;
+        padding: 0.8rem 1.4rem !important;
+        color: {text_h} !important;
     }}
 
     /* ── ALERT ────────────────────────────────────────────── */
     [data-testid="stAlert"] {{
-        border-radius: 12px !important;
+        border-radius: 16px !important;
         border-left: 5px solid !important;
+        padding: 1rem 1.4rem !important;
+        box-shadow: 0 2px 12px {shadow};
     }}
 
     /* ── LOG ITEMS ────────────────────────────────────────── */
     .log-item {{
         background: {surface};
         border: 1px solid {border};
-        border-radius: 16px;
-        padding: 0.9rem 1.2rem;
-        margin-bottom: 0.6rem;
-        box-shadow: 0 2px 12px {shadow};
-        transition: all 0.15s;
+        border-radius: 20px;
+        padding: 1rem 1.4rem;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 2px 16px {shadow};
+        transition: all 0.2s ease;
     }}
     .log-item:hover {{
         border-color: {accent};
-        box-shadow: 0 4px 20px {shadow};
+        box-shadow: 0 4px 24px {shadow};
+        transform: translateX(4px);
     }}
 
     /* ── REKAP CARD ───────────────────────────────────────── */
     .rekap-card {{
         background: {surface};
         border: 1px solid {border};
-        border-radius: 16px;
-        padding: 1rem 1.25rem;
-        margin-bottom: 0.6rem;
+        border-radius: 20px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 0.75rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1rem;
-        box-shadow: 0 2px 12px {shadow};
-        transition: all 0.15s;
+        gap: 1.5rem;
+        box-shadow: 0 2px 16px {shadow};
+        transition: all 0.2s ease;
     }}
     .rekap-card:hover {{
         border-color: {accent};
-        box-shadow: 0 4px 20px {shadow};
+        box-shadow: 0 4px 24px {shadow};
+        transform: translateX(4px);
     }}
 
     /* ── STATUS BADGE ─────────────────────────────────────── */
@@ -505,22 +491,22 @@ def inject_css(dark: bool):
         background: rgba(0,196,122,0.12);
         border: 1.5px solid {accent3};
         color: {accent3};
-        padding: 2px 12px;
-        border-radius: 40px;
+        padding: 2px 14px;
+        border-radius: 60px;
         font-size: 0.65rem;
         font-weight: 700;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.03em;
         font-family: 'JetBrains Mono', monospace;
     }}
     .status-pending {{
         background: rgba(255,215,0,0.10);
         border: 1.5px solid {accent2};
         color: {accent2};
-        padding: 2px 12px;
-        border-radius: 40px;
+        padding: 2px 14px;
+        border-radius: 60px;
         font-size: 0.65rem;
         font-weight: 700;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.03em;
         font-family: 'JetBrains Mono', monospace;
     }}
 
@@ -529,11 +515,11 @@ def inject_css(dark: bool):
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 4px 14px;
-        border-radius: 40px;
+        padding: 4px 18px;
+        border-radius: 60px;
         font-size: 0.7rem;
         font-weight: 700;
-        letter-spacing: 1px;
+        letter-spacing: 0.03em;
         text-transform: uppercase;
         font-family: 'JetBrains Mono', monospace;
         border: 1.5px solid;
@@ -549,30 +535,143 @@ def inject_css(dark: bool):
         color: #60a5fa;
     }}
 
+    /* ── SUSULAN BADGE ────────────────────────────────────── */
+    .susulan-badge {{
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(255,107,53,0.12);
+        border: 1.5px solid {accent};
+        color: {accent};
+        padding: 2px 14px;
+        border-radius: 60px;
+        font-size: 0.6rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        font-family: 'JetBrains Mono', monospace;
+    }}
+
     /* ── SECTION TITLE ────────────────────────────────────── */
     .section-title {{
         font-size: 0.7rem;
         font-weight: 700;
-        letter-spacing: 2px;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
         color: {text_muted};
-        margin-bottom: 1rem;
+        margin-bottom: 1.2rem;
         border-left: 4px solid {accent};
-        padding-left: 10px;
+        padding-left: 12px;
         font-family: 'JetBrains Mono', monospace;
+    }}
+
+    /* ── RADIO (Toggle Susulan) ──────────────────────────── */
+    [data-testid="stRadio"] {{
+        display: flex;
+        gap: 0.5rem;
+        background: {surface};
+        border-radius: 60px;
+        padding: 0.25rem;
+        border: 1px solid {border};
+        width: fit-content;
+        margin: 0.5rem 0 1rem 0;
+        box-shadow: 0 2px 8px {shadow};
+    }}
+    [data-testid="stRadio"] label {{
+        border-radius: 60px !important;
+        padding: 0.35rem 1.6rem !important;
+        font-weight: 600 !important;
+        font-size: 0.8rem !important;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        color: {text_muted} !important;
+        background: transparent !important;
+        border: none !important;
+    }}
+    [data-testid="stRadio"] label:hover {{
+        color: {text_h} !important;
+        background: {surface2} !important;
+    }}
+    [data-testid="stRadio"] label[data-baseweb="radio"] [aria-checked="true"] {{
+        background: {accent} !important;
+        color: #fff !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(255,107,53,0.25);
+    }}
+    [data-testid="stRadio"] label[data-baseweb="radio"] [aria-checked="true"]:hover {{
+        background: {accent_dark} !important;
+    }}
+
+    /* ── TERMINAL ──────────────────────────────────────────── */
+    .terminal-container {{
+        border-radius: 20px;
+        overflow: hidden;
+        border: 1px solid {border};
+        box-shadow: 0 8px 32px {shadow};
+        background: #0d0d0d;
+    }}
+    .terminal-container .term-header {{
+        background: #1a1a1a;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid #2a2a2a;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }}
+    .terminal-container .term-dot {{
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+    }}
+    .terminal-container .term-dot.red {{ background: #ff5f57; }}
+    .terminal-container .term-dot.yellow {{ background: #febc2e; }}
+    .terminal-container .term-dot.green {{ background: #28c840; }}
+    .terminal-container .term-title {{
+        color: #555;
+        font-size: 0.65rem;
+        font-family: 'JetBrains Mono', monospace;
+        margin-left: 8px;
+        letter-spacing: 0.05em;
+    }}
+
+    /* ── SCROLLBAR ────────────────────────────────────────── */
+    ::-webkit-scrollbar {{
+        width: 4px;
+        height: 4px;
+    }}
+    ::-webkit-scrollbar-track {{
+        background: {surface};
+        border-radius: 8px;
+    }}
+    ::-webkit-scrollbar-thumb {{
+        background: {accent};
+        border-radius: 8px;
+    }}
+    ::-webkit-scrollbar-thumb:hover {{
+        background: {accent_dark};
     }}
 
     /* ── MISC ────────────────────────────────────────────── */
     hr {{
-        border-color: {border} !important;
+        border: none !important;
+        border-top: 1px solid {border} !important;
         margin: 2rem 0 !important;
-        opacity: 0.5;
+        opacity: 0.4;
     }}
     [data-testid="stStatusWidget"] {{
-        border-radius: 16px !important;
+        border-radius: 20px !important;
         border: 1px solid {border} !important;
         background: {surface} !important;
-        padding: 1rem !important;
+        padding: 1.25rem !important;
+        box-shadow: 0 4px 20px {shadow};
+    }}
+    .stProgress > div > div > div > div {{
+        background: {accent} !important;
+        border-radius: 60px !important;
+    }}
+    .stProgress > div > div > div {{
+        background: {border} !important;
+        border-radius: 60px !important;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -597,17 +696,21 @@ if st.session_state.logged_in:
 
 if not st.session_state.logged_in:
     _dark = st.session_state.get('dark_mode', True)
-    _bg   = "#0a0a0a" if _dark else "#fafaf7"
     _txt  = "#f5f5f5" if _dark else "#0a0a0a"
     _sub  = "#777777" if _dark else "#555555"
+    _surf = "#1a1a1a" if _dark else "#ffffff"
+    _bdr  = "#2a2a2a" if _dark else "#e0ddd8"
+    _shadow = "rgba(0,0,0,0.5)" if _dark else "rgba(0,0,0,0.06)"
+
     st.markdown(f"""
-        <div style="text-align:center; padding:3rem 2rem 0.5rem;">
-            <div style="display:inline-block;background:#ff6b35;color:#fff;padding:0.3rem 1.5rem;border-radius:40px;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;margin-bottom:1.5rem;text-transform:uppercase;">FPK Converter · v1.0</div>
-            <h1 style="font-size:3.4rem;font-weight:800;color:{_txt};line-height:1.05;margin:0 0 1rem;letter-spacing:-2.5px;text-transform:uppercase;">SELAMAT<br><span style="color:#ff6b35;border-bottom:6px solid #ff6b35;padding-bottom:4px;">DATANG</span></h1>
+    <div style="display:flex;justify-content:center;align-items:center;min-height:70vh;padding:1rem;">
+        <div style="max-width:420px;width:100%;background:{_surf};border-radius:32px;padding:2.5rem 2rem;border:1px solid {_bdr};box-shadow:0 24px 64px {_shadow};text-align:center;">
+            <div style="display:inline-block;background:#ff6b35;color:#fff;padding:0.3rem 1.8rem;border-radius:60px;font-size:0.7rem;font-weight:700;letter-spacing:0.08em;margin-bottom:1.5rem;text-transform:uppercase;">FPK Converter · v1.0</div>
+            <h1 style="font-size:2.8rem;font-weight:800;color:{_txt};line-height:1.05;margin:0 0 1rem;letter-spacing:-2px;text-transform:uppercase;">SELAMAT<br><span style="color:#ff6b35;border-bottom:5px solid #ff6b35;padding-bottom:4px;">DATANG</span></h1>
             <p style="color:{_sub};font-size:1rem;margin-bottom:0.3rem;">Aplikasi pribadi konversi data klaim BPJS Kesehatan</p>
-            <p style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:{_sub};opacity:0.5;letter-spacing:1.5px;margin-bottom:2rem;">// MASUKKAN PIN UNTUK MELANJUTKAN</p>
-        </div>
+            <p style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:{_sub};opacity:0.5;letter-spacing:0.08em;margin:1.5rem 0 2rem;">// MASUKKAN PIN UNTUK MELANJUTKAN</p>
     """, unsafe_allow_html=True)
+
     locked_until = st.session_state.get("locked_until")
     is_locked_now = False
     if locked_until:
@@ -618,9 +721,10 @@ if not st.session_state.logged_in:
         else:
             st.session_state.attempts = 0
             st.session_state.locked_until = None
+
     if not is_locked_now:
         pin_input = st.text_input("PIN AKSES", type="password", placeholder="", key="pin_login", autocomplete="off")
-        if st.button("Masuk →", key="btn_masuk"):
+        if st.button("Masuk →", key="btn_masuk", use_container_width=True):
             ok, msg = check_pin(pin_input)
             if ok:
                 st.session_state.logged_in = True
@@ -628,6 +732,8 @@ if not st.session_state.logged_in:
                 st.rerun()
             else:
                 st.error(msg)
+
+    st.markdown('</div></div>', unsafe_allow_html=True)
     st.stop()
 
 # ── HELPERS ──────────────────────────────────────────────────
@@ -674,11 +780,11 @@ def panggil_api_proses(uf, timeout=60):
 def render_result(res, idx=0):
     tingkat = res['tingkat']
     t_lower = tingkat.lower()
-    t_label = ("🏥 Rawat Inap (RITL)" if tingkat == "RITL"
-               else "🏃 Rawat Jalan (RJTL)" if tingkat == "RJTL" else tingkat)
+    t_label = ("Rawat Inap (RITL)" if tingkat == "RITL"
+               else "Rawat Jalan (RJTL)" if tingkat == "RJTL" else tingkat)
     total_rp = f"Rp {res['total']:,.0f}".replace(",", ".")
     jenis = res.get('jenis', 'Reguler')
-    jenis_badge = "📌 Susulan" if jenis == "Susulan" else ""
+    jenis_badge = '<span class="susulan-badge">📌 Susulan</span>' if jenis == "Susulan" else ''
 
     _dark   = st.session_state.get('dark_mode', True)
     surf    = "#1a1a1a" if _dark else "#ffffff"
@@ -692,7 +798,7 @@ def render_result(res, idx=0):
 
     # File badge
     st.markdown(
-        f'<div style="display:inline-flex;align-items:center;gap:8px;background:{surf};border:1px solid {bdr};border-radius:40px;padding:6px 18px;font-size:0.8rem;font-weight:600;font-family:JetBrains Mono,monospace;box-shadow:0 2px 12px {shadow};">📄 {res["filename"]} {jenis_badge}</div>',
+        f'<div style="display:inline-flex;align-items:center;gap:10px;background:{surf};border:1px solid {bdr};border-radius:60px;padding:6px 20px;font-size:0.8rem;font-weight:600;font-family:JetBrains Mono,monospace;box-shadow:0 2px 16px {shadow};">📄 {res["filename"]} {jenis_badge}</div>',
         unsafe_allow_html=True
     )
 
@@ -804,9 +910,16 @@ def animasi_terminal_proses(uf, dark: bool):
         visible = lines[-40:]
         inner = "".join(f'<div style="margin:0;line-height:1.65;">{l}</div>' for l in visible)
         term.markdown(f"""
-        <div style="background:{surf};border:2px solid {bdr_pnl};border-radius:16px;padding:1rem 1.2rem;font-family:'JetBrains Mono',monospace;font-size:0.74rem;box-shadow:0 8px 30px rgba(0,0,0,0.4);height:360px;overflow:hidden;">
-            <div style="color:{title_c};font-weight:700;font-size:0.65rem;letter-spacing:2px;border-bottom:1px solid {bdr_pnl};padding-bottom:0.35rem;margin-bottom:0.6rem;">API RESPONSE</div>
-            <div style="overflow:hidden;height:300px;">{inner}</div>
+        <div class="terminal-container">
+            <div class="term-header">
+                <span class="term-dot red"></span>
+                <span class="term-dot yellow"></span>
+                <span class="term-dot green"></span>
+                <span class="term-title">FPK-CONVERTER — API RESPONSE</span>
+            </div>
+            <div style="padding:1rem 1.2rem;font-family:'JetBrains Mono',monospace;font-size:0.74rem;height:340px;overflow-y:auto;background:{surf};color:{txt};">
+                {inner}
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -914,37 +1027,29 @@ def build_chart(log_data):
 
 
 # ══════════════════════════════════════════════════════════════
-# HALAMAN UTAMA — BENTO LAYOUT
+# HALAMAN UTAMA — BENTO LAYOUT (tanpa ⚡)
 # ══════════════════════════════════════════════════════════════
 
-# ── NAVBAR ────────────────────────────────────────────────────
-_dark_nav = st.session_state.get("dark_mode", True)
-_mode_label = "LIGHT" if _dark_nav else "DARK"
-
-# Brand kiri
-st.markdown(f'''
-<div class="app-navbar">
-    <div class="nav-brand">FPK <span>Converter</span></div>
-    <div class="nav-actions" id="nav-actions-placeholder"></div>
-</div>
-''', unsafe_allow_html=True)
-
-# Buttons dirender di dalam .nav-actions via CSS positioning trick
+# Top bar — minimalis, tanpa ikon mencolok
 col_sp, col_theme, col_pin, col_logout = st.columns([4, 1, 1, 1])
+
 with col_theme:
-    st.markdown('<div class="nav-btn-wrap">', unsafe_allow_html=True)
-    if st.button(_mode_label, key="theme_toggle"):
+    icon = st.session_state.get('_toggle_icon', '☀️')
+    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
+    if st.button(icon, help=st.session_state.get('_toggle_tip', 'Ganti tema'), key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
+
 with col_pin:
-    st.markdown('<div class="nav-btn-wrap">', unsafe_allow_html=True)
-    if st.button("PIN", key="open_pin"):
+    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
+    if st.button("PIN", help="Ganti PIN", key="open_pin"):
         st.session_state.show_pin_form = not st.session_state.get("show_pin_form", False)
     st.markdown('</div>', unsafe_allow_html=True)
+
 with col_logout:
-    st.markdown('<div class="nav-btn-wrap danger-wrap">', unsafe_allow_html=True)
-    if st.button("KELUAR", key="logout_btn"):
+    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
+    if st.button("Keluar", help="Logout", key="logout_btn"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
@@ -987,13 +1092,17 @@ with tab_pdf:
 
     if uploaded_files:
         # ── PILIHAN JENIS DATA (REGULER / SUSULAN) ──────────
+        st.markdown('<div style="display:flex;align-items:center;gap:1rem;margin:0.5rem 0 1rem;">', unsafe_allow_html=True)
+        st.markdown('<span style="font-weight:600;font-size:0.85rem;color:#888;">Jenis Data</span>', unsafe_allow_html=True)
         jenis_data = st.radio(
-            "Jenis Data",
+            "",
             ["Reguler", "Susulan"],
             index=0,
             horizontal=True,
-            help="Pilih 'Susulan' jika file berasal dari folder SUSULAN"
+            label_visibility="collapsed",
+            key="jenis_radio"
         )
+        st.markdown('</div>', unsafe_allow_html=True)
         is_susulan = (jenis_data == "Susulan")
 
         if st.button("Proses Sekarang", use_container_width=True):
@@ -1091,33 +1200,44 @@ with tab_csv:
     .csv-file-row {{
         background: {_surf_c};
         border: 1px solid {_bdr_c};
-        border-radius: 16px;
-        padding: 0.75rem 1.2rem;
-        margin-bottom: 0.5rem;
+        border-radius: 20px;
+        padding: 0.85rem 1.4rem;
+        margin-bottom: 0.6rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+        box-shadow: 0 2px 16px rgba(0,0,0,0.04);
         font-family: 'JetBrains Mono', monospace;
+        transition: all 0.2s ease;
+    }}
+    .csv-file-row:hover {{
+        border-color: {_acc};
+        transform: translateX(4px);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
     }}
     .csv-grand {{
-        background: {_acc};
+        background: linear-gradient(135deg, {_acc}, #e05a2a);
         border: none;
-        border-radius: 20px;
-        padding: 1.25rem 1.8rem;
-        margin-top: 1rem;
+        border-radius: 24px;
+        padding: 1.25rem 2rem;
+        margin-top: 1.25rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 8px 30px rgba(255,107,53,0.25);
+        box-shadow: 0 8px 32px rgba(255,107,53,0.3);
         font-family: 'JetBrains Mono', monospace;
+        transition: all 0.2s ease;
+    }}
+    .csv-grand:hover {{
+        transform: scale(1.01);
+        box-shadow: 0 12px 40px rgba(255,107,53,0.4);
     }}
     .csv-grand-label {{
         color: #fff; font-size: 0.8rem; font-weight: 700;
-        letter-spacing: 1.5px; text-transform: uppercase;
+        letter-spacing: 0.08em; text-transform: uppercase;
     }}
     .csv-grand-value {{
-        color: #fff; font-size: 1.3rem; font-weight: 800;
+        color: #fff; font-size: 1.4rem; font-weight: 800;
     }}
     .csv-stat-grid {{
         display: grid; grid-template-columns: 1fr 1fr 1fr;
@@ -1125,13 +1245,19 @@ with tab_csv:
     }}
     .csv-stat {{
         background: {_surf_c}; border: 1px solid {_bdr_c};
-        border-radius: 16px; padding: 1rem;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        border-radius: 20px; padding: 1rem 1.2rem;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.04);
         font-family: 'JetBrains Mono', monospace;
+        transition: all 0.2s ease;
+    }}
+    .csv-stat:hover {{
+        border-color: {_acc};
+        transform: translateY(-2px);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
     }}
     .csv-stat-label {{
         color: {_mut_c}; font-size: 0.65rem; font-weight: 700;
-        letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 0.3rem;
+        letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.3rem;
     }}
     .csv-stat-val {{
         color: {_txt_c}; font-size: 1.2rem; font-weight: 800;
@@ -1139,8 +1265,8 @@ with tab_csv:
     .csv-empty-box {{
         border: 2px dashed {_bdr_c};
         background: {_surf_c};
-        border-radius: 20px;
-        padding: 2.5rem;
+        border-radius: 24px;
+        padding: 3rem 2rem;
         text-align: center;
         margin-top: 0.5rem;
         font-family: 'Inter', sans-serif;
@@ -1202,16 +1328,16 @@ with tab_csv:
                 """, unsafe_allow_html=True)
             st.markdown(f"""
             <div class="csv-grand">
-                <div class="csv-grand-label">Grand Total Disetujui</div>
+                <div class="csv-grand-label">⚡ Grand Total Disetujui</div>
                 <div class="csv-grand-value">{grand_fmt}</div>
             </div>
             """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
         <div class="csv-empty-box">
-            <div style="font-size:2rem;margin-bottom:0.5rem;">📊</div>
-            <div style="font-weight:700;font-size:1rem;margin-bottom:0.3rem;color:{_txt_c};">Upload file CSV di atas</div>
-            <div style="color:{_mut_c};font-size:0.85rem;">Bisa multiple file — format: No.SEP, Disetujui</div>
+            <div style="font-size:2.5rem;margin-bottom:0.5rem;">📊</div>
+            <div style="font-weight:700;font-size:1.1rem;margin-bottom:0.3rem;color:{_txt_c};">Upload file CSV di atas</div>
+            <div style="color:{_mut_c};font-size:0.9rem;">Bisa multiple file — format: No.SEP, Disetujui</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1272,10 +1398,10 @@ if log_data:
     th = '#f0f0f0' if dark else '#1a1a1a'
     st.markdown(f"""
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1rem;">
-        <div class="bento" style="padding:1rem;"><div class="label">Total Konversi</div><div class="value" style="font-size:1.2rem;">{total_entri}</div></div>
-        <div class="bento" style="padding:1rem;"><div class="label">Selesai</div><div class="value" style="font-size:1.2rem;color:#00c47a;">{total_selesai}</div></div>
-        <div class="bento" style="padding:1rem;"><div class="label">Pending</div><div class="value" style="font-size:1.2rem;color:#ffd700;">{total_pending}</div></div>
-        <div class="bento" style="padding:1rem;"><div class="label">Total Nominal</div><div class="value" style="font-size:1rem;color:#e040fb;white-space:nowrap;">{nominal_fmt}</div></div>
+        <div class="bento" style="padding:1rem 1.2rem;"><div class="label">Total Konversi</div><div class="value" style="font-size:1.2rem;">{total_entri}</div></div>
+        <div class="bento" style="padding:1rem 1.2rem;"><div class="label">Selesai</div><div class="value" style="font-size:1.2rem;color:#00c47a;">{total_selesai}</div></div>
+        <div class="bento" style="padding:1rem 1.2rem;"><div class="label">Pending</div><div class="value" style="font-size:1.2rem;color:#ffd700;">{total_pending}</div></div>
+        <div class="bento" style="padding:1rem 1.2rem;"><div class="label">Total Nominal</div><div class="value" style="font-size:1rem;color:#e040fb;white-space:nowrap;">{nominal_fmt}</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1300,7 +1426,7 @@ else:
         status = item.get('status', 'Belum Diambil')
         wkt_sel = item.get('waktu_selesai')
         jenis = item.get('jenis', 'Reguler')
-        jenis_badge = "📌 Susulan" if jenis == "Susulan" else ""
+        jenis_badge = '<span class="susulan-badge">📌 Susulan</span>' if jenis == "Susulan" else ''
         if status == 'Selesai':
             status_html = '<span class="status-selesai">✓ Selesai</span>'
             footer_extra = f'<span style="color:#888;font-size:0.7rem;">📥 {wkt_sel}</span>' if wkt_sel else ''
@@ -1309,7 +1435,7 @@ else:
             footer_extra = ''
         st.markdown(f"""
         <div class="log-item">
-            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:0.3rem;">
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:0.3rem;">
                 <span style="font-weight:700;font-family:JetBrains Mono,monospace;font-size:0.82rem;color:{'#f0f0f0' if st.session_state.dark_mode else '#1a1a1a'};">📄 {item['nama_file']}</span>
                 {badge} {jenis_badge} {status_html}
             </div>
@@ -1338,8 +1464,8 @@ ft_muted = "#475569" if _dark else "#64748b"
 st.markdown(f"""
 <div style="text-align:center;padding:2.5rem 1rem 1.5rem;margin-top:2.5rem;border-top:1px solid {ft_border};">
     <div style="margin-bottom:1rem;">
-        <div style="display:inline-flex;align-items:center;gap:8px;background:#ff6b35;border-radius:40px;padding:0.4rem 1.8rem;box-shadow:0 4px 14px rgba(255,107,53,0.3);">
-            <span style="font-family:JetBrains Mono,monospace;font-size:0.78rem;font-weight:700;color:#fff;letter-spacing:2px;">FPK CONVERTER</span>
+        <div style="display:inline-flex;align-items:center;gap:8px;background:#ff6b35;border-radius:60px;padding:0.4rem 2rem;box-shadow:0 4px 16px rgba(255,107,53,0.3);">
+            <span style="font-family:JetBrains Mono,monospace;font-size:0.78rem;font-weight:700;color:#fff;letter-spacing:0.08em;">FPK CONVERTER</span>
         </div>
     </div>
     <div style="font-size:0.8rem;color:{ft_muted};font-weight:400;margin-bottom:1.2rem;">Solusi otomasi konversi data klaim BPJS Kesehatan</div>
@@ -1353,7 +1479,7 @@ st.markdown(f"""
         Dikembangkan oleh <strong style="color:#6366f1;">Isfan Fajar Anugrah</strong>
     </div>
     <div style="font-size:0.68rem;color:{ft_dimmer};margin-bottom:0.8rem;">Versi 1.0 · 2025 · All Rights Reserved</div>
-    <div style="display:inline-block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:40px;padding:4px 16px;">
+    <div style="display:inline-block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:60px;padding:4px 20px;">
         <span style="font-size:0.6rem;color:#f87171;">⚠️ Hak Cipta Pribadi — Dilarang digandakan tanpa izin</span>
     </div>
 </div>
