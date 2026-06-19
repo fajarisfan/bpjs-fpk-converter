@@ -147,47 +147,52 @@ def change_pin(pin_lama, pin_baru, pin_konfirm):
 # ── THEME CSS ──────────────────────────────────────────────
 def inject_css(dark: bool):
     if dark:
-        bg          = "#0d0d0d"
-        surface     = "#1a1a1a"
-        surface2    = "#262626"
-        border      = "#2a2a2a"
-        border2     = "#3a3a3a"
+        bg          = "#0a0a0a"
+        surface     = "#141414"
+        surface2    = "#1e1e1e"
+        border      = "#242424"
+        border2     = "#333333"
         text_h      = "#f0f0f0"
         text_body   = "#b0b0b0"
-        text_muted  = "#777777"
-        text_dim    = "#444444"
-        input_bg    = "#111111"
-        input_bdr   = "#333333"
+        text_muted  = "#666666"
+        text_dim    = "#3a3a3a"
+        input_bg    = "#0d0d0d"
+        input_bdr   = "#2a2a2a"
         input_col   = "#f0f0f0"
-        label_col   = "#aaaaaa"
-        shadow      = "rgba(0,0,0,0.6)"
+        label_col   = "#888888"
+        shadow      = "rgba(0,0,0,0.7)"
         toggle_icon = "☀️"
         toggle_tip  = "Mode Terang"
-        log_bg      = "#1a1a1a"
-        log_border  = "#2a2a2a"
-        login_bg    = "#1a1a1a"
-        login_border = "#2a2a2a"
-        login_shadow = "rgba(0,0,0,0.5)"
+        log_bg      = "#141414"
+        log_border  = "#242424"
+        login_bg    = "#141414"
+        login_border = "#242424"
+        login_shadow = "rgba(0,0,0,0.6)"
         login_txt   = "#f0f0f0"
-        login_sub   = "#888888"
+        login_sub   = "#777777"
         radio_color = "#f0f0f0"
-        radio_bg    = "#1a1a1a"
-        radio_border = "#2a2a2a"
+        radio_bg    = "#141414"
+        radio_border = "#242424"
+        hero_bg     = "#141414"
+        hero_stat   = "#1e1e1e"
+        hero_stat_b = "#282828"
+        bottom_bg   = "#0a0a0a"
+        bottom_bdr  = "#1e1e1e"
     else:
-        bg          = "#f6f4f0"
+        bg          = "#f5f4f2"
         surface     = "#ffffff"
-        surface2    = "#f0ede8"
-        border      = "#e0ddd8"
-        border2     = "#d0cdc8"
+        surface2    = "#f0eee9"
+        border      = "#e4e2dd"
+        border2     = "#d0cec9"
         text_h      = "#1a1a1a"
         text_body   = "#444444"
-        text_muted  = "#666666"
+        text_muted  = "#888888"
         text_dim    = "#cccccc"
         input_bg    = "#ffffff"
-        input_bdr   = "#d0cdc8"
+        input_bdr   = "#d5d3ce"
         input_col   = "#1a1a1a"
-        label_col   = "#555555"
-        shadow      = "rgba(0,0,0,0.06)"
+        label_col   = "#666666"
+        shadow      = "rgba(0,0,0,0.07)"
         toggle_icon = "🌙"
         toggle_tip  = "Mode Gelap"
         log_bg      = "#ffffff"
@@ -200,33 +205,33 @@ def inject_css(dark: bool):
         radio_color = "#1a1a1a"
         radio_bg    = "#ffffff"
         radio_border = "#e0ddd8"
+        hero_bg     = "#ffffff"
+        hero_stat   = "#f5f4f2"
+        hero_stat_b = "#e8e6e1"
+        bottom_bg   = "#ffffff"
+        bottom_bdr  = "#e4e2dd"
 
     st.session_state._toggle_icon = toggle_icon
     st.session_state._toggle_tip  = toggle_tip
 
     st.markdown(f"""
     <style>
-    /* ── FONTS ───────────────────────────────────────────── */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
-    .mono {{ font-family: 'JetBrains Mono', monospace !important; }}
 
-    /* ── GLOBAL ───────────────────────────────────────────── */
+    /* ── GLOBAL RESET ─── */
     #MainMenu {{visibility:hidden;}}
     footer {{visibility:hidden;}}
     header {{visibility:hidden;}}
     .stApp {{ background: {bg}; }}
     .block-container {{
-        max-width: 1200px !important;
-        padding-top: 1.5rem !important;
-        padding-bottom: 2rem !important;
+        max-width: 560px !important;
+        padding: 0 1rem 6rem !important;
+        margin: 0 auto !important;
     }}
 
-    /* ── PIN INPUT LINUX-LIKE (KUAT) ─────────────────────── */
-    /* Target semua input password di dalam Streamlit */
+    /* ── PIN INPUT ─── */
     .stTextInput input[type="password"],
-    .stTextInput input[type="password"]:focus,
-    .stTextInput input[type="password"]:active,
     input[type="password"] {{
         color: transparent !important;
         caret-color: {PRIMARY_COLOR} !important;
@@ -234,7 +239,6 @@ def inject_css(dark: bool):
         text-shadow: none !important;
         background: {input_bg} !important;
     }}
-    /* Hilangkan semua tombol eye */
     .stTextInput button[data-testid="stTextInputHideShowButton"],
     button[aria-label="Show password"],
     button[aria-label="Hide password"],
@@ -244,43 +248,33 @@ def inject_css(dark: bool):
     [data-baseweb="input"] + div button {{
         display: none !important;
         visibility: hidden !important;
+        pointer-events: none !important;
         width: 0 !important;
         height: 0 !important;
         padding: 0 !important;
         margin: 0 !important;
-        overflow: hidden !important;
-        pointer-events: none !important;
-        position: absolute !important;
-        opacity: 0 !important;
     }}
 
-    /* ── RADIO BUTTON (Reguler/Susulan) ──────────────────── */
+    /* ── RADIO PILLS ─── */
     .stRadio > div {{
         display: flex !important;
-        gap: 1rem !important;
+        gap: 0.75rem !important;
         flex-wrap: wrap !important;
         justify-content: center !important;
     }}
     .stRadio label {{
         background: {radio_bg} !important;
-        border: 1px solid {radio_border} !important;
-        border-radius: 40px !important;
-        padding: 0.3rem 1.5rem !important;
+        border: 1.5px solid {radio_border} !important;
+        border-radius: 50px !important;
+        padding: 0.5rem 1.6rem !important;
         color: {radio_color} !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         font-size: 0.85rem !important;
-        transition: all 0.2s ease !important;
+        transition: all 0.18s ease !important;
         cursor: pointer !important;
     }}
     .stRadio label:hover {{
         border-color: {PRIMARY_COLOR} !important;
-        background: {surface2} !important;
-    }}
-    .stRadio label[data-baseweb="radio"] [data-testid="stMarkdownContainer"] {{
-        color: {radio_color} !important;
-    }}
-    .stRadio div[role="radiogroup"] {{
-        gap: 0.5rem !important;
     }}
     .stRadio div[role="radiogroup"] label[data-selected="true"] {{
         background: {PRIMARY_COLOR} !important;
@@ -294,216 +288,337 @@ def inject_css(dark: bool):
         display: none !important;
     }}
     .stRadio div[role="radiogroup"] label {{
-        padding-left: 1.5rem !important;
-        padding-right: 1.5rem !important;
+        padding-left: 1.6rem !important;
+        padding-right: 1.6rem !important;
     }}
 
-    /* ── BENTO CARD ──────────────────────────────────────── */
+    /* ── BENTO CARD ─── */
     .bento {{
         background: {surface};
-        border-radius: 20px;
-        padding: 1.5rem 1.8rem;
+        border-radius: 22px;
+        padding: 1.25rem 1.5rem;
         border: 1px solid {border};
-        box-shadow: 0 8px 30px {shadow};
-        transition: all 0.25s ease;
+        box-shadow: 0 4px 20px {shadow};
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         margin-bottom: 1rem;
     }}
     .bento:hover {{
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px {shadow};
+        transform: translateY(-3px);
+        box-shadow: 0 8px 32px {shadow};
     }}
     .bento .label {{
-        font-size: 0.7rem;
+        font-size: 0.65rem;
         text-transform: uppercase;
         letter-spacing: 1.5px;
         color: {text_muted};
-        margin-bottom: 0.25rem;
-        font-weight: 600;
+        margin-bottom: 0.3rem;
+        font-weight: 700;
     }}
     .bento .value {{
         font-size: 2rem;
-        font-weight: 700;
+        font-weight: 800;
         color: {text_h};
         line-height: 1.2;
     }}
     .bento .value.accent {{ color: {PRIMARY_COLOR}; }}
     .bento .value.green  {{ color: {SECONDARY}; }}
     .bento .sub {{
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         color: {text_muted};
-        margin-top: 0.3rem;
+        margin-top: 0.25rem;
     }}
 
-    /* ── HEADER ───────────────────────────────────────────── */
+    /* ── HERO CARD ─── */
+    .hero-card {{
+        background: {hero_bg};
+        border: 1px solid {border};
+        border-radius: 28px;
+        padding: 1.4rem 1.5rem;
+        margin-bottom: 1.25rem;
+        position: relative;
+        overflow: hidden;
+    }}
+    .hero-card::before {{
+        content: '';
+        position: absolute;
+        top: -50px; right: -50px;
+        width: 160px; height: 160px;
+        background: rgba(255,107,53,0.06);
+        border-radius: 50%;
+        pointer-events: none;
+    }}
+    .hero-label {{
+        font-size: 0.6rem;
+        font-weight: 800;
+        letter-spacing: 2.5px;
+        color: {text_muted};
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+    }}
+    .hero-title {{
+        font-size: 1.75rem;
+        font-weight: 900;
+        color: {text_h};
+        letter-spacing: -1px;
+        margin-bottom: 0.15rem;
+        line-height: 1.1;
+    }}
+    .hero-title span {{ color: {PRIMARY_COLOR}; }}
+    .hero-sub {{
+        font-size: 0.78rem;
+        color: {text_muted};
+        margin-bottom: 1.1rem;
+        font-weight: 400;
+    }}
+    .hero-stats {{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+    }}
+    .hero-stat {{
+        background: {hero_stat};
+        border: 1px solid {hero_stat_b};
+        border-radius: 16px;
+        padding: 0.75rem 0.9rem;
+    }}
+    .hero-stat-label {{
+        font-size: 0.6rem;
+        font-weight: 700;
+        color: {text_muted};
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.2rem;
+    }}
+    .hero-stat-value {{
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: {text_h};
+        line-height: 1.1;
+    }}
+
+    /* ── TOP NAV ─── */
+    .top-nav {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 0 1rem;
+    }}
+    .top-nav-logo {{
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: {PRIMARY_COLOR};
+        border-radius: 40px;
+        padding: 0.3rem 1rem;
+    }}
+    .top-nav-logo span {{
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: 2px;
+    }}
+    .top-nav-actions {{
+        display: flex;
+        gap: 0.5rem;
+    }}
+
+    /* ── TOP NAV ICON BUTTONS ─── */
+    .icon-btn-wrap .stButton > button {{
+        background: {surface} !important;
+        color: {text_muted} !important;
+        border: 1px solid {border} !important;
+        border-radius: 50px !important;
+        padding: 0 !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        box-shadow: none !important;
+        transition: all 0.15s ease !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }}
+    .icon-btn-wrap .stButton > button:hover {{
+        border-color: {PRIMARY_COLOR} !important;
+        color: {PRIMARY_COLOR} !important;
+        background: {surface2} !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }}
+
+    /* ── APP HEADER ─── */
     .app-header {{
         text-align: center;
-        padding: 1.5rem 0 2rem;
+        padding: 0.5rem 0 1.25rem;
     }}
     .app-header .badge {{
         display: inline-block;
         background: {PRIMARY_COLOR};
         color: #fff;
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 1.5px;
-        padding: 0.3rem 1.5rem;
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        padding: 0.25rem 1.2rem;
         border-radius: 40px;
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
         text-transform: uppercase;
     }}
     .app-header h1 {{
-        font-size: 2.8rem !important;
-        font-weight: 800 !important;
+        font-size: 2.4rem !important;
+        font-weight: 900 !important;
         color: {text_h} !important;
         letter-spacing: -1.5px;
         margin: 0 !important;
+        line-height: 1.1 !important;
     }}
     .app-header h1 span {{
         color: {PRIMARY_COLOR};
         border-bottom: 4px solid {PRIMARY_COLOR};
-        padding-bottom: 4px;
+        padding-bottom: 2px;
     }}
     .app-header p {{
         color: {text_body};
-        font-size: 1rem;
-        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        margin-top: 0.4rem;
         font-weight: 400;
     }}
 
-    /* ── LOGIN PAGE ───────────────────────────────────────── */
+    /* ── LOGIN PAGE ─── */
     .login-wrapper {{
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 80vh;
+        min-height: 85vh;
         padding: 1rem;
     }}
     .login-card {{
         background: {login_bg};
-        border-radius: 32px;
-        padding: 2.5rem 2rem;
-        max-width: 400px;
+        border-radius: 36px;
+        padding: 2.5rem 1.75rem 2rem;
+        max-width: 380px;
         width: 100%;
         border: 1px solid {login_border};
-        box-shadow: 0 24px 64px {login_shadow};
+        box-shadow: 0 32px 80px {login_shadow};
         text-align: center;
     }}
-    .login-card .icon {{
-        font-size: 3rem;
-        margin-bottom: 0.5rem;
+    .login-app-badge {{
+        display: inline-flex;
+        align-items: center;
+        background: {PRIMARY_COLOR};
+        border-radius: 40px;
+        padding: 0.3rem 1.1rem;
+        margin-bottom: 1.5rem;
+    }}
+    .login-app-badge span {{
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: 2px;
+    }}
+    .login-icon-ring {{
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(255,107,53,0.1);
+        border: 2px solid rgba(255,107,53,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 2rem;
     }}
     .login-card h2 {{
-        font-size: 1.5rem;
-        font-weight: 700;
+        font-size: 1.55rem;
+        font-weight: 800;
         color: {login_txt};
-        margin: 0 0 0.25rem 0;
+        margin: 0 0 0.3rem 0;
         letter-spacing: -0.5px;
     }}
     .login-card .sub {{
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         color: {login_sub};
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.75rem;
         font-weight: 400;
     }}
-    .login-card .input-wrap {{
+    .pin-dots-row {{
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 1.5rem;
+    }}
+    .pin-dot {{
+        width: 14px; height: 14px;
+        border-radius: 50%;
+        border: 2px solid {border};
+        background: transparent;
+        transition: all 0.15s ease;
+    }}
+    .pin-dot.filled {{
+        background: {PRIMARY_COLOR};
+        border-color: {PRIMARY_COLOR};
+    }}
+    .login-input-wrap {{
         margin-bottom: 1rem;
     }}
-    .login-card .input-wrap input {{
+    .login-input-wrap input {{
         width: 100%;
-        padding: 14px 18px;
+        padding: 15px 18px;
         background: {input_bg};
-        border: 2px solid {input_bdr};
-        border-radius: 16px;
+        border: 1.5px solid {input_bdr};
+        border-radius: 18px;
         color: transparent !important;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 1.2rem;
-        letter-spacing: 4px;
+        font-size: 1.4rem;
+        letter-spacing: 8px;
         outline: none;
         transition: border-color 0.2s;
         text-align: center;
         caret-color: {PRIMARY_COLOR};
+        box-sizing: border-box;
     }}
-    .login-card .input-wrap input:focus {{
+    .login-input-wrap input:focus {{
         border-color: {PRIMARY_COLOR};
-        box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
+        box-shadow: 0 0 0 4px rgba(255,107,53,0.12);
     }}
-    .login-card .btn-login {{
-        width: 100%;
-        padding: 14px;
-        background: {PRIMARY_COLOR};
-        color: #fff;
-        border: none;
-        border-radius: 60px;
-        font-size: 1rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.2s;
-        box-shadow: 0 4px 14px rgba(255,107,53,0.3);
-    }}
-    .login-card .btn-login:hover {{
-        transform: scale(1.02);
-        box-shadow: 0 6px 24px rgba(255,107,53,0.4);
-    }}
-    .login-card .footer-text {{
-        font-size: 0.7rem;
+    .login-footer-text {{
+        font-size: 0.65rem;
         color: {login_sub};
-        margin-top: 1.5rem;
+        margin-top: 1.25rem;
         opacity: 0.5;
         font-family: 'JetBrains Mono', monospace;
     }}
 
-    /* ── LOGIN THEME TOGGLE ──────────────────────────────── */
-    .login-top {{
-        display: flex;
-        justify-content: flex-end;
-        padding: 0.5rem 1rem;
-        position: fixed;
-        top: 0;
-        right: 0;
-        z-index: 999;
-    }}
-    .login-top .theme-btn {{
-        background: {surface};
-        border: 1px solid {border};
-        border-radius: 40px;
-        padding: 0.2rem 1rem;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: {text_h};
-        cursor: pointer;
-        transition: all 0.15s ease;
-        box-shadow: 0 2px 8px {shadow};
-    }}
-    .login-top .theme-btn:hover {{
-        border-color: {PRIMARY_COLOR};
-        background: {surface2};
-    }}
-
-    /* ── BUTTONS ──────────────────────────────────────────── */
+    /* ── MAIN CTA BUTTON ─── */
     .stButton > button {{
         background: {PRIMARY_COLOR} !important;
         color: #fff !important;
         border: none !important;
-        border-radius: 40px !important;
-        padding: 0.6rem 2rem !important;
-        font-weight: 600 !important;
+        border-radius: 50px !important;
+        padding: 0.75rem 2rem !important;
+        font-weight: 700 !important;
         font-size: 0.9rem !important;
-        box-shadow: 0 4px 14px rgba(255,107,53,0.3) !important;
+        box-shadow: 0 4px 18px rgba(255,107,53,0.28) !important;
         transition: all 0.2s ease !important;
         width: 100% !important;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
     }}
     .stButton > button:hover {{
-        transform: scale(1.02);
-        box-shadow: 0 6px 24px rgba(255,107,53,0.4) !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 7px 26px rgba(255,107,53,0.38) !important;
     }}
-
+    .stButton > button:active {{
+        transform: scale(0.98) !important;
+    }}
     .stDownloadButton > button {{
         background: {surface} !important;
         color: {SECONDARY} !important;
         border: 2px solid {SECONDARY} !important;
-        border-radius: 40px !important;
-        font-weight: 600 !important;
+        border-radius: 50px !important;
+        font-weight: 700 !important;
         box-shadow: none !important;
     }}
     .stDownloadButton > button:hover {{
@@ -511,101 +626,82 @@ def inject_css(dark: bool):
         color: #fff !important;
     }}
 
-    /* ── TOP BAR BUTTONS ──────────────────────────────────── */
-    .top-btn .stButton > button {{
-        background: transparent !important;
-        color: {text_muted} !important;
-        border: 1px solid {border} !important;
-        border-radius: 40px !important;
-        padding: 0.2rem 1rem !important;
-        font-size: 0.75rem !important;
-        font-weight: 600 !important;
-        box-shadow: none !important;
-        width: auto !important;
-        min-width: 60px;
-        height: 32px !important;
-        transition: all 0.15s ease;
-    }}
-    .top-btn .stButton > button:hover {{
-        background: {surface2} !important;
-        color: {text_h} !important;
-        border-color: {PRIMARY_COLOR} !important;
-        transform: none;
-        box-shadow: 0 2px 8px {shadow} !important;
-    }}
-
-    /* ── FILE UPLOADER ────────────────────────────────────── */
+    /* ── FILE UPLOADER ─── */
     [data-testid="stFileUploader"] section {{
         background: {surface};
         border: 2px dashed {border};
-        border-radius: 20px;
-        padding: 2rem 1.5rem;
-        transition: border-color 0.2s;
+        border-radius: 24px;
+        padding: 2.5rem 1.5rem;
+        transition: border-color 0.2s, background 0.2s;
     }}
     [data-testid="stFileUploader"] section:hover {{
         border-color: {PRIMARY_COLOR};
         background: {surface2};
     }}
 
-    /* ── TABS ────────────────────────────────────────────── */
+    /* ── TABS ─── */
     [data-testid="stTabs"] [data-testid="stTab"] {{
-        border-radius: 40px !important;
-        padding: 0.3rem 1.4rem !important;
+        border-radius: 50px !important;
+        padding: 0.4rem 1.4rem !important;
         background: transparent !important;
         color: {text_muted} !important;
-        border: 1px solid transparent !important;
-        font-weight: 600;
-        font-size: 0.85rem;
+        border: 1.5px solid {border} !important;
+        font-weight: 700;
+        font-size: 0.82rem;
+        transition: all 0.15s ease;
     }}
     [data-testid="stTabs"] [aria-selected="true"] {{
         background: {PRIMARY_COLOR} !important;
         color: #fff !important;
         border-color: {PRIMARY_COLOR} !important;
     }}
+    [data-testid="stTabContent"] {{
+        padding-top: 1rem !important;
+    }}
 
-    /* ── DATAFRAME ────────────────────────────────────────── */
+    /* ── DATAFRAME ─── */
     [data-testid="stDataFrame"] {{
-        border-radius: 16px !important;
+        border-radius: 18px !important;
         overflow: hidden !important;
         border: 1px solid {border} !important;
     }}
 
-    /* ── EXPANDER ─────────────────────────────────────────── */
+    /* ── EXPANDER ─── */
     [data-testid="stExpander"] {{
-        border-radius: 16px !important;
+        border-radius: 18px !important;
         border: 1px solid {border} !important;
         background: {surface} !important;
         overflow: hidden;
-        box-shadow: 0 4px 16px {shadow};
+        box-shadow: 0 2px 12px {shadow};
     }}
 
-    /* ── ALERT ────────────────────────────────────────────── */
+    /* ── ALERT ─── */
     [data-testid="stAlert"] {{
-        border-radius: 12px !important;
-        border-left: 5px solid !important;
+        border-radius: 14px !important;
+        border-left: 4px solid !important;
     }}
 
-    /* ── LOG ITEMS ────────────────────────────────────────── */
+    /* ── LOG ITEMS ─── */
     .log-item {{
         background: {log_bg} !important;
         border: 1px solid {log_border} !important;
-        border-radius: 16px !important;
-        padding: 0.9rem 1.2rem !important;
-        margin-bottom: 0.6rem !important;
-        box-shadow: 0 2px 12px {shadow} !important;
-        transition: all 0.15s ease;
-        backdrop-filter: none !important;
+        border-radius: 20px !important;
+        padding: 1rem 1.25rem !important;
+        margin-bottom: 0.65rem !important;
+        box-shadow: 0 2px 10px {shadow} !important;
+        transition: border-color 0.15s ease, transform 0.15s ease;
     }}
     .log-item:hover {{
         border-color: {PRIMARY_COLOR} !important;
-        box-shadow: 0 4px 20px {shadow} !important;
+        transform: translateY(-1px);
     }}
     .log-item .log-name {{
         font-weight: 700;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.82rem;
+        font-size: 0.78rem;
         color: {text_h};
-        margin-bottom: 0.3rem;
+        margin-bottom: 0.35rem;
+        word-break: break-all;
     }}
     .log-item .log-meta {{
         display: flex;
@@ -613,74 +709,48 @@ def inject_css(dark: bool):
         gap: 0.5rem;
         flex-wrap: wrap;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         color: {text_muted};
     }}
-    .log-item .log-meta .sep {{
-        color: {text_dim};
-    }}
-    .log-item .log-meta .total {{
-        color: {SECONDARY};
-        font-weight: 700;
-    }}
-    .log-item .log-meta .count {{
-        color: {text_muted};
-    }}
+    .log-item .log-meta .sep {{ color: {text_dim}; }}
+    .log-item .log-meta .total {{ color: {SECONDARY}; font-weight: 700; }}
 
+    /* ── BADGES ─── */
     .log-badge {{
         display: inline-flex;
         align-items: center;
         padding: 2px 10px;
         border-radius: 40px;
-        font-size: 0.6rem;
-        font-weight: 700;
+        font-size: 0.58rem;
+        font-weight: 800;
         letter-spacing: 0.5px;
         font-family: 'JetBrains Mono', monospace;
         border: 1.5px solid;
         background: transparent;
     }}
-    .log-badge.ritl {{
-        border-color: #a78bfa;
-        color: #a78bfa;
-        background: rgba(139,92,246,0.08);
-    }}
-    .log-badge.rjtl {{
-        border-color: #60a5fa;
-        color: #60a5fa;
-        background: rgba(59,130,246,0.08);
-    }}
-    .log-badge.other {{
-        border-color: #94a3b8;
-        color: #94a3b8;
-        background: rgba(148,163,184,0.08);
-    }}
-
+    .log-badge.ritl {{ border-color: #a78bfa; color: #a78bfa; background: rgba(139,92,246,0.08); }}
+    .log-badge.rjtl {{ border-color: #60a5fa; color: #60a5fa; background: rgba(59,130,246,0.08); }}
+    .log-badge.other {{ border-color: #94a3b8; color: #94a3b8; background: rgba(148,163,184,0.08); }}
     .log-badge-susulan {{
         display: inline-flex;
         align-items: center;
         padding: 2px 10px;
         border-radius: 40px;
-        font-size: 0.6rem;
-        font-weight: 700;
+        font-size: 0.58rem;
+        font-weight: 800;
         letter-spacing: 0.5px;
         font-family: 'JetBrains Mono', monospace;
         border: 1.5px solid #f59e0b;
         color: #92400e !important;
         background: #fef3c7 !important;
     }}
-    .dark .log-badge-susulan {{
-        color: #fbbf24 !important;
-        background: rgba(245,158,11,0.15) !important;
-        border-color: #f59e0b !important;
-    }}
-
     .status-selesai {{
-        background: rgba(0,196,122,0.12);
+        background: rgba(0,196,122,0.1);
         border: 1.5px solid {SECONDARY};
         color: {SECONDARY};
         padding: 2px 12px;
         border-radius: 40px;
-        font-size: 0.65rem;
+        font-size: 0.62rem;
         font-weight: 700;
         letter-spacing: 0.5px;
         font-family: 'JetBrains Mono', monospace;
@@ -689,12 +759,12 @@ def inject_css(dark: bool):
         gap: 4px;
     }}
     .status-pending {{
-        background: rgba(255,215,0,0.10);
+        background: rgba(255,215,0,0.08);
         border: 1.5px solid {ACCENT};
         color: {ACCENT};
         padding: 2px 12px;
         border-radius: 40px;
-        font-size: 0.65rem;
+        font-size: 0.62rem;
         font-weight: 700;
         letter-spacing: 0.5px;
         font-family: 'JetBrains Mono', monospace;
@@ -703,150 +773,137 @@ def inject_css(dark: bool):
         gap: 4px;
     }}
 
-    /* ── REKAP CARD ───────────────────────────────────────── */
+    /* ── REKAP CARD ─── */
     .rekap-card {{
         background: {surface} !important;
         border: 1px solid {border} !important;
-        border-radius: 16px !important;
+        border-radius: 18px !important;
         padding: 1rem 1.25rem !important;
         margin-bottom: 0.6rem !important;
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
         gap: 1rem !important;
-        box-shadow: 0 2px 12px {shadow} !important;
-        transition: all 0.15s ease;
-        backdrop-filter: none !important;
+        box-shadow: 0 2px 10px {shadow} !important;
+        transition: border-color 0.15s ease;
     }}
-    .rekap-card:hover {{
-        border-color: {PRIMARY_COLOR} !important;
-        box-shadow: 0 4px 20px {shadow} !important;
-    }}
+    .rekap-card:hover {{ border-color: {PRIMARY_COLOR} !important; }}
     .rekap-card .period {{
-        font-weight: 800;
-        font-size: 0.9rem;
-        color: {text_h};
-        font-family: 'JetBrains Mono', monospace;
-        margin-bottom: 0.2rem;
+        font-weight: 800; font-size: 0.88rem; color: {text_h};
+        font-family: 'JetBrains Mono', monospace; margin-bottom: 0.15rem;
     }}
-    .rekap-card .meta {{
-        color: {text_muted};
-        font-size: 0.72rem;
-        font-family: 'JetBrains Mono', monospace;
-    }}
+    .rekap-card .meta {{ color: {text_muted}; font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; }}
     .rekap-card .total {{
-        color: {SECONDARY};
-        font-weight: 800;
-        font-size: 0.85rem;
-        font-family: 'JetBrains Mono', monospace;
-        white-space: nowrap;
+        color: {SECONDARY}; font-weight: 800; font-size: 0.82rem;
+        font-family: 'JetBrains Mono', monospace; white-space: nowrap;
     }}
 
-    /* ── SECTION TITLE ────────────────────────────────────── */
+    /* ── SECTION TITLE ─── */
     .section-title {{
-        font-size: 0.7rem;
-        font-weight: 700;
-        letter-spacing: 2px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 2.5px;
         text-transform: uppercase;
         color: {text_muted};
         margin-bottom: 1rem;
-        border-left: 4px solid {PRIMARY_COLOR};
+        border-left: 3px solid {PRIMARY_COLOR};
         padding-left: 10px;
         font-family: 'JetBrains Mono', monospace;
     }}
 
-    /* ── SUMMARY STATS ────────────────────────────────────── */
+    /* ── SUMMARY GRID ─── */
     .summary-grid {{
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 0.75rem;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
         margin-bottom: 1rem;
     }}
     .summary-grid .bento {{
-        padding: 1rem !important;
+        padding: 0.9rem 1rem !important;
         margin-bottom: 0 !important;
         background: {surface} !important;
         border: 1px solid {border} !important;
-        backdrop-filter: none !important;
     }}
-    .summary-grid .bento .value {{
-        font-size: 1.2rem !important;
-    }}
-    .summary-grid .bento .label {{
-        font-size: 0.6rem !important;
-    }}
+    .summary-grid .bento .value {{ font-size: 1.2rem !important; }}
+    .summary-grid .bento .label {{ font-size: 0.58rem !important; }}
 
-    /* ── TINGKAT BADGE ────────────────────────────────────── */
+    /* ── TINGKAT BADGE ─── */
     .tingkat-badge {{
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 4px 14px;
+        padding: 5px 16px;
         border-radius: 40px;
-        font-size: 0.7rem;
+        font-size: 0.72rem;
         font-weight: 700;
         letter-spacing: 1px;
         text-transform: uppercase;
         font-family: 'JetBrains Mono', monospace;
         border: 1.5px solid;
     }}
-    .tingkat-badge.ritl {{
-        background: rgba(139,92,246,0.10);
-        border-color: #a78bfa;
-        color: #a78bfa;
+    .tingkat-badge.ritl {{ background: rgba(139,92,246,0.10); border-color: #a78bfa; color: #a78bfa; }}
+    .tingkat-badge.rjtl {{ background: rgba(59,130,246,0.10); border-color: #60a5fa; color: #60a5fa; }}
+
+    /* ── BOTTOM NAV ─── */
+    .bottom-nav-bar {{
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        background: {bottom_bg};
+        border-top: 1px solid {bottom_bdr};
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 0.6rem 0 0.9rem;
+        z-index: 999;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
     }}
-    .tingkat-badge.rjtl {{
-        background: rgba(59,130,246,0.10);
-        border-color: #60a5fa;
-        color: #60a5fa;
+    .bottom-nav-item {{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        cursor: pointer;
+        padding: 0.2rem 1.5rem;
+        border-radius: 14px;
+        transition: background 0.15s ease;
+    }}
+    .bottom-nav-item:hover {{ background: {surface2}; }}
+    .bottom-nav-icon {{
+        font-size: 1.2rem;
+        line-height: 1;
+    }}
+    .bottom-nav-label {{
+        font-size: 0.58rem;
+        font-weight: 700;
+        color: {text_muted};
+        letter-spacing: 0.3px;
+    }}
+    .bottom-nav-label.active {{ color: {PRIMARY_COLOR}; }}
+    .bottom-nav-dot {{
+        width: 4px; height: 4px;
+        border-radius: 50%;
+        background: {PRIMARY_COLOR};
+        margin-top: 1px;
     }}
 
-    /* ── MISC ────────────────────────────────────────────── */
-    hr {{
-        border-color: {border} !important;
-        margin: 2rem 0 !important;
-        opacity: 0.5;
-    }}
+    /* ── MISC ─── */
+    hr {{ border-color: {border} !important; margin: 1.5rem 0 !important; opacity: 0.4; }}
     [data-testid="stStatusWidget"] {{
         border-radius: 16px !important;
         border: 1px solid {border} !important;
         background: {surface} !important;
-        padding: 1rem !important;
+        padding: 0.75rem !important;
     }}
 
-    /* ── RESPONSIVE ───────────────────────────────────────── */
-    @media (max-width: 768px) {{
-        .block-container {{
-            padding: 0.8rem 0.8rem !important;
-        }}
-        .bento {{
-            padding: 1rem 1.2rem !important;
-        }}
-        .summary-grid {{
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 0.5rem !important;
-        }}
-        .app-header h1 {{
-            font-size: 2rem !important;
-        }}
-        .log-item .log-name {{
-            font-size: 0.7rem !important;
-        }}
-        .top-btn .stButton > button {{
-            font-size: 0.6rem !important;
-            padding: 0.1rem 0.6rem !important;
-            min-width: 40px !important;
-            height: 28px !important;
-        }}
-        .csv-stat-grid {{
-            grid-template-columns: 1fr 1fr !important;
-        }}
-        .login-card {{
-            padding: 1.8rem 1.2rem !important;
-        }}
-        .login-card h2 {{
-            font-size: 1.2rem !important;
-        }}
+    /* ── RESPONSIVE ─── */
+    @media (max-width: 600px) {{
+        .block-container {{ padding: 0 0.75rem 6rem !important; }}
+        .hero-title {{ font-size: 1.5rem !important; }}
+        .bento {{ padding: 1rem 1.1rem !important; }}
+        .login-card {{ padding: 2rem 1.25rem 1.75rem !important; }}
+        .login-card h2 {{ font-size: 1.3rem !important; }}
+        .login-icon-ring {{ width: 60px !important; height: 60px !important; font-size: 1.6rem !important; }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -862,51 +919,36 @@ if st.session_state.logged_in:
             st.rerun()
 
 if not st.session_state.logged_in:
-    # Toggle tema di pojok kanan atas
-    col_empty, col_theme = st.columns([6, 1])
-    with col_theme:
+    inject_css(st.session_state.dark_mode)
+
+    # Theme toggle — pojok kanan atas
+    col_empty, col_theme_login = st.columns([8, 1])
+    with col_theme_login:
+        st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
         icon = "☀️" if st.session_state.dark_mode else "🌙"
         if st.button(icon, help="Ganti tema", key="login_theme_toggle"):
             st.session_state.dark_mode = not st.session_state.dark_mode
             st.rerun()
-
-    inject_css(st.session_state.dark_mode)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("""
     <div class="login-wrapper">
         <div class="login-card">
-            <div class="icon">🔐</div>
-            <h2>FPK Converter</h2>
+            <div class="login-app-badge"><span>FPK CONVERTER</span></div>
+            <div class="login-icon-ring">🔐</div>
+            <h2>Selamat Datang</h2>
             <p class="sub">Masukkan PIN untuk melanjutkan</p>
-            <div class="input-wrap" id="pin_container"></div>
-            <div class="footer-text">v1.0 · privasi terlindungi</div>
         </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const container = document.getElementById('pin_container');
-            const inputs = document.querySelectorAll('input[type="password"]');
-            for (let inp of inputs) {
-                if (inp.closest('.stTextInput')) {
-                    container.innerHTML = '';
-                    container.appendChild(inp);
-                    inp.style.width = '100%';
-                    inp.style.color = 'transparent';
-                    inp.style.caretColor = '#ff6b35';
-                    inp.placeholder = '• • • •';
-                    inp.autocomplete = 'off';
-                    inp.spellcheck = false;
-                    break;
-                }
-            }
-        });
-    </script>
     """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        pin_input = st.text_input("", type="password", placeholder="", key="pin_login", label_visibility="collapsed", autocomplete="off")
-        if st.button("Masuk", key="btn_masuk", use_container_width=True):
+        pin_input = st.text_input(
+            "", type="password", placeholder="",
+            key="pin_login", label_visibility="collapsed", autocomplete="off"
+        )
+        if st.button("Masuk →", key="btn_masuk", use_container_width=True):
             ok, msg = check_pin(pin_input)
             if ok:
                 st.session_state.logged_in = True
@@ -914,6 +956,14 @@ if not st.session_state.logged_in:
                 st.rerun()
             else:
                 st.error(msg)
+
+    st.markdown("""
+    <div style="text-align:center;margin-top:0.5rem;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;opacity:0.35;">
+            v1.0 · privasi terlindungi
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
     st.stop()
 
 # ── SETELAH LOGIN ──────────────────────────────────────────
@@ -1003,23 +1053,23 @@ def render_result(res, idx=0):
     api_log = res.get('api_log')
     if api_log:
         req = api_log['request']
-        resp = api_log['response']
-        ok = 200 <= resp['status_code'] < 300
+        resp_data = api_log['response']
+        ok = 200 <= resp_data['status_code'] < 300
         status_color = SECONDARY if ok else "#f87171"
-        with st.expander(f"🔌 API Request/Response — {resp['status_code']} · {resp['latency_ms']} ms"):
+        with st.expander(f"🔌 API Request/Response — {resp_data['status_code']} · {resp_data['latency_ms']} ms"):
             st.markdown(f"""
             <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;margin-bottom:0.8rem;">
                 <span style="color:#00b0ff;font-weight:700;">POST</span>
                 <span style="opacity:0.8;"> {req['url']}</span>
                 &nbsp;→&nbsp;
-                <span style="color:{status_color};font-weight:700;">{resp['status_code']}</span>
-                <span style="opacity:0.6;"> ({resp['latency_ms']} ms)</span>
+                <span style="color:{status_color};font-weight:700;">{resp_data['status_code']}</span>
+                <span style="opacity:0.6;"> ({resp_data['latency_ms']} ms)</span>
             </div>
             """, unsafe_allow_html=True)
             st.markdown("**Request**")
             st.code(json.dumps(req, indent=2, ensure_ascii=False), language="json")
             st.markdown("**Response**")
-            st.code(json.dumps(resp, indent=2, ensure_ascii=False), language="json")
+            st.code(json.dumps(resp_data, indent=2, ensure_ascii=False), language="json")
 
     tab_preview, tab_json = st.tabs(["📊 Preview Data", "📦 JSON Mentah"])
     with tab_preview:
@@ -1038,8 +1088,8 @@ def render_result(res, idx=0):
             }
         )
     with tab_json:
-        if api_log and 'body' in resp:
-            st.json(resp['body'])
+        if api_log and 'body' in resp_data:
+            st.json(resp_data['body'])
         else:
             st.info("Tidak ada JSON response.")
 
@@ -1108,7 +1158,7 @@ def animasi_terminal_proses(uf, dark: bool):
     jumlah = payload.get("jumlah", 0)
     total = payload.get("total", 0)
     duplikat = payload.get("duplikat", [])
-    proc_ms = payload.get("processing_time_ms", 1000)
+    proc_ms = payload.get("processing_time_ms", 1000) or 1000  # guard zero/None
     lat_ms = resp_meta.get("latency_ms", 0)
     filename = payload.get("filename", "")
     sep_list = df_res[["No.SEP", "Disetujui"]].to_dict(orient="records")
@@ -1198,25 +1248,45 @@ def build_chart(log_data):
 # HALAMAN UTAMA
 # ══════════════════════════════════════════════════════════════
 
-col_sp, col_theme, col_pin, col_logout = st.columns([4, 1, 1, 1])
+# ── TOP NAV ──────────────────────────────────────────────────
+log_data_for_hero = load_log()
+_total_konversi  = len(log_data_for_hero)
+_total_selesai   = sum(1 for x in log_data_for_hero if x.get('status') == 'Selesai')
+_total_pending   = _total_konversi - _total_selesai
+_total_nominal   = sum(x['total'] for x in log_data_for_hero)
+_nom_hero        = f"Rp {_total_nominal/1_000_000:.1f}M" if _total_nominal >= 1_000_000 else f"Rp {_total_nominal:,.0f}".replace(",",".")
 
-with col_theme:
+_dark_nav = st.session_state.get('dark_mode', True)
+_surf_nav = "#141414" if _dark_nav else "#ffffff"
+_bdr_nav  = "#242424" if _dark_nav else "#e4e2dd"
+_txt_nav  = "#f0f0f0" if _dark_nav else "#1a1a1a"
+_mut_nav  = "#666666" if _dark_nav else "#888888"
+_hs_bg    = "#1e1e1e" if _dark_nav else "#f5f4f2"
+_hs_bdr   = "#282828" if _dark_nav else "#e8e6e1"
+
+st.markdown(f"""
+<div class="top-nav">
+    <div class="top-nav-logo"><span>FPK CONVERTER</span></div>
+    <div class="top-nav-actions" id="top-nav-right"></div>
+</div>
+""", unsafe_allow_html=True)
+
+col_sp_nav, col_theme_nav, col_pin_nav, col_logout_nav = st.columns([5, 1, 1, 1])
+with col_theme_nav:
+    st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
     icon = st.session_state.get('_toggle_icon', '☀️')
-    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
-    if st.button(icon, help=st.session_state.get('_toggle_tip', 'Ganti tema'), key="theme_toggle"):
+    if st.button(icon, help=st.session_state.get('_toggle_tip','Ganti tema'), key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-
-with col_pin:
-    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
-    if st.button("PIN", help="Ganti PIN", key="open_pin"):
+with col_pin_nav:
+    st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
+    if st.button("🔑", help="Ganti PIN", key="open_pin"):
         st.session_state.show_pin_form = not st.session_state.get("show_pin_form", False)
     st.markdown('</div>', unsafe_allow_html=True)
-
-with col_logout:
-    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
-    if st.button("Keluar", help="Logout", key="logout_btn"):
+with col_logout_nav:
+    st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
+    if st.button("🚪", help="Keluar", key="logout_btn"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
@@ -1232,15 +1302,34 @@ if st.session_state.get("show_pin_form"):
             ok, msg = change_pin(p_lama, p_baru, p_konfirm)
             st.warning(msg) if not ok else st.success(msg)
 
-st.markdown("""
-    <div class="app-header">
-        <div class="badge">FPK Converter · v1.0</div>
-        <h1>FPK <span>Converter</span></h1>
-        <p>Konversi data klaim BPJS Kesehatan ke CSV</p>
+# ── HERO CARD (mengganti app-header + summary-grid lama) ────
+st.markdown(f"""
+<div class="hero-card">
+    <div class="hero-label">FPK Converter · v1.0</div>
+    <div class="hero-title">FPK <span>Converter</span></div>
+    <div class="hero-sub">Konversi data klaim BPJS Kesehatan ke CSV</div>
+    <div class="hero-stats">
+        <div class="hero-stat">
+            <div class="hero-stat-label">Total Konversi</div>
+            <div class="hero-stat-value" style="color:{PRIMARY_COLOR};">{_total_konversi}</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-label">Selesai</div>
+            <div class="hero-stat-value" style="color:{SECONDARY};">{_total_selesai}</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-label">Pending</div>
+            <div class="hero-stat-value" style="color:{ACCENT};">{_total_pending}</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-label">Total Nominal</div>
+            <div class="hero-stat-value" style="color:#a78bfa;font-size:1rem;">{_nom_hero}</div>
+        </div>
     </div>
+</div>
 """, unsafe_allow_html=True)
 
-tab_pdf, tab_csv = st.tabs(["Konversi PDF → CSV", "Kalkulator CSV"])
+tab_pdf, tab_csv = st.tabs(["📄 Konversi PDF → CSV", "🧮 Kalkulator CSV"])
 
 with tab_pdf:
     if _api_status == "timeout":
@@ -1504,7 +1593,10 @@ if log_data:
         rekap[period]['tingkats'].add(item.get('tingkat', ''))
 
     sorted_periods = sorted(rekap.keys(),
-        key=lambda x: (x.split()[-1], bulan_order.index(x.split()[0]) if x.split()[0] in bulan_order else 99),
+        key=lambda x: (
+            x.split()[-1] if len(x.split()) > 1 else "0000",
+            bulan_order.index(x.split()[0]) if x.split()[0] in bulan_order else 99
+        ),
         reverse=True)
 
     st.markdown('<div class="section-title">📅 Rekap Per Bulan</div>', unsafe_allow_html=True)
@@ -1537,35 +1629,13 @@ if log_data:
     total_pending = total_entri - total_selesai
     total_nominal = sum(x['total'] for x in log_data)
     nominal_fmt = f"Rp {total_nominal:,.0f}".replace(",", ".")
-    dark = st.session_state.dark_mode
-    th = '#f0f0f0' if dark else '#1a1a1a'
-    st.markdown(f"""
-    <div class="summary-grid">
-        <div class="bento">
-            <div class="label">Total Konversi</div>
-            <div class="value" style="font-size:1.2rem;">{total_entri}</div>
-        </div>
-        <div class="bento">
-            <div class="label">Selesai</div>
-            <div class="value" style="font-size:1.2rem;color:{SECONDARY};">{total_selesai}</div>
-        </div>
-        <div class="bento">
-            <div class="label">Pending</div>
-            <div class="value" style="font-size:1.2rem;color:{ACCENT};">{total_pending}</div>
-        </div>
-        <div class="bento">
-            <div class="label">Total Nominal</div>
-            <div class="value" style="font-size:1rem;color:#e040fb;white-space:nowrap;">{nominal_fmt}</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
 
 col_title, col_hapus = st.columns([4, 1])
 with col_title:
     st.markdown('<div class="section-title">🕓 Riwayat Konversi</div>', unsafe_allow_html=True)
 with col_hapus:
     if log_data:
-        if st.button("Hapus Semua", key="hapus_log"):
+        if st.button("Hapus", key="hapus_log"):
             hapus_log()
             st.session_state.results = []
             st.rerun()
@@ -1584,13 +1654,13 @@ else:
         jenis_badge = '<span class="log-badge-susulan">📌 Susulan</span>' if jenis == "Susulan" else ""
         if status == 'Selesai':
             status_html = '<span class="status-selesai">✓ Selesai</span>'
-            footer_extra = f'<span style="color:#888;font-size:0.7rem;">📥 {wkt_sel}</span>' if wkt_sel else ''
+            footer_extra = f'<span style="color:#888;font-size:0.68rem;">📥 {wkt_sel}</span>' if wkt_sel else ''
         else:
             status_html = '<span class="status-pending">⏳ Belum Diambil</span>'
             footer_extra = ''
         st.markdown(f"""
         <div class="log-item">
-            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:0.3rem;">
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:0.35rem;">
                 <span class="log-name">📄 {item['nama_file']}</span>
                 {badge}
                 {jenis_badge}
@@ -1607,37 +1677,44 @@ else:
         </div>
         """, unsafe_allow_html=True)
         if status != 'Selesai':
-            if st.button("✓ Tandai", key=f"tandai_{i}"):
+            if st.button("✓ Tandai Selesai", key=f"tandai_{i}"):
                 update_log_status(item['nama_file'], 'Selesai')
                 st.rerun()
 
-# ── FOOTER ───────────────────────────────────────────────────
-_dark = st.session_state.get('dark_mode', True)
-ft_border = "rgba(255,255,255,0.05)" if _dark else "rgba(0,0,0,0.06)"
-ft_dim = "#334155" if _dark else "#94a3b8"
-ft_dimmer = "#1e293b" if _dark else "#cbd5e1"
-ft_muted = "#475569" if _dark else "#64748b"
+# ── BOTTOM NAV BAR ───────────────────────────────────────────
+_dark_ft = st.session_state.get('dark_mode', True)
+_bot_bg  = "#0a0a0a" if _dark_ft else "#ffffff"
+_bot_bdr = "#1e1e1e" if _dark_ft else "#e4e2dd"
+_bot_mut = "#555555" if _dark_ft else "#aaaaaa"
 
 st.markdown(f"""
-<div style="text-align:center;padding:2.5rem 1rem 1.5rem;margin-top:2.5rem;border-top:1px solid {ft_border};">
-    <div style="margin-bottom:1rem;">
-        <div style="display:inline-flex;align-items:center;gap:8px;background:{PRIMARY_COLOR};border-radius:40px;padding:0.4rem 1.8rem;box-shadow:0 4px 14px rgba(255,107,53,0.3);">
-            <span style="font-family:JetBrains Mono,monospace;font-size:0.78rem;font-weight:700;color:#fff;letter-spacing:2px;">FPK CONVERTER</span>
-        </div>
+<div class="bottom-nav-bar">
+    <div class="bottom-nav-item">
+        <div class="bottom-nav-icon">📄</div>
+        <div class="bottom-nav-label active">Konversi</div>
+        <div class="bottom-nav-dot"></div>
     </div>
-    <div style="font-size:0.8rem;color:{ft_muted};font-weight:400;margin-bottom:1.2rem;">Solusi otomasi konversi data klaim BPJS Kesehatan</div>
-    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:1.2rem;">
-        <div style="width:6px;height:6px;border-radius:50%;background:{PRIMARY_COLOR};"></div>
-        <div style="width:6px;height:6px;border-radius:50%;background:#e040fb;"></div>
-        <div style="width:6px;height:6px;border-radius:50%;background:{SECONDARY};"></div>
-        <div style="width:6px;height:6px;border-radius:50%;background:#00b0ff;"></div>
+    <div class="bottom-nav-item">
+        <div class="bottom-nav-icon">📅</div>
+        <div class="bottom-nav-label">Rekap</div>
     </div>
-    <div style="font-family:JetBrains Mono,monospace;font-size:0.72rem;color:{ft_dim};margin-bottom:0.4rem;">
+    <div class="bottom-nav-item">
+        <div class="bottom-nav-icon">🕓</div>
+        <div class="bottom-nav-label">Riwayat</div>
+    </div>
+    <div class="bottom-nav-item">
+        <div class="bottom-nav-icon">⚙️</div>
+        <div class="bottom-nav-label">Setelan</div>
+    </div>
+</div>
+
+<div style="text-align:center;padding:1.5rem 0 0.5rem;margin-top:1.5rem;border-top:1px solid {"rgba(255,255,255,0.05)" if _dark_ft else "rgba(0,0,0,0.05)"};">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:{"#333" if _dark_ft else "#bbb"};margin-bottom:0.25rem;">
         Dikembangkan oleh <strong style="color:#6366f1;">Isfan Fajar Anugrah</strong>
     </div>
-    <div style="font-size:0.68rem;color:{ft_dimmer};margin-bottom:0.8rem;">Versi 1.0 · 2025 · All Rights Reserved</div>
-    <div style="display:inline-block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);border-radius:40px;padding:4px 16px;">
-        <span style="font-size:0.6rem;color:#f87171;">⚠️ Hak Cipta Pribadi — Dilarang digandakan tanpa izin</span>
+    <div style="font-size:0.6rem;color:{"#222" if _dark_ft else "#ccc"};">Versi 1.0 · 2025 · All Rights Reserved</div>
+    <div style="display:inline-block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);border-radius:40px;padding:3px 14px;margin-top:0.5rem;">
+        <span style="font-size:0.58rem;color:#f87171;">⚠️ Hak Cipta Pribadi — Dilarang digandakan tanpa izin</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
