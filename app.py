@@ -12,7 +12,6 @@ from datetime import datetime, timezone, timedelta
 
 # ── KONFIGURASI WARNA ──────────────────────────────────────
 PRIMARY_COLOR = "#ff6b35"
-PRIMARY_DARK  = "#f97316"
 SECONDARY     = "#00c47a"
 ACCENT        = "#ffd700"
 
@@ -907,12 +906,10 @@ if not st.session_state.logged_in:
     # Theme toggle — pojok kanan atas
     col_empty, col_theme_login = st.columns([8, 1])
     with col_theme_login:
-        st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
         icon = "☀️" if st.session_state.dark_mode else "🌙"
         if st.button(icon, help="Ganti tema", key="login_theme_toggle"):
             st.session_state.dark_mode = not st.session_state.dark_mode
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("""
     <div class="login-wrapper">
@@ -1244,14 +1241,6 @@ if _total_nominal >= 1_000_000:
 else:
     _nom_hero = f"Rp {_total_nominal:,.0f}".replace(",", ".")
 
-_dark_nav = st.session_state.get('dark_mode', True)
-_surf_nav = "#141414" if _dark_nav else "#ffffff"
-_bdr_nav  = "#242424" if _dark_nav else "#e4e2dd"
-_txt_nav  = "#f0f0f0" if _dark_nav else "#1a1a1a"
-_mut_nav  = "#666666" if _dark_nav else "#888888"
-_hs_bg    = "#1e1e1e" if _dark_nav else "#f5f4f2"
-_hs_bdr   = "#282828" if _dark_nav else "#e8e6e1"
-
 st.markdown(f"""
 <div class="top-nav">
     <div class="top-nav-logo"><span>FPK CONVERTER</span></div>
@@ -1261,24 +1250,18 @@ st.markdown(f"""
 
 col_sp_nav, col_theme_nav, col_pin_nav, col_logout_nav = st.columns([5, 1, 1, 1])
 with col_theme_nav:
-    st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
     icon = st.session_state.get('_toggle_icon', '☀️')
     if st.button(icon, help=st.session_state.get('_toggle_tip','Ganti tema'), key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 with col_pin_nav:
-    st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
     if st.button("PIN", help="Ganti PIN", key="open_pin"):
         st.session_state.show_pin_form = not st.session_state.get("show_pin_form", False)
-    st.markdown('</div>', unsafe_allow_html=True)
 with col_logout_nav:
-    st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
     if st.button("KELUAR", help="Keluar", key="logout_btn"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
 if st.session_state.get("show_pin_form"):
     with st.expander("Ganti PIN", expanded=True):
