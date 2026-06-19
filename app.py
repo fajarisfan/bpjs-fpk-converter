@@ -11,7 +11,8 @@ import requests
 from datetime import datetime, timezone, timedelta
 
 # ── KONFIGURASI WARNA ──────────────────────────────────────
-PRIMARY_COLOR = "#ff6b35"   # Ganti sesuai selera
+PRIMARY_COLOR = "#ff6b35"
+PRIMARY_DARK  = "#f97316"
 SECONDARY     = "#00c47a"
 ACCENT        = "#ffd700"
 
@@ -143,8 +144,11 @@ def inject_css(dark: bool):
         toggle_tip  = "Mode Terang"
         log_bg      = "#1a1a1a"
         log_border  = "#2a2a2a"
-        susulan_bg  = "rgba(245,158,11,0.15)"
-        susulan_color = "#fbbf24"
+        login_bg    = "#1a1a1a"
+        login_border = "#2a2a2a"
+        login_shadow = "rgba(0,0,0,0.5)"
+        login_txt   = "#f0f0f0"
+        login_sub   = "#888888"
     else:
         bg          = "#f6f4f0"
         surface     = "#ffffff"
@@ -153,7 +157,7 @@ def inject_css(dark: bool):
         border2     = "#d0cdc8"
         text_h      = "#1a1a1a"
         text_body   = "#444444"
-        text_muted  = "#666666"
+        text_muted  = "#888888"
         text_dim    = "#cccccc"
         input_bg    = "#ffffff"
         input_bdr   = "#d0cdc8"
@@ -164,8 +168,11 @@ def inject_css(dark: bool):
         toggle_tip  = "Mode Gelap"
         log_bg      = "#ffffff"
         log_border  = "#e0ddd8"
-        susulan_bg  = "#fef3c7"
-        susulan_color = "#92400e"
+        login_bg    = "#ffffff"
+        login_border = "#e0ddd8"
+        login_shadow = "rgba(0,0,0,0.08)"
+        login_txt   = "#1a1a1a"
+        login_sub   = "#666666"
 
     st.session_state._toggle_icon = toggle_icon
     st.session_state._toggle_tip  = toggle_tip
@@ -260,6 +267,88 @@ def inject_css(dark: bool):
         font-weight: 400;
     }}
 
+    /* ── LOGIN PAGE ───────────────────────────────────────── */
+    .login-wrapper {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        padding: 1rem;
+    }}
+    .login-card {{
+        background: {login_bg};
+        border-radius: 32px;
+        padding: 2.5rem 2rem;
+        max-width: 400px;
+        width: 100%;
+        border: 1px solid {login_border};
+        box-shadow: 0 24px 64px {login_shadow};
+        text-align: center;
+    }}
+    .login-card .icon {{
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }}
+    .login-card h2 {{
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: {login_txt};
+        margin: 0 0 0.25rem 0;
+        letter-spacing: -0.5px;
+    }}
+    .login-card .sub {{
+        font-size: 0.9rem;
+        color: {login_sub};
+        margin-bottom: 1.5rem;
+        font-weight: 400;
+    }}
+    .login-card .input-wrap {{
+        margin-bottom: 1rem;
+    }}
+    .login-card .input-wrap input {{
+        width: 100%;
+        padding: 14px 18px;
+        background: {input_bg};
+        border: 2px solid {input_bdr};
+        border-radius: 16px;
+        color: transparent !important;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.2rem;
+        letter-spacing: 4px;
+        outline: none;
+        transition: border-color 0.2s;
+        text-align: center;
+        caret-color: {PRIMARY_COLOR};
+    }}
+    .login-card .input-wrap input:focus {{
+        border-color: {PRIMARY_COLOR};
+        box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
+    }}
+    .login-card .btn-login {{
+        width: 100%;
+        padding: 14px;
+        background: {PRIMARY_COLOR};
+        color: #fff;
+        border: none;
+        border-radius: 60px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 14px rgba(255,107,53,0.3);
+    }}
+    .login-card .btn-login:hover {{
+        transform: scale(1.02);
+        box-shadow: 0 6px 24px rgba(255,107,53,0.4);
+    }}
+    .login-card .footer-text {{
+        font-size: 0.7rem;
+        color: {login_sub};
+        margin-top: 1.5rem;
+        opacity: 0.5;
+        font-family: 'JetBrains Mono', monospace;
+    }}
+
     /* ── BUTTONS ──────────────────────────────────────────── */
     .stButton > button {{
         background: {PRIMARY_COLOR} !important;
@@ -342,30 +431,6 @@ def inject_css(dark: bool):
         background: {PRIMARY_COLOR} !important;
         color: #fff !important;
         border-color: {PRIMARY_COLOR} !important;
-    }}
-
-    /* ── INPUT (PIN) ──────────────────────────────────────── */
-    .stTextInput > div > div > input {{
-        background: {input_bg} !important;
-        border: 2px solid {input_bdr} !important;
-        border-radius: 12px !important;
-        color: transparent !important;
-        padding: 14px 18px !important;
-        font-family: 'JetBrains Mono', monospace !important;
-        letter-spacing: 2px !important;
-        caret-color: {PRIMARY_COLOR} !important;
-    }}
-    .stTextInput > div > div > input:focus {{
-        border-color: {PRIMARY_COLOR} !important;
-        box-shadow: 0 0 0 3px rgba(255,107,53,0.15) !important;
-        outline: none !important;
-        color: transparent !important;
-    }}
-    .stTextInput label {{
-        color: {label_col} !important;
-        font-weight: 600 !important;
-        font-size: 0.8rem !important;
-        letter-spacing: 0.5px;
     }}
 
     /* ── HIDE EYE ICON ───────────────────────────────────── */
@@ -490,8 +555,15 @@ def inject_css(dark: bool):
         letter-spacing: 0.5px;
         font-family: 'JetBrains Mono', monospace;
         border: 1.5px solid #f59e0b;
-        color: {susulan_color};
-        background: {susulan_bg};
+        color: #92400e;
+        background: #fef3c7;
+    }}
+    @media (prefers-color-scheme: dark) {{
+        .log-badge-susulan {{
+            color: #fbbf24;
+            background: rgba(245,158,11,0.15);
+            border-color: #f59e0b;
+        }}
     }}
 
     .status-selesai {{
@@ -621,88 +693,6 @@ def inject_css(dark: bool):
         color: #60a5fa;
     }}
 
-    /* ── LOGIN CARD ───────────────────────────────────────── */
-    .login-wrapper {{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 80vh;
-        padding: 1rem;
-    }}
-    .login-card {{
-        background: {surface};
-        border-radius: 32px;
-        padding: 2.5rem 2rem;
-        max-width: 400px;
-        width: 100%;
-        border: 1px solid {border};
-        box-shadow: 0 24px 64px {shadow};
-        text-align: center;
-    }}
-    .login-card .icon {{
-        font-size: 3rem;
-        margin-bottom: 0.5rem;
-    }}
-    .login-card h2 {{
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: {text_h};
-        margin: 0 0 0.25rem 0;
-        letter-spacing: -0.5px;
-    }}
-    .login-card .sub {{
-        font-size: 0.9rem;
-        color: {text_muted};
-        margin-bottom: 1.5rem;
-        font-weight: 400;
-    }}
-    .login-card .input-wrap {{
-        margin-bottom: 1rem;
-    }}
-    .login-card .input-wrap input {{
-        width: 100%;
-        padding: 14px 18px;
-        background: {input_bg};
-        border: 2px solid {border};
-        border-radius: 16px;
-        color: transparent;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 1.2rem;
-        letter-spacing: 4px;
-        outline: none;
-        transition: border-color 0.2s;
-        text-align: center;
-        caret-color: {PRIMARY_COLOR};
-    }}
-    .login-card .input-wrap input:focus {{
-        border-color: {PRIMARY_COLOR};
-        box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
-    }}
-    .login-card .btn-login {{
-        width: 100%;
-        padding: 14px;
-        background: {PRIMARY_COLOR};
-        color: #fff;
-        border: none;
-        border-radius: 60px;
-        font-size: 1rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.2s;
-        box-shadow: 0 4px 14px rgba(255,107,53,0.3);
-    }}
-    .login-card .btn-login:hover {{
-        transform: scale(1.02);
-        box-shadow: 0 6px 24px rgba(255,107,53,0.4);
-    }}
-    .login-card .footer-text {{
-        font-size: 0.7rem;
-        color: {text_muted};
-        margin-top: 1.5rem;
-        opacity: 0.5;
-        font-family: 'JetBrains Mono', monospace;
-    }}
-
     /* ── MISC ────────────────────────────────────────────── */
     hr {{
         border-color: {border} !important;
@@ -772,67 +762,50 @@ if st.session_state.logged_in:
             st.rerun()
 
 if not st.session_state.logged_in:
-    _dark = st.session_state.get('dark_mode', True)
-    _bg   = "#0f0f0f" if _dark else "#fafaf7"
-    _txt  = "#f0f0f0" if _dark else "#1a1a1a"
-    _sub  = "#888888" if _dark else "#666666"
-    _card = "#1a1a1a" if _dark else "#ffffff"
-    _border = "#2a2a2a" if _dark else "#e5e5e5"
-    _shadow = "rgba(0,0,0,0.5)" if _dark else "rgba(0,0,0,0.08)"
-    
-    st.markdown(f"""
+    st.markdown("""
     <div class="login-wrapper">
         <div class="login-card">
             <div class="icon">🔐</div>
             <h2>FPK Converter</h2>
             <p class="sub">Masukkan PIN untuk melanjutkan</p>
-            <div class="input-wrap">
-                <input type="password" id="pin_input" placeholder="• • • •" autocomplete="off" spellcheck="false">
-            </div>
-            <button class="btn-login" onclick="login()">Masuk</button>
+            <div class="input-wrap" id="pin_container"></div>
             <div class="footer-text">v1.0 · privasi terlindungi</div>
         </div>
     </div>
     <script>
-        function login() {{
-            var pin = document.getElementById('pin_input').value;
-            if (pin.length > 0) {{
-                // Simpan PIN ke sessionStorage agar bisa dibaca Streamlit
-                sessionStorage.setItem('pin', pin);
-                // Trigger Streamlit rerun dengan parameter
-                window.parent.postMessage({{
-                    type: 'streamlit:setComponentValue',
-                    value: pin
-                }}, '*');
-                // reload halaman agar Streamlit membaca PIN
-                window.location.reload();
-            }}
-        }}
-        document.getElementById('pin_input').addEventListener('keydown', function(e) {{
-            if (e.key === 'Enter') {{
-                login();
-            }}
-        }});
+        // Pindahkan input Streamlit ke dalam container
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('pin_container');
+            const inputs = document.querySelectorAll('input[type="password"]');
+            for (let inp of inputs) {
+                if (inp.closest('.stTextInput')) {
+                    container.innerHTML = '';
+                    container.appendChild(inp);
+                    inp.style.width = '100%';
+                    inp.style.color = 'transparent';
+                    inp.style.caretColor = '#ff6b35';
+                    inp.placeholder = '• • • •';
+                    inp.autocomplete = 'off';
+                    inp.spellcheck = false;
+                    break;
+                }
+            }
+        });
     </script>
     """, unsafe_allow_html=True)
     
-    # Ambil PIN dari sessionStorage via query param atau st.session_state
-    # Kita gunakan st.experimental_get_query_params untuk membaca PIN
-    import streamlit as st
-    # Cek apakah ada PIN di session_state (dari JavaScript)
-    pin = st.session_state.get('_pin', '')
-    if pin:
-        ok, msg = check_pin(pin)
-        if ok:
-            st.session_state.logged_in = True
-            st.session_state.login_time = now_wib().isoformat()
-            st.session_state._pin = ''
-            st.rerun()
-        else:
-            st.error(msg)
-            st.session_state._pin = ''
-    
-    # Jika belum login, tampilkan form login (tapi tidak double)
+    # Streamlit input & button (hanya satu, tidak double)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        pin_input = st.text_input("", type="password", placeholder="", key="pin_login", label_visibility="collapsed", autocomplete="off")
+        if st.button("Masuk", key="btn_masuk", use_container_width=True):
+            ok, msg = check_pin(pin_input)
+            if ok:
+                st.session_state.logged_in = True
+                st.session_state.login_time = now_wib().isoformat()
+                st.rerun()
+            else:
+                st.error(msg)
     st.stop()
 
 # ── HELPERS ──────────────────────────────────────────────────
