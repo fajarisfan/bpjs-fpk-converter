@@ -1350,7 +1350,7 @@ with tab_csv:
 
 
 # ══════════════════════════════════════════════════════════════
-# LOG & REKAP
+# LOG & REKAP — BAGIAN YANG DIPERBAIKI
 # ══════════════════════════════════════════════════════════════
 st.divider()
 log_data = load_log()
@@ -1422,17 +1422,22 @@ else:
         tkt = item.get('tingkat', '')
         t_cls = tkt.lower() if tkt in ('RITL','RJTL','RITP','RJTP') else 'other'
         badge = f'<span class="log-badge {t_cls}">{tkt}</span>' if tkt else ''
-        total_rp = f"Rp {item['total']:,.0f}".replace(",", ".")
-        status = item.get('status', 'Belum Diambil')
-        wkt_sel = item.get('waktu_selesai')
+
         jenis = item.get('jenis', 'Reguler')
         jenis_badge = '<span class="log-badge-susulan">📌 Susulan</span>' if jenis == "Susulan" else ""
+
+        status = item.get('status', 'Belum Diambil')
         if status == 'Selesai':
             status_html = '<span class="status-selesai">✓ Selesai</span>'
-            footer_extra = f'<span style="color:#888;font-size:0.68rem;">📥 {wkt_sel}</span>' if wkt_sel else ''
+            footer_extra = f'<span style="color:#888;font-size:0.68rem;">📥 {item.get("waktu_selesai", "")}</span>' if item.get("waktu_selesai") else ''
         else:
             status_html = '<span class="status-pending">⏳ Belum Diambil</span>'
             footer_extra = ''
+
+        total_rp = f"Rp {item['total']:,.0f}".replace(",", ".")
+
+        # ═══ PERBAIKAN UTAMA DI SINI ═══
+        # Hanya satu span.count di dalam div.log-meta, tidak ada duplikasi.
         html = f'''
         <div class="log-item">
             <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:0.35rem;">
@@ -1446,12 +1451,14 @@ else:
                 <span class="sep">·</span>
                 <span class="total">{total_rp}</span>
                 <span class="sep">·</span>
-                <span class="count">{item['jumlah']} SEP</span>
+                <span class="count">{item['jumlah']} SEP</span>   <!-- HANYA SATU, DI SINI -->
                 {footer_extra}
             </div>
         </div>
         '''
         st.markdown(html, unsafe_allow_html=True)
+
+        # Tombol "Tandai Selesai" hanya jika status belum selesai
         if status != 'Selesai':
             if st.button("✓ Tandai Selesai", key=f"tandai_{i}"):
                 update_log_status(item['nama_file'], 'Selesai')
