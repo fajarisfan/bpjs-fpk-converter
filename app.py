@@ -283,28 +283,56 @@ def inject_css(dark: bool):
         color: #fff !important;
     }}
 
-    /* ── TOP BAR BUTTONS (mini) ──────────────────────────── */
-    .top-btn .stButton > button {{
-        background: transparent !important;
-        color: {text_muted} !important;
-        border: 1px solid {border} !important;
-        border-radius: 40px !important;
-        padding: 0.2rem 1rem !important;
-        font-size: 0.75rem !important;
-        font-weight: 600 !important;
-        box-shadow: none !important;
-        width: auto !important;
-        min-width: 60px;
-        height: 32px !important;
+    /* ── NAVBAR ───────────────────────────────────────────── */
+    .app-navbar {{
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 9999;
+        background: {bg}ee;
+        border-bottom: 1px solid {border};
+        padding: 0 1.5rem;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }}
+    .app-navbar .nav-brand {{
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: {text_muted};
+        text-transform: uppercase;
+    }}
+    .app-navbar .nav-brand span {{ color: {accent}; }}
+    .app-navbar .nav-actions {{
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }}
+    .nav-pill {{
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        padding: 5px 14px;
+        border-radius: 40px;
+        border: 1px solid {border};
+        background: transparent;
+        color: {text_muted};
+        cursor: pointer;
         transition: all 0.15s ease;
+        white-space: nowrap;
     }}
-    .top-btn .stButton > button:hover {{
-        background: {surface2} !important;
-        color: {text_h} !important;
-        border-color: {accent} !important;
-        transform: none;
-        box-shadow: 0 2px 8px {shadow} !important;
-    }}
+    .nav-pill:hover {{ background: {surface2}; color: {text_h}; border-color: {accent}; }}
+    .nav-pill.danger:hover {{ background: #cc2222; color: #fff; border-color: #cc2222; }}
+    /* Geser konten bawah agar tidak ketutup navbar */
+    .block-container {{ padding-top: 4.5rem !important; }}
+    /* Sembunyikan tombol Streamlit lama */
+    .top-btn .stButton > button {{ display: none !important; }}
 
     /* ── FILE UPLOADER ────────────────────────────────────── */
     [data-testid="stFileUploader"] section {{
@@ -849,29 +877,50 @@ def build_chart(log_data):
 
 
 # ══════════════════════════════════════════════════════════════
-# HALAMAN UTAMA — BENTO LAYOUT (tanpa ⚡)
+# HALAMAN UTAMA — BENTO LAYOUT
 # ══════════════════════════════════════════════════════════════
 
-# Top bar — minimalis, tanpa ikon mencolok
-col_sp, col_theme, col_pin, col_logout = st.columns([4, 1, 1, 1])
+# ── NAVBAR HTML CUSTOM ────────────────────────────────────────
+_dark_nav = st.session_state.get("dark_mode", True)
+_mode_label = "LIGHT" if _dark_nav else "DARK"
 
+st.markdown(f"""
+<div class="app-navbar">
+    <div class="nav-brand">FPK <span>Converter</span></div>
+    <div class="nav-actions">
+        <button class="nav-pill" onclick="
+            var btn = window.parent.document.querySelector('[data-testid=stBaseButton-secondary][kind=secondary]');
+            var btns = window.parent.document.querySelectorAll('button');
+            btns.forEach(b => {{ if(b.innerText.trim() === 'TOGGLE_THEME') b.click(); }});
+        " id="nav-theme-btn">{_mode_label}</button>
+        <button class="nav-pill" onclick="
+            var btns = window.parent.document.querySelectorAll('button');
+            btns.forEach(b => {{ if(b.innerText.trim() === 'NAV_PIN') b.click(); }});
+        ">PIN</button>
+        <button class="nav-pill danger" onclick="
+            var btns = window.parent.document.querySelectorAll('button');
+            btns.forEach(b => {{ if(b.innerText.trim() === 'NAV_LOGOUT') b.click(); }});
+        ">KELUAR</button>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Hidden Streamlit buttons yang diakses oleh navbar JS
+col_sp, col_theme, col_pin, col_logout = st.columns([4, 1, 1, 1])
 with col_theme:
-    icon = st.session_state.get('_toggle_icon', '☀️')
-    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
-    if st.button(icon, help=st.session_state.get('_toggle_tip', 'Ganti tema'), key="theme_toggle"):
+    st.markdown('<div style="visibility:hidden;height:0;overflow:hidden;">', unsafe_allow_html=True)
+    if st.button("TOGGLE_THEME", key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
-
 with col_pin:
-    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
-    if st.button("PIN", help="Ganti PIN", key="open_pin"):
+    st.markdown('<div style="visibility:hidden;height:0;overflow:hidden;">', unsafe_allow_html=True)
+    if st.button("NAV_PIN", key="open_pin"):
         st.session_state.show_pin_form = not st.session_state.get("show_pin_form", False)
     st.markdown('</div>', unsafe_allow_html=True)
-
 with col_logout:
-    st.markdown('<div class="top-btn">', unsafe_allow_html=True)
-    if st.button("Keluar", help="Logout", key="logout_btn"):
+    st.markdown('<div style="visibility:hidden;height:0;overflow:hidden;">', unsafe_allow_html=True)
+    if st.button("NAV_LOGOUT", key="logout_btn"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
