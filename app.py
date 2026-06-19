@@ -10,11 +10,10 @@ import requests
 
 from datetime import datetime, timezone, timedelta
 
-# ── KONFIGURASI WARNA (GANTI DI SINI) ──────────────────────
-PRIMARY_COLOR = "#ff6b35"   # Opsi lain: #4f46e5, #0d9488, #7c3aed, #059669, #dc2626
-PRIMARY_DARK  = "#f97316"   # versi lebih gelap (opsional)
-SECONDARY     = "#00c47a"   # hijau untuk success
-ACCENT        = "#ffd700"   # kuning untuk pending/warning
+# ── KONFIGURASI WARNA ──────────────────────────────────────
+PRIMARY_COLOR = "#ff6b35"   # Ganti sesuai selera
+SECONDARY     = "#00c47a"
+ACCENT        = "#ffd700"
 
 # ── CONFIG ──────────────────────────────────────────────────
 st.set_page_config(page_title="FPK Converter", page_icon="📄", layout="wide")
@@ -144,6 +143,8 @@ def inject_css(dark: bool):
         toggle_tip  = "Mode Terang"
         log_bg      = "#1a1a1a"
         log_border  = "#2a2a2a"
+        susulan_bg  = "rgba(245,158,11,0.15)"
+        susulan_color = "#fbbf24"
     else:
         bg          = "#f6f4f0"
         surface     = "#ffffff"
@@ -152,7 +153,7 @@ def inject_css(dark: bool):
         border2     = "#d0cdc8"
         text_h      = "#1a1a1a"
         text_body   = "#444444"
-        text_muted  = "#888888"
+        text_muted  = "#666666"
         text_dim    = "#cccccc"
         input_bg    = "#ffffff"
         input_bdr   = "#d0cdc8"
@@ -163,6 +164,8 @@ def inject_css(dark: bool):
         toggle_tip  = "Mode Gelap"
         log_bg      = "#ffffff"
         log_border  = "#e0ddd8"
+        susulan_bg  = "#fef3c7"
+        susulan_color = "#92400e"
 
     st.session_state._toggle_icon = toggle_icon
     st.session_state._toggle_tip  = toggle_tip
@@ -487,13 +490,8 @@ def inject_css(dark: bool):
         letter-spacing: 0.5px;
         font-family: 'JetBrains Mono', monospace;
         border: 1.5px solid #f59e0b;
-        color: #92400e;
-        background: #fef3c7;
-    }}
-    [data-theme="dark"] .log-badge-susulan {{
-        color: #fbbf24;
-        background: rgba(245,158,11,0.15);
-        border-color: #f59e0b;
+        color: {susulan_color};
+        background: {susulan_bg};
     }}
 
     .status-selesai {{
@@ -623,6 +621,88 @@ def inject_css(dark: bool):
         color: #60a5fa;
     }}
 
+    /* ── LOGIN CARD ───────────────────────────────────────── */
+    .login-wrapper {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        padding: 1rem;
+    }}
+    .login-card {{
+        background: {surface};
+        border-radius: 32px;
+        padding: 2.5rem 2rem;
+        max-width: 400px;
+        width: 100%;
+        border: 1px solid {border};
+        box-shadow: 0 24px 64px {shadow};
+        text-align: center;
+    }}
+    .login-card .icon {{
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }}
+    .login-card h2 {{
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: {text_h};
+        margin: 0 0 0.25rem 0;
+        letter-spacing: -0.5px;
+    }}
+    .login-card .sub {{
+        font-size: 0.9rem;
+        color: {text_muted};
+        margin-bottom: 1.5rem;
+        font-weight: 400;
+    }}
+    .login-card .input-wrap {{
+        margin-bottom: 1rem;
+    }}
+    .login-card .input-wrap input {{
+        width: 100%;
+        padding: 14px 18px;
+        background: {input_bg};
+        border: 2px solid {border};
+        border-radius: 16px;
+        color: transparent;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.2rem;
+        letter-spacing: 4px;
+        outline: none;
+        transition: border-color 0.2s;
+        text-align: center;
+        caret-color: {PRIMARY_COLOR};
+    }}
+    .login-card .input-wrap input:focus {{
+        border-color: {PRIMARY_COLOR};
+        box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
+    }}
+    .login-card .btn-login {{
+        width: 100%;
+        padding: 14px;
+        background: {PRIMARY_COLOR};
+        color: #fff;
+        border: none;
+        border-radius: 60px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 14px rgba(255,107,53,0.3);
+    }}
+    .login-card .btn-login:hover {{
+        transform: scale(1.02);
+        box-shadow: 0 6px 24px rgba(255,107,53,0.4);
+    }}
+    .login-card .footer-text {{
+        font-size: 0.7rem;
+        color: {text_muted};
+        margin-top: 1.5rem;
+        opacity: 0.5;
+        font-family: 'JetBrains Mono', monospace;
+    }}
+
     /* ── MISC ────────────────────────────────────────────── */
     hr {{
         border-color: {border} !important;
@@ -701,88 +781,6 @@ if not st.session_state.logged_in:
     _shadow = "rgba(0,0,0,0.5)" if _dark else "rgba(0,0,0,0.08)"
     
     st.markdown(f"""
-    <style>
-    .login-wrapper {{
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 80vh;
-        padding: 1rem;
-    }}
-    .login-card {{
-        background: {_card};
-        border-radius: 32px;
-        padding: 2.5rem 2rem;
-        max-width: 400px;
-        width: 100%;
-        border: 1px solid {_border};
-        box-shadow: 0 24px 64px {_shadow};
-        text-align: center;
-    }}
-    .login-card .icon {{
-        font-size: 3rem;
-        margin-bottom: 0.5rem;
-    }}
-    .login-card h2 {{
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: {_txt};
-        margin: 0 0 0.25rem 0;
-        letter-spacing: -0.5px;
-    }}
-    .login-card .sub {{
-        font-size: 0.9rem;
-        color: {_sub};
-        margin-bottom: 1.5rem;
-        font-weight: 400;
-    }}
-    .login-card .input-wrap {{
-        margin-bottom: 1rem;
-    }}
-    .login-card .input-wrap input {{
-        width: 100%;
-        padding: 14px 18px;
-        background: {_bg};
-        border: 2px solid {_border};
-        border-radius: 16px;
-        color: transparent;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 1.2rem;
-        letter-spacing: 4px;
-        outline: none;
-        transition: border-color 0.2s;
-        text-align: center;
-        caret-color: {PRIMARY_COLOR};
-    }}
-    .login-card .input-wrap input:focus {{
-        border-color: {PRIMARY_COLOR};
-        box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
-    }}
-    .login-card .btn-login {{
-        width: 100%;
-        padding: 14px;
-        background: {PRIMARY_COLOR};
-        color: #fff;
-        border: none;
-        border-radius: 60px;
-        font-size: 1rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.2s;
-        box-shadow: 0 4px 14px rgba(255,107,53,0.3);
-    }}
-    .login-card .btn-login:hover {{
-        transform: scale(1.02);
-        box-shadow: 0 6px 24px rgba(255,107,53,0.4);
-    }}
-    .login-card .footer-text {{
-        font-size: 0.7rem;
-        color: {_sub};
-        margin-top: 1.5rem;
-        opacity: 0.5;
-        font-family: 'JetBrains Mono', monospace;
-    }}
-    </style>
     <div class="login-wrapper">
         <div class="login-card">
             <div class="icon">🔐</div>
@@ -791,31 +789,50 @@ if not st.session_state.logged_in:
             <div class="input-wrap">
                 <input type="password" id="pin_input" placeholder="• • • •" autocomplete="off" spellcheck="false">
             </div>
-            <button class="btn-login" onclick="document.getElementById('btn_login_click').click();">Masuk</button>
+            <button class="btn-login" onclick="login()">Masuk</button>
             <div class="footer-text">v1.0 · privasi terlindungi</div>
         </div>
     </div>
     <script>
+        function login() {{
+            var pin = document.getElementById('pin_input').value;
+            if (pin.length > 0) {{
+                // Simpan PIN ke sessionStorage agar bisa dibaca Streamlit
+                sessionStorage.setItem('pin', pin);
+                // Trigger Streamlit rerun dengan parameter
+                window.parent.postMessage({{
+                    type: 'streamlit:setComponentValue',
+                    value: pin
+                }}, '*');
+                // reload halaman agar Streamlit membaca PIN
+                window.location.reload();
+            }}
+        }}
         document.getElementById('pin_input').addEventListener('keydown', function(e) {{
             if (e.key === 'Enter') {{
-                document.getElementById('btn_login_click').click();
+                login();
             }}
         }});
     </script>
     """, unsafe_allow_html=True)
     
-    # Streamlit hidden button
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        pin_input = st.text_input("", type="password", placeholder="", key="pin_login", label_visibility="collapsed", autocomplete="off")
-        if st.button("", key="btn_login_click", type="primary", use_container_width=True):
-            ok, msg = check_pin(pin_input)
-            if ok:
-                st.session_state.logged_in = True
-                st.session_state.login_time = now_wib().isoformat()
-                st.rerun()
-            else:
-                st.error(msg)
+    # Ambil PIN dari sessionStorage via query param atau st.session_state
+    # Kita gunakan st.experimental_get_query_params untuk membaca PIN
+    import streamlit as st
+    # Cek apakah ada PIN di session_state (dari JavaScript)
+    pin = st.session_state.get('_pin', '')
+    if pin:
+        ok, msg = check_pin(pin)
+        if ok:
+            st.session_state.logged_in = True
+            st.session_state.login_time = now_wib().isoformat()
+            st.session_state._pin = ''
+            st.rerun()
+        else:
+            st.error(msg)
+            st.session_state._pin = ''
+    
+    # Jika belum login, tampilkan form login (tapi tidak double)
     st.stop()
 
 # ── HELPERS ──────────────────────────────────────────────────
