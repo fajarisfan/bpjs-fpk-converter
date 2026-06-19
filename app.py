@@ -19,7 +19,7 @@ ACCENT        = "#ffd700"
 # ── SETUP PAGE ──────────────────────────────────────────────
 st.set_page_config(page_title="FPK Converter", page_icon="📄", layout="wide")
 
-# ── INISIALISASI SESSION STATE (WAJIB DI AWAL) ────────────
+# ── INISIALISASI SESSION STATE ─────────────────────────────
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'dark_mode' not in st.session_state:
@@ -220,6 +220,38 @@ def inject_css(dark: bool):
         max-width: 1200px !important;
         padding-top: 1.5rem !important;
         padding-bottom: 2rem !important;
+    }}
+
+    /* ── PIN INPUT LINUX-LIKE (KUAT) ─────────────────────── */
+    /* Target semua input password di dalam Streamlit */
+    .stTextInput input[type="password"],
+    .stTextInput input[type="password"]:focus,
+    .stTextInput input[type="password"]:active,
+    input[type="password"] {{
+        color: transparent !important;
+        caret-color: {PRIMARY_COLOR} !important;
+        -webkit-text-security: disc !important;
+        text-shadow: none !important;
+        background: {input_bg} !important;
+    }}
+    /* Hilangkan semua tombol eye */
+    .stTextInput button[data-testid="stTextInputHideShowButton"],
+    button[aria-label="Show password"],
+    button[aria-label="Hide password"],
+    button[aria-label="Show password text"],
+    button[aria-label="Hide password text"],
+    [data-baseweb="input"] ~ button,
+    [data-baseweb="input"] + div button {{
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        opacity: 0 !important;
     }}
 
     /* ── RADIO BUTTON (Reguler/Susulan) ──────────────────── */
@@ -531,26 +563,6 @@ def inject_css(dark: bool):
         border-color: {PRIMARY_COLOR} !important;
     }}
 
-    /* ── HIDE EYE ICON ───────────────────────────────────── */
-    [data-testid="stTextInputHideShowButton"],
-    button[aria-label="Show password"],
-    button[aria-label="Hide password"],
-    button[aria-label="Show password text"],
-    button[aria-label="Hide password text"],
-    [data-baseweb="input"] ~ button,
-    [data-baseweb="input"] + div button {{
-        display: none !important;
-        visibility: hidden !important;
-        width: 0 !important;
-        height: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        overflow: hidden !important;
-        pointer-events: none !important;
-        position: absolute !important;
-        opacity: 0 !important;
-    }}
-
     /* ── DATAFRAME ────────────────────────────────────────── */
     [data-testid="stDataFrame"] {{
         border-radius: 16px !important;
@@ -840,19 +852,17 @@ def inject_css(dark: bool):
     """, unsafe_allow_html=True)
 
 # ── LOGIN ────────────────────────────────────────────────────
-# Cek session timeout hanya jika sudah login
 if st.session_state.logged_in:
     login_time = st.session_state.get("login_time")
     if login_time:
         elapsed = (now_wib() - datetime.fromisoformat(login_time)).total_seconds() / 3600
-        if elapsed > 8:  # 8 jam
+        if elapsed > 8:
             st.session_state.logged_in = False
             st.session_state.login_time = None
             st.rerun()
 
-# ── TAMPILAN LOGIN ──────────────────────────────────────────
 if not st.session_state.logged_in:
-    # Tampilkan toggle tema di pojok kanan atas
+    # Toggle tema di pojok kanan atas
     col_empty, col_theme = st.columns([6, 1])
     with col_theme:
         icon = "☀️" if st.session_state.dark_mode else "🌙"
