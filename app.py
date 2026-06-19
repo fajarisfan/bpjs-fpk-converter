@@ -331,8 +331,45 @@ def inject_css(dark: bool):
     .nav-pill.danger:hover {{ background: #cc2222; color: #fff; border-color: #cc2222; }}
     /* Geser konten bawah agar tidak ketutup navbar */
     .block-container {{ padding-top: 4.5rem !important; }}
-    /* Sembunyikan tombol Streamlit lama */
-    .top-btn .stButton > button {{ display: none !important; }}
+    /* Nav button wrapper — angkat ke posisi navbar */
+    .nav-btn-wrap {{
+        position: fixed !important;
+        top: 10px !important;
+        z-index: 10000 !important;
+    }}
+    .nav-btn-wrap .stButton > button {{
+        background: transparent !important;
+        color: {text_muted} !important;
+        border: 1px solid {border} !important;
+        border-radius: 40px !important;
+        padding: 4px 14px !important;
+        font-size: 0.65rem !important;
+        font-weight: 700 !important;
+        font-family: "JetBrains Mono", monospace !important;
+        letter-spacing: 1.5px !important;
+        text-transform: uppercase !important;
+        box-shadow: none !important;
+        width: auto !important;
+        min-width: unset !important;
+        height: 32px !important;
+        transition: all 0.15s ease !important;
+    }}
+    .nav-btn-wrap .stButton > button:hover {{
+        background: {surface2} !important;
+        color: {text_h} !important;
+        border-color: {accent} !important;
+        transform: none !important;
+        box-shadow: none !important;
+    }}
+    .danger-wrap .stButton > button:hover {{
+        background: #cc2222 !important;
+        color: #fff !important;
+        border-color: #cc2222 !important;
+    }}
+    /* Posisi masing-masing tombol dari kanan */
+    div[data-testid="column"]:nth-last-child(3) .nav-btn-wrap {{ right: 200px; }}
+    div[data-testid="column"]:nth-last-child(2) .nav-btn-wrap {{ right: 110px; }}
+    div[data-testid="column"]:nth-last-child(1) .nav-btn-wrap {{ right: 16px; }}
 
     /* ── FILE UPLOADER ────────────────────────────────────── */
     [data-testid="stFileUploader"] section {{
@@ -880,47 +917,34 @@ def build_chart(log_data):
 # HALAMAN UTAMA — BENTO LAYOUT
 # ══════════════════════════════════════════════════════════════
 
-# ── NAVBAR HTML CUSTOM ────────────────────────────────────────
+# ── NAVBAR ────────────────────────────────────────────────────
 _dark_nav = st.session_state.get("dark_mode", True)
 _mode_label = "LIGHT" if _dark_nav else "DARK"
 
-st.markdown(f"""
+# Brand kiri
+st.markdown(f'''
 <div class="app-navbar">
     <div class="nav-brand">FPK <span>Converter</span></div>
-    <div class="nav-actions">
-        <button class="nav-pill" onclick="
-            var btn = window.parent.document.querySelector('[data-testid=stBaseButton-secondary][kind=secondary]');
-            var btns = window.parent.document.querySelectorAll('button');
-            btns.forEach(b => {{ if(b.innerText.trim() === 'TOGGLE_THEME') b.click(); }});
-        " id="nav-theme-btn">{_mode_label}</button>
-        <button class="nav-pill" onclick="
-            var btns = window.parent.document.querySelectorAll('button');
-            btns.forEach(b => {{ if(b.innerText.trim() === 'NAV_PIN') b.click(); }});
-        ">PIN</button>
-        <button class="nav-pill danger" onclick="
-            var btns = window.parent.document.querySelectorAll('button');
-            btns.forEach(b => {{ if(b.innerText.trim() === 'NAV_LOGOUT') b.click(); }});
-        ">KELUAR</button>
-    </div>
+    <div class="nav-actions" id="nav-actions-placeholder"></div>
 </div>
-""", unsafe_allow_html=True)
+''', unsafe_allow_html=True)
 
-# Hidden Streamlit buttons yang diakses oleh navbar JS
+# Buttons dirender di dalam .nav-actions via CSS positioning trick
 col_sp, col_theme, col_pin, col_logout = st.columns([4, 1, 1, 1])
 with col_theme:
-    st.markdown('<div style="visibility:hidden;height:0;overflow:hidden;">', unsafe_allow_html=True)
-    if st.button("TOGGLE_THEME", key="theme_toggle"):
+    st.markdown('<div class="nav-btn-wrap">', unsafe_allow_html=True)
+    if st.button(_mode_label, key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 with col_pin:
-    st.markdown('<div style="visibility:hidden;height:0;overflow:hidden;">', unsafe_allow_html=True)
-    if st.button("NAV_PIN", key="open_pin"):
+    st.markdown('<div class="nav-btn-wrap">', unsafe_allow_html=True)
+    if st.button("PIN", key="open_pin"):
         st.session_state.show_pin_form = not st.session_state.get("show_pin_form", False)
     st.markdown('</div>', unsafe_allow_html=True)
 with col_logout:
-    st.markdown('<div style="visibility:hidden;height:0;overflow:hidden;">', unsafe_allow_html=True)
-    if st.button("NAV_LOGOUT", key="logout_btn"):
+    st.markdown('<div class="nav-btn-wrap danger-wrap">', unsafe_allow_html=True)
+    if st.button("KELUAR", key="logout_btn"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
