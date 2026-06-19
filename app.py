@@ -10,6 +10,12 @@ import requests
 
 from datetime import datetime, timezone, timedelta
 
+# ── KONFIGURASI WARNA (GANTI DI SINI) ──────────────────────
+PRIMARY_COLOR = "#ff6b35"   # Opsi lain: #4f46e5, #0d9488, #7c3aed, #059669, #dc2626
+PRIMARY_DARK  = "#f97316"   # versi lebih gelap (opsional)
+SECONDARY     = "#00c47a"   # hijau untuk success
+ACCENT        = "#ffd700"   # kuning untuk pending/warning
+
 # ── CONFIG ──────────────────────────────────────────────────
 st.set_page_config(page_title="FPK Converter", page_icon="📄", layout="wide")
 
@@ -117,7 +123,7 @@ def change_pin(pin_lama, pin_baru, pin_konfirm):
         return False, "❌ Konfirmasi PIN tidak cocok."
     return False, "⚠️ Untuk ganti PIN, ubah nilai **PIN** di Streamlit Secrets dashboard, lalu reboot app."
 
-# ── THEME CSS: BENTO GRID MODERN (FIX LOG TEMBUS) ──────
+# ── THEME CSS ──────────────────────────────────────────────
 def inject_css(dark: bool):
     if dark:
         bg          = "#0d0d0d"
@@ -136,9 +142,6 @@ def inject_css(dark: bool):
         shadow      = "rgba(0,0,0,0.6)"
         toggle_icon = "☀️"
         toggle_tip  = "Mode Terang"
-        accent      = "#ff6b35"
-        accent2     = "#ffd700"
-        accent3     = "#00c47a"
         log_bg      = "#1a1a1a"
         log_border  = "#2a2a2a"
     else:
@@ -158,9 +161,6 @@ def inject_css(dark: bool):
         shadow      = "rgba(0,0,0,0.06)"
         toggle_icon = "🌙"
         toggle_tip  = "Mode Gelap"
-        accent      = "#ff6b35"
-        accent2     = "#ffd700"
-        accent3     = "#00c47a"
         log_bg      = "#ffffff"
         log_border  = "#e0ddd8"
 
@@ -213,8 +213,8 @@ def inject_css(dark: bool):
         color: {text_h};
         line-height: 1.2;
     }}
-    .bento .value.accent {{ color: {accent}; }}
-    .bento .value.green  {{ color: {accent3}; }}
+    .bento .value.accent {{ color: {PRIMARY_COLOR}; }}
+    .bento .value.green  {{ color: {SECONDARY}; }}
     .bento .sub {{
         font-size: 0.75rem;
         color: {text_muted};
@@ -228,7 +228,7 @@ def inject_css(dark: bool):
     }}
     .app-header .badge {{
         display: inline-block;
-        background: {accent};
+        background: {PRIMARY_COLOR};
         color: #fff;
         font-size: 0.7rem;
         font-weight: 700;
@@ -246,8 +246,8 @@ def inject_css(dark: bool):
         margin: 0 !important;
     }}
     .app-header h1 span {{
-        color: {accent};
-        border-bottom: 4px solid {accent};
+        color: {PRIMARY_COLOR};
+        border-bottom: 4px solid {PRIMARY_COLOR};
         padding-bottom: 4px;
     }}
     .app-header p {{
@@ -259,7 +259,7 @@ def inject_css(dark: bool):
 
     /* ── BUTTONS ──────────────────────────────────────────── */
     .stButton > button {{
-        background: {accent} !important;
+        background: {PRIMARY_COLOR} !important;
         color: #fff !important;
         border: none !important;
         border-radius: 40px !important;
@@ -278,18 +278,18 @@ def inject_css(dark: bool):
 
     .stDownloadButton > button {{
         background: {surface} !important;
-        color: {accent3} !important;
-        border: 2px solid {accent3} !important;
+        color: {SECONDARY} !important;
+        border: 2px solid {SECONDARY} !important;
         border-radius: 40px !important;
         font-weight: 600 !important;
         box-shadow: none !important;
     }}
     .stDownloadButton > button:hover {{
-        background: {accent3} !important;
+        background: {SECONDARY} !important;
         color: #fff !important;
     }}
 
-    /* ── TOP BAR BUTTONS (mini) ──────────────────────────── */
+    /* ── TOP BAR BUTTONS ──────────────────────────────────── */
     .top-btn .stButton > button {{
         background: transparent !important;
         color: {text_muted} !important;
@@ -307,7 +307,7 @@ def inject_css(dark: bool):
     .top-btn .stButton > button:hover {{
         background: {surface2} !important;
         color: {text_h} !important;
-        border-color: {accent} !important;
+        border-color: {PRIMARY_COLOR} !important;
         transform: none;
         box-shadow: 0 2px 8px {shadow} !important;
     }}
@@ -321,7 +321,7 @@ def inject_css(dark: bool):
         transition: border-color 0.2s;
     }}
     [data-testid="stFileUploader"] section:hover {{
-        border-color: {accent};
+        border-color: {PRIMARY_COLOR};
         background: {surface2};
     }}
 
@@ -336,9 +336,9 @@ def inject_css(dark: bool):
         font-size: 0.85rem;
     }}
     [data-testid="stTabs"] [aria-selected="true"] {{
-        background: {accent} !important;
+        background: {PRIMARY_COLOR} !important;
         color: #fff !important;
-        border-color: {accent} !important;
+        border-color: {PRIMARY_COLOR} !important;
     }}
 
     /* ── INPUT (PIN) ──────────────────────────────────────── */
@@ -350,10 +350,10 @@ def inject_css(dark: bool):
         padding: 14px 18px !important;
         font-family: 'JetBrains Mono', monospace !important;
         letter-spacing: 2px !important;
-        caret-color: {accent} !important;
+        caret-color: {PRIMARY_COLOR} !important;
     }}
     .stTextInput > div > div > input:focus {{
-        border-color: {accent} !important;
+        border-color: {PRIMARY_COLOR} !important;
         box-shadow: 0 0 0 3px rgba(255,107,53,0.15) !important;
         outline: none !important;
         color: transparent !important;
@@ -417,10 +417,9 @@ def inject_css(dark: bool):
         box-shadow: 0 2px 12px {shadow} !important;
         transition: all 0.15s ease;
         backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
     }}
     .log-item:hover {{
-        border-color: {accent} !important;
+        border-color: {PRIMARY_COLOR} !important;
         box-shadow: 0 4px 20px {shadow} !important;
     }}
     .log-item .log-name {{
@@ -443,7 +442,7 @@ def inject_css(dark: bool):
         color: {text_dim};
     }}
     .log-item .log-meta .total {{
-        color: {accent3};
+        color: {SECONDARY};
         font-weight: 700;
     }}
     .log-item .log-meta .count {{
@@ -488,14 +487,19 @@ def inject_css(dark: bool):
         letter-spacing: 0.5px;
         font-family: 'JetBrains Mono', monospace;
         border: 1.5px solid #f59e0b;
-        color: #f59e0b;
-        background: rgba(245,158,11,0.08);
+        color: #92400e;
+        background: #fef3c7;
+    }}
+    [data-theme="dark"] .log-badge-susulan {{
+        color: #fbbf24;
+        background: rgba(245,158,11,0.15);
+        border-color: #f59e0b;
     }}
 
     .status-selesai {{
         background: rgba(0,196,122,0.12);
-        border: 1.5px solid {accent3};
-        color: {accent3};
+        border: 1.5px solid {SECONDARY};
+        color: {SECONDARY};
         padding: 2px 12px;
         border-radius: 40px;
         font-size: 0.65rem;
@@ -508,8 +512,8 @@ def inject_css(dark: bool):
     }}
     .status-pending {{
         background: rgba(255,215,0,0.10);
-        border: 1.5px solid {accent2};
-        color: {accent2};
+        border: 1.5px solid {ACCENT};
+        color: {ACCENT};
         padding: 2px 12px;
         border-radius: 40px;
         font-size: 0.65rem;
@@ -537,7 +541,7 @@ def inject_css(dark: bool):
         backdrop-filter: none !important;
     }}
     .rekap-card:hover {{
-        border-color: {accent} !important;
+        border-color: {PRIMARY_COLOR} !important;
         box-shadow: 0 4px 20px {shadow} !important;
     }}
     .rekap-card .period {{
@@ -553,7 +557,7 @@ def inject_css(dark: bool):
         font-family: 'JetBrains Mono', monospace;
     }}
     .rekap-card .total {{
-        color: {accent3};
+        color: {SECONDARY};
         font-weight: 800;
         font-size: 0.85rem;
         font-family: 'JetBrains Mono', monospace;
@@ -568,12 +572,12 @@ def inject_css(dark: bool):
         text-transform: uppercase;
         color: {text_muted};
         margin-bottom: 1rem;
-        border-left: 4px solid {accent};
+        border-left: 4px solid {PRIMARY_COLOR};
         padding-left: 10px;
         font-family: 'JetBrains Mono', monospace;
     }}
 
-    /* ── SUMMARY STATS (BENTO) ───────────────────────────── */
+    /* ── SUMMARY STATS ────────────────────────────────────── */
     .summary-grid {{
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -594,6 +598,31 @@ def inject_css(dark: bool):
         font-size: 0.6rem !important;
     }}
 
+    /* ── TINGKAT BADGE ────────────────────────────────────── */
+    .tingkat-badge {{
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 14px;
+        border-radius: 40px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-family: 'JetBrains Mono', monospace;
+        border: 1.5px solid;
+    }}
+    .tingkat-badge.ritl {{
+        background: rgba(139,92,246,0.10);
+        border-color: #a78bfa;
+        color: #a78bfa;
+    }}
+    .tingkat-badge.rjtl {{
+        background: rgba(59,130,246,0.10);
+        border-color: #60a5fa;
+        color: #60a5fa;
+    }}
+
     /* ── MISC ────────────────────────────────────────────── */
     hr {{
         border-color: {border} !important;
@@ -605,6 +634,41 @@ def inject_css(dark: bool):
         border: 1px solid {border} !important;
         background: {surface} !important;
         padding: 1rem !important;
+    }}
+
+    /* ── RESPONSIVE ───────────────────────────────────────── */
+    @media (max-width: 768px) {{
+        .block-container {{
+            padding: 0.8rem 0.8rem !important;
+        }}
+        .bento {{
+            padding: 1rem 1.2rem !important;
+        }}
+        .summary-grid {{
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.5rem !important;
+        }}
+        .app-header h1 {{
+            font-size: 2rem !important;
+        }}
+        .log-item .log-name {{
+            font-size: 0.7rem !important;
+        }}
+        .top-btn .stButton > button {{
+            font-size: 0.6rem !important;
+            padding: 0.1rem 0.6rem !important;
+            min-width: 40px !important;
+            height: 28px !important;
+        }}
+        .csv-stat-grid {{
+            grid-template-columns: 1fr 1fr !important;
+        }}
+        .login-card {{
+            padding: 1.8rem 1.2rem !important;
+        }}
+        .login-card h2 {{
+            font-size: 1.2rem !important;
+        }}
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -629,30 +693,122 @@ if st.session_state.logged_in:
 
 if not st.session_state.logged_in:
     _dark = st.session_state.get('dark_mode', True)
-    _bg   = "#0a0a0a" if _dark else "#fafaf7"
-    _txt  = "#f5f5f5" if _dark else "#0a0a0a"
-    _sub  = "#777777" if _dark else "#555555"
+    _bg   = "#0f0f0f" if _dark else "#fafaf7"
+    _txt  = "#f0f0f0" if _dark else "#1a1a1a"
+    _sub  = "#888888" if _dark else "#666666"
+    _card = "#1a1a1a" if _dark else "#ffffff"
+    _border = "#2a2a2a" if _dark else "#e5e5e5"
+    _shadow = "rgba(0,0,0,0.5)" if _dark else "rgba(0,0,0,0.08)"
+    
     st.markdown(f"""
-        <div style="text-align:center; padding:3rem 2rem 0.5rem;">
-            <div style="display:inline-block;background:#ff6b35;color:#fff;padding:0.3rem 1.5rem;border-radius:40px;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;margin-bottom:1.5rem;text-transform:uppercase;">FPK Converter · v1.0</div>
-            <h1 style="font-size:3.4rem;font-weight:800;color:{_txt};line-height:1.05;margin:0 0 1rem;letter-spacing:-2.5px;text-transform:uppercase;">SELAMAT<br><span style="color:#ff6b35;border-bottom:6px solid #ff6b35;padding-bottom:4px;">DATANG</span></h1>
-            <p style="color:{_sub};font-size:1rem;margin-bottom:0.3rem;">Aplikasi pribadi konversi data klaim BPJS Kesehatan</p>
-            <p style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;color:{_sub};opacity:0.5;letter-spacing:1.5px;margin-bottom:2rem;">// MASUKKAN PIN UNTUK MELANJUTKAN</p>
+    <style>
+    .login-wrapper {{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        padding: 1rem;
+    }}
+    .login-card {{
+        background: {_card};
+        border-radius: 32px;
+        padding: 2.5rem 2rem;
+        max-width: 400px;
+        width: 100%;
+        border: 1px solid {_border};
+        box-shadow: 0 24px 64px {_shadow};
+        text-align: center;
+    }}
+    .login-card .icon {{
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }}
+    .login-card h2 {{
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: {_txt};
+        margin: 0 0 0.25rem 0;
+        letter-spacing: -0.5px;
+    }}
+    .login-card .sub {{
+        font-size: 0.9rem;
+        color: {_sub};
+        margin-bottom: 1.5rem;
+        font-weight: 400;
+    }}
+    .login-card .input-wrap {{
+        margin-bottom: 1rem;
+    }}
+    .login-card .input-wrap input {{
+        width: 100%;
+        padding: 14px 18px;
+        background: {_bg};
+        border: 2px solid {_border};
+        border-radius: 16px;
+        color: transparent;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 1.2rem;
+        letter-spacing: 4px;
+        outline: none;
+        transition: border-color 0.2s;
+        text-align: center;
+        caret-color: {PRIMARY_COLOR};
+    }}
+    .login-card .input-wrap input:focus {{
+        border-color: {PRIMARY_COLOR};
+        box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
+    }}
+    .login-card .btn-login {{
+        width: 100%;
+        padding: 14px;
+        background: {PRIMARY_COLOR};
+        color: #fff;
+        border: none;
+        border-radius: 60px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 14px rgba(255,107,53,0.3);
+    }}
+    .login-card .btn-login:hover {{
+        transform: scale(1.02);
+        box-shadow: 0 6px 24px rgba(255,107,53,0.4);
+    }}
+    .login-card .footer-text {{
+        font-size: 0.7rem;
+        color: {_sub};
+        margin-top: 1.5rem;
+        opacity: 0.5;
+        font-family: 'JetBrains Mono', monospace;
+    }}
+    </style>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="icon">🔐</div>
+            <h2>FPK Converter</h2>
+            <p class="sub">Masukkan PIN untuk melanjutkan</p>
+            <div class="input-wrap">
+                <input type="password" id="pin_input" placeholder="• • • •" autocomplete="off" spellcheck="false">
+            </div>
+            <button class="btn-login" onclick="document.getElementById('btn_login_click').click();">Masuk</button>
+            <div class="footer-text">v1.0 · privasi terlindungi</div>
         </div>
+    </div>
+    <script>
+        document.getElementById('pin_input').addEventListener('keydown', function(e) {{
+            if (e.key === 'Enter') {{
+                document.getElementById('btn_login_click').click();
+            }}
+        }});
+    </script>
     """, unsafe_allow_html=True)
-    locked_until = st.session_state.get("locked_until")
-    is_locked_now = False
-    if locked_until:
-        if now_wib() < locked_until:
-            is_locked_now = True
-            sisa = int((locked_until - now_wib()).total_seconds() // 60) + 1
-            st.error(f"🔒 Terlalu banyak percobaan salah. Coba lagi dalam **{sisa} menit**.")
-        else:
-            st.session_state.attempts = 0
-            st.session_state.locked_until = None
-    if not is_locked_now:
-        pin_input = st.text_input("PIN AKSES", type="password", placeholder="", key="pin_login", autocomplete="off")
-        if st.button("Masuk →", key="btn_masuk"):
+    
+    # Streamlit hidden button
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        pin_input = st.text_input("", type="password", placeholder="", key="pin_login", label_visibility="collapsed", autocomplete="off")
+        if st.button("", key="btn_login_click", type="primary", use_container_width=True):
             ok, msg = check_pin(pin_input)
             if ok:
                 st.session_state.logged_in = True
@@ -710,25 +866,20 @@ def render_result(res, idx=0):
                else "🏃 Rawat Jalan (RJTL)" if tingkat == "RJTL" else tingkat)
     total_rp = f"Rp {res['total']:,.0f}".replace(",", ".")
     jenis = res.get('jenis', 'Reguler')
-    jenis_badge = "📌 Susulan" if jenis == "Susulan" else ""
+    jenis_badge = '<span class="log-badge-susulan">📌 Susulan</span>' if jenis == "Susulan" else ""
 
     _dark   = st.session_state.get('dark_mode', True)
     surf    = "#1a1a1a" if _dark else "#ffffff"
     bdr     = "#2a2a2a" if _dark else "#e0ddd8"
     txt_h   = "#f0f0f0" if _dark else "#1a1a1a"
     txt_m   = "#777777" if _dark else "#888888"
-    acc     = "#ff6b35"
-    grn     = "#00c47a"
-    yel     = "#ffd700"
     shadow  = "rgba(0,0,0,0.5)" if _dark else "rgba(0,0,0,0.06)"
 
-    # File badge
     st.markdown(
         f'<div style="display:inline-flex;align-items:center;gap:8px;background:{surf};border:1px solid {bdr};border-radius:40px;padding:6px 18px;font-size:0.8rem;font-weight:600;font-family:JetBrains Mono,monospace;box-shadow:0 2px 12px {shadow};">📄 {res["filename"]} {jenis_badge}</div>',
         unsafe_allow_html=True
     )
 
-    # Stats grid bento
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(
@@ -748,13 +899,12 @@ def render_result(res, idx=0):
 
     st.divider()
 
-    # API debug
     api_log = res.get('api_log')
     if api_log:
         req = api_log['request']
         resp = api_log['response']
         ok = 200 <= resp['status_code'] < 300
-        status_color = "#00c47a" if ok else "#f87171"
+        status_color = SECONDARY if ok else "#f87171"
         with st.expander(f"🔌 API Request/Response — {resp['status_code']} · {resp['latency_ms']} ms"):
             st.markdown(f"""
             <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;margin-bottom:0.8rem;">
@@ -770,7 +920,6 @@ def render_result(res, idx=0):
             st.markdown("**Response**")
             st.code(json.dumps(resp, indent=2, ensure_ascii=False), language="json")
 
-    # Preview + JSON
     tab_preview, tab_json = st.tabs(["📊 Preview Data", "📦 JSON Mentah"])
     with tab_preview:
         df_prev = res['df'].copy()
@@ -819,10 +968,9 @@ def render_result(res, idx=0):
 
 
 def animasi_terminal_proses(uf, dark: bool):
-    """Pure Python terminal animation — ketik No.SEP satu-satu sesuai kecepatan API."""
-    acc = "#ff6b35"
-    grn = "#00c47a"
-    yel = "#ffd700"
+    acc = PRIMARY_COLOR
+    grn = SECONDARY
+    yel = ACCENT
     dim = "#555555"
     blu = "#00b0ff"
     surf = "#0d0d0d" if dark else "#f5f0e8"
@@ -946,10 +1094,9 @@ def build_chart(log_data):
 
 
 # ══════════════════════════════════════════════════════════════
-# HALAMAN UTAMA — BENTO LAYOUT (tanpa ⚡)
+# HALAMAN UTAMA
 # ══════════════════════════════════════════════════════════════
 
-# Top bar — minimalis, tanpa ikon mencolok
 col_sp, col_theme, col_pin, col_logout = st.columns([4, 1, 1, 1])
 
 with col_theme:
@@ -984,7 +1131,6 @@ if st.session_state.get("show_pin_form"):
             ok, msg = change_pin(p_lama, p_baru, p_konfirm)
             st.warning(msg) if not ok else st.success(msg)
 
-# Header
 st.markdown("""
     <div class="app-header">
         <div class="badge">FPK Converter · v1.0</div>
@@ -993,7 +1139,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# ── TABS ──────────────────────────────────────────────────────
 tab_pdf, tab_csv = st.tabs(["Konversi PDF → CSV", "Kalkulator CSV"])
 
 with tab_pdf:
@@ -1010,7 +1155,6 @@ with tab_pdf:
     )
 
     if uploaded_files:
-        # ── PILIHAN JENIS DATA (REGULER / SUSULAN) ──────────
         jenis_data = st.radio(
             "Jenis Data",
             ["Reguler", "Susulan"],
@@ -1036,7 +1180,6 @@ with tab_pdf:
                     payload, df_res, req_meta, resp_meta = animasi_terminal_proses(uf, dark=_dark)
                     filename = payload['filename']
                     
-                    # Jika Susulan, tambahkan _SUSULAN sebelum .csv
                     if is_susulan:
                         base, ext = os.path.splitext(filename)
                         filename = f"{base}_SUSULAN{ext}"
@@ -1075,7 +1218,6 @@ with tab_pdf:
             st.session_state.show_done = True
             st.rerun()
 
-    # Tampilkan hasil
     if st.session_state.get('show_done'):
         errors = st.session_state.pop('errors', [])
         results = st.session_state.get('results', [])
@@ -1107,8 +1249,8 @@ with tab_csv:
     _bdr_c = "#2a2a2a" if _dark_c else "#e0ddd8"
     _txt_c = "#f0f0f0" if _dark_c else "#1a1a1a"
     _mut_c = "#777777" if _dark_c else "#888888"
-    _grn = "#00c47a"
-    _acc = "#ff6b35"
+    _grn = SECONDARY
+    _acc = PRIMARY_COLOR
 
     st.markdown(f"""
     <style>
@@ -1285,7 +1427,7 @@ if log_data:
     df_chart = build_chart(log_data)
     if df_chart is not None:
         st.bar_chart(df_chart, use_container_width=True, height=220,
-                     color=["#e040fb","#00b0ff","#00c47a","#ff6b35"][:len(df_chart.columns)])
+                     color=["#e040fb","#00b0ff", SECONDARY, PRIMARY_COLOR][:len(df_chart.columns)])
     st.divider()
 
 if log_data:
@@ -1304,11 +1446,11 @@ if log_data:
         </div>
         <div class="bento">
             <div class="label">Selesai</div>
-            <div class="value" style="font-size:1.2rem;color:#00c47a;">{total_selesai}</div>
+            <div class="value" style="font-size:1.2rem;color:{SECONDARY};">{total_selesai}</div>
         </div>
         <div class="bento">
             <div class="label">Pending</div>
-            <div class="value" style="font-size:1.2rem;color:#ffd700;">{total_pending}</div>
+            <div class="value" style="font-size:1.2rem;color:{ACCENT};">{total_pending}</div>
         </div>
         <div class="bento">
             <div class="label">Total Nominal</div>
@@ -1378,15 +1520,15 @@ ft_muted = "#475569" if _dark else "#64748b"
 st.markdown(f"""
 <div style="text-align:center;padding:2.5rem 1rem 1.5rem;margin-top:2.5rem;border-top:1px solid {ft_border};">
     <div style="margin-bottom:1rem;">
-        <div style="display:inline-flex;align-items:center;gap:8px;background:#ff6b35;border-radius:40px;padding:0.4rem 1.8rem;box-shadow:0 4px 14px rgba(255,107,53,0.3);">
+        <div style="display:inline-flex;align-items:center;gap:8px;background:{PRIMARY_COLOR};border-radius:40px;padding:0.4rem 1.8rem;box-shadow:0 4px 14px rgba(255,107,53,0.3);">
             <span style="font-family:JetBrains Mono,monospace;font-size:0.78rem;font-weight:700;color:#fff;letter-spacing:2px;">FPK CONVERTER</span>
         </div>
     </div>
     <div style="font-size:0.8rem;color:{ft_muted};font-weight:400;margin-bottom:1.2rem;">Solusi otomasi konversi data klaim BPJS Kesehatan</div>
     <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:1.2rem;">
-        <div style="width:6px;height:6px;border-radius:50%;background:#ff6b35;"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:{PRIMARY_COLOR};"></div>
         <div style="width:6px;height:6px;border-radius:50%;background:#e040fb;"></div>
-        <div style="width:6px;height:6px;border-radius:50%;background:#00c47a;"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:{SECONDARY};"></div>
         <div style="width:6px;height:6px;border-radius:50%;background:#00b0ff;"></div>
     </div>
     <div style="font-family:JetBrains Mono,monospace;font-size:0.72rem;color:{ft_dim};margin-bottom:0.4rem;">
