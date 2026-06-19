@@ -1281,12 +1281,12 @@ with col_theme_nav:
     st.markdown('</div>', unsafe_allow_html=True)
 with col_pin_nav:
     st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
-    if st.button("🔑", help="Ganti PIN", key="open_pin"):
+    if st.button("PIN", help="Ganti PIN", key="open_pin"):
         st.session_state.show_pin_form = not st.session_state.get("show_pin_form", False)
     st.markdown('</div>', unsafe_allow_html=True)
 with col_logout_nav:
     st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
-    if st.button("🚪", help="Keluar", key="logout_btn"):
+    if st.button("KELUAR", help="Keluar", key="logout_btn"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
@@ -1687,6 +1687,11 @@ _bot_bg  = "#0a0a0a" if _dark_ft else "#ffffff"
 _bot_bdr = "#1e1e1e" if _dark_ft else "#e4e2dd"
 _bot_mut = "#555555" if _dark_ft else "#aaaaaa"
 
+# Pre-compute warna footer biar aman di f-string
+_ft_border = "rgba(255,255,255,0.05)" if _dark_ft else "rgba(0,0,0,0.05)"
+_ft_txt1   = "#888" if _dark_ft else "#555"
+_ft_txt2   = "#666" if _dark_ft else "#999"
+
 st.markdown(f"""
 <div class="bottom-nav-bar">
     <div class="bottom-nav-item">
@@ -1708,11 +1713,11 @@ st.markdown(f"""
     </div>
 </div>
 
-<div style="text-align:center;padding:1.5rem 0 0.5rem;margin-top:1.5rem;border-top:1px solid {"rgba(255,255,255,0.05)" if _dark_ft else "rgba(0,0,0,0.05)"};">
-    <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:{"#333" if _dark_ft else "#bbb"};margin-bottom:0.25rem;">
+<div style="text-align:center;padding:1.5rem 0 0.5rem;margin-top:1.5rem;border-top:1px solid {_ft_border};">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:{_ft_txt1};margin-bottom:0.25rem;">
         Dikembangkan oleh <strong style="color:#6366f1;">Isfan Fajar Anugrah</strong>
     </div>
-    <div style="font-size:0.6rem;color:{"#222" if _dark_ft else "#ccc"};">Versi 1.0 · 2025 · All Rights Reserved</div>
+    <div style="font-size:0.6rem;color:{_ft_txt2};">Versi 1.0 · 2025 · All Rights Reserved</div>
     <div style="display:inline-block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);border-radius:40px;padding:3px 14px;margin-top:0.5rem;">
         <span style="font-size:0.58rem;color:#f87171;">⚠️ Hak Cipta Pribadi — Dilarang digandakan tanpa izin</span>
     </div>
