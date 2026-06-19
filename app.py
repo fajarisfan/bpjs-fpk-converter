@@ -612,6 +612,8 @@ def render_result(res, idx=0):
     t_label = ("🏥 Rawat Inap (RITL)" if tingkat == "RITL"
                else "🏃 Rawat Jalan (RJTL)" if tingkat == "RJTL" else tingkat)
     total_rp = f"Rp {res['total']:,.0f}".replace(",", ".")
+    jenis = res.get('jenis', 'Reguler')
+    jenis_badge = "📌 Susulan" if jenis == "Susulan" else ""
 
     _dark   = st.session_state.get('dark_mode', True)
     surf    = "#1a1a1a" if _dark else "#ffffff"
@@ -625,7 +627,7 @@ def render_result(res, idx=0):
 
     # File badge
     st.markdown(
-        f'<div style="display:inline-flex;align-items:center;gap:8px;background:{surf};border:1px solid {bdr};border-radius:40px;padding:6px 18px;font-size:0.8rem;font-weight:600;font-family:JetBrains Mono,monospace;box-shadow:0 2px 12px {shadow};">📄 {res["filename"]}</div>',
+        f'<div style="display:inline-flex;align-items:center;gap:8px;background:{surf};border:1px solid {bdr};border-radius:40px;padding:6px 18px;font-size:0.8rem;font-weight:600;font-family:JetBrains Mono,monospace;box-shadow:0 2px 12px {shadow};">📄 {res["filename"]} {jenis_badge}</div>',
         unsafe_allow_html=True
     )
 
@@ -911,6 +913,16 @@ with tab_pdf:
     )
 
     if uploaded_files:
+        # ── PILIHAN JENIS DATA (REGULER / SUSULAN) ──────────
+        jenis_data = st.radio(
+            "Jenis Data",
+            ["Reguler", "Susulan"],
+            index=0,
+            horizontal=True,
+            help="Pilih 'Susulan' jika file berasal dari folder SUSULAN"
+        )
+        is_susulan = (jenis_data == "Susulan")
+
         if st.button("Proses Sekarang", use_container_width=True):
             results = []
             errors = []
@@ -926,15 +938,23 @@ with tab_pdf:
                 try:
                     payload, df_res, req_meta, resp_meta = animasi_terminal_proses(uf, dark=_dark)
                     filename = payload['filename']
+                    
+                    # Jika Susulan, tambahkan _SUSULAN sebelum .csv
+                    if is_susulan:
+                        base, ext = os.path.splitext(filename)
+                        filename = f"{base}_SUSULAN{ext}"
+
                     tingkat = payload['tingkat']
                     total = payload['total']
                     jumlah = payload['jumlah']
+                    
                     results.append({
                         'filename': filename,
                         'df': df_res,
                         'total': total,
                         'count': jumlah,
                         'tingkat': tingkat,
+                        'jenis': 'Susulan' if is_susulan else 'Reguler',
                         'api_log': {'request': req_meta, 'response': resp_meta},
                     })
                     save_log({
@@ -943,6 +963,7 @@ with tab_pdf:
                         'tingkat': tingkat,
                         'jumlah': jumlah,
                         'total': total,
+                        'jenis': 'Susulan' if is_susulan else 'Reguler',
                         'status': 'Belum Diambil',
                         'waktu_selesai': None,
                     })
@@ -1205,6 +1226,8 @@ else:
         total_rp = f"Rp {item['total']:,.0f}".replace(",", ".")
         status = item.get('status', 'Belum Diambil')
         wkt_sel = item.get('waktu_selesai')
+        jenis = item.get('jenis', 'Reguler')
+        jenis_badge = "📌 Susulan" if jenis == "Susulan" else ""
         if status == 'Selesai':
             status_html = '<span class="status-selesai">✓ Selesai</span>'
             footer_extra = f'<span style="color:#888;font-size:0.7rem;">📥 {wkt_sel}</span>' if wkt_sel else ''
@@ -1215,7 +1238,7 @@ else:
         <div class="log-item">
             <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:0.3rem;">
                 <span style="font-weight:700;font-family:JetBrains Mono,monospace;font-size:0.82rem;color:{'#f0f0f0' if st.session_state.dark_mode else '#1a1a1a'};">📄 {item['nama_file']}</span>
-                {badge} {status_html}
+                {badge} {jenis_badge} {status_html}
             </div>
             <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;font-family:JetBrains Mono,monospace;font-size:0.7rem;color:#888;">
                 <span>🕓 {item['waktu']}</span>
