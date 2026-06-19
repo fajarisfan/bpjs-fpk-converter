@@ -142,53 +142,69 @@ def change_pin(pin_lama, pin_baru, pin_konfirm):
 # ── CSS ─────────────────────────────────────────────────────
 def inject_css(dark):
     if dark:
-        bg = "#0a0a0a"
-        surface = "#141414"
-        border = "#242424"
-        text_h = "#f0f0f0"
-        text_muted = "#666666"
-        input_bg = "#0d0d0d"
-        input_bdr = "#2a2a2a"
-        shadow = "rgba(0,0,0,0.7)"
+        bg          = "#0a0a0a"
+        surface     = "#141414"
+        surface2    = "#1e1e1e"
+        border      = "#242424"
+        border2     = "#333333"
+        text_h      = "#f0f0f0"
+        text_body   = "#b0b0b0"
+        text_muted  = "#666666"
+        text_dim    = "#3a3a3a"
+        input_bg    = "#0d0d0d"
+        input_bdr   = "#2a2a2a"
+        input_col   = "#f0f0f0"
+        label_col   = "#888888"
+        shadow      = "rgba(0,0,0,0.7)"
         toggle_icon = "☀️"
-        toggle_tip = "Mode Terang"
-        log_bg = "#141414"
-        log_border = "#242424"
-        login_bg = "#141414"
+        toggle_tip  = "Mode Terang"
+        log_bg      = "#141414"
+        log_border  = "#242424"
+        login_bg    = "#141414"
         login_border = "#242424"
         login_shadow = "rgba(0,0,0,0.6)"
-        login_txt = "#f0f0f0"
-        login_sub = "#777777"
+        login_txt   = "#f0f0f0"
+        login_sub   = "#777777"
         radio_color = "#f0f0f0"
-        radio_bg = "#141414"
+        radio_bg    = "#141414"
         radio_border = "#242424"
-        hero_bg = "#141414"
-        hero_stat = "#1e1e1e"
+        hero_bg     = "#141414"
+        hero_stat   = "#1e1e1e"
         hero_stat_b = "#282828"
+        bottom_bg   = "#0a0a0a"
+        bottom_bdr  = "#1e1e1e"
     else:
-        bg = "#f5f4f2"
-        surface = "#ffffff"
-        border = "#e4e2dd"
-        text_h = "#1a1a1a"
-        text_muted = "#888888"
-        input_bg = "#ffffff"
-        input_bdr = "#d5d3ce"
-        shadow = "rgba(0,0,0,0.07)"
+        bg          = "#f5f4f2"
+        surface     = "#ffffff"
+        surface2    = "#f0eee9"
+        border      = "#e4e2dd"
+        border2     = "#d0cec9"
+        text_h      = "#1a1a1a"
+        text_body   = "#444444"
+        text_muted  = "#888888"
+        text_dim    = "#cccccc"
+        input_bg    = "#ffffff"
+        input_bdr   = "#d5d3ce"
+        input_col   = "#1a1a1a"
+        label_col   = "#666666"
+        shadow      = "rgba(0,0,0,0.07)"
         toggle_icon = "🌙"
-        toggle_tip = "Mode Gelap"
-        log_bg = "#ffffff"
-        log_border = "#e0ddd8"
-        login_bg = "#ffffff"
+        toggle_tip  = "Mode Gelap"
+        log_bg      = "#ffffff"
+        log_border  = "#e0ddd8"
+        login_bg    = "#ffffff"
         login_border = "#e0ddd8"
         login_shadow = "rgba(0,0,0,0.08)"
-        login_txt = "#1a1a1a"
-        login_sub = "#666666"
+        login_txt   = "#1a1a1a"
+        login_sub   = "#666666"
         radio_color = "#1a1a1a"
-        radio_bg = "#ffffff"
+        radio_bg    = "#ffffff"
         radio_border = "#e0ddd8"
-        hero_bg = "#ffffff"
-        hero_stat = "#f5f4f2"
+        hero_bg     = "#ffffff"
+        hero_stat   = "#f5f4f2"
         hero_stat_b = "#e8e6e1"
+        bottom_bg   = "#ffffff"
+        bottom_bdr  = "#e4e2dd"
 
     st.session_state._toggle_icon = toggle_icon
     st.session_state._toggle_tip = toggle_tip
@@ -647,6 +663,47 @@ def inject_css(dark):
         border: 1px solid {border} !important;
         background: {surface} !important;
         padding: 0.75rem !important;
+    }}
+    .bottom-nav-bar {{
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        background: {bottom_bg};
+        border-top: 1px solid {bottom_bdr};
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 0.6rem 0 0.9rem;
+        z-index: 999;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }}
+    .bottom-nav-item {{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        cursor: pointer;
+        padding: 0.2rem 1.5rem;
+        border-radius: 14px;
+        transition: background 0.15s ease;
+    }}
+    .bottom-nav-item:hover {{ background: {surface2}; }}
+    .bottom-nav-icon {{
+        font-size: 1.2rem;
+        line-height: 1;
+    }}
+    .bottom-nav-label {{
+        font-size: 0.58rem;
+        font-weight: 700;
+        color: {text_muted};
+        letter-spacing: 0.3px;
+    }}
+    .bottom-nav-label.active {{ color: {PRIMARY_COLOR}; }}
+    .bottom-nav-dot {{
+        width: 4px; height: 4px;
+        border-radius: 50%;
+        background: {PRIMARY_COLOR};
+        margin-top: 1px;
     }}
     @media (max-width: 600px) {{
         .block-container {{ padding: 0 0.75rem 4rem !important; }}
@@ -1376,7 +1433,6 @@ else:
         else:
             status_html = '<span class="status-pending">⏳ Belum Diambil</span>'
             footer_extra = ''
-        # ── BUAT HTML UTUH ──────────────────────────────────
         html = f'''
         <div class="log-item">
             <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:0.35rem;">
