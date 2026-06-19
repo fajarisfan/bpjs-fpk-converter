@@ -217,7 +217,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
 /* EXPANDER */
 [data-testid="stExpander"] {{
     background:{surface} !important; border:3px solid {border} !important;
-    border-radius:0px !important; overflow:hidden !important; margin-bottom:1rem !important;
+    border-radius:6px !important; overflow:hidden !important; margin-bottom:1rem !important;
     box-shadow: 4px 4px 0px {shadow_col} !important;
 }}
 [data-testid="stExpander"] summary {{
@@ -233,7 +233,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
 /* TABS */
 [data-testid="stTabs"] [data-testid="stTab"] {{
     background:{surface} !important; border:2px solid {border} !important;
-    border-radius:0px !important; color:{text_muted} !important;
+    border-radius:4px !important; color:{text_muted} !important;
     font-size:0.8rem !important; font-weight:700 !important;
     text-transform:uppercase !important;
 }}
@@ -245,7 +245,7 @@ html, body, [class*="css"] {{ font-family: 'Space Grotesk', sans-serif !importan
 /* INPUT */
 .stTextInput > div > div > input {{
     background:{input_bg} !important; border:3px solid {input_bdr} !important;
-    border-radius:0px !important; color:{input_col} !important;
+    border-radius:6px !important; color:{input_col} !important;
     padding:14px 18px !important; font-size:0.95rem !important;
     font-family:'JetBrains Mono',monospace !important;
     letter-spacing:4px !important; transition:border-color 0.15s !important;
@@ -292,7 +292,7 @@ input[type="password"]:active {{
 [data-testid="stFileUploader"] {{ position:relative !important; }}
 [data-testid="stFileUploader"] section {{
     background:{surface} !important; border:3px dashed {border} !important;
-    border-radius:0px !important; padding:2rem 1.5rem !important;
+    border-radius:8px !important; padding:2rem 1.5rem !important;
     transition:border-color 0.2s !important; position:relative !important; overflow:visible !important;
 }}
 [data-testid="stFileUploader"] section:hover {{
@@ -305,7 +305,7 @@ input[type="password"]:active {{
 [data-testid="stFileUploaderDropzoneInstructions"] span {{ color:{accent} !important; font-weight:700 !important; }}
 [data-testid="stFileUploader"] section button {{
     background:{accent} !important; border:3px solid {text_h} !important;
-    color:{text_h} !important; border-radius:0px !important; padding:8px 20px !important;
+    color:{text_h} !important; border-radius:4px !important; padding:8px 20px !important;
     font-size:0.85rem !important; font-weight:800 !important; z-index:1 !important; position:relative !important;
     box-shadow: 3px 3px 0px {text_h} !important; text-transform:uppercase !important;
 }}
@@ -313,7 +313,7 @@ input[type="password"]:active {{
 /* BUTTONS */
 .stButton > button {{
     background:{accent} !important;
-    color:{text_h} !important; border:3px solid {text_h} !important; border-radius:0px !important;
+    color:{text_h} !important; border:3px solid {text_h} !important; border-radius:6px !important;
     height:52px !important; font-size:0.9rem !important; font-weight:800 !important;
     transition:all 0.1s ease !important; box-shadow:4px 4px 0px {text_h} !important;
     width:100% !important; text-transform:uppercase !important; letter-spacing:1px !important;
@@ -338,7 +338,7 @@ input[type="password"]:active {{
     background:{surface} !important; border:2px solid {border} !important;
     color:{text_muted} !important; box-shadow:2px 2px 0px {border} !important;
     height:36px !important; font-size:0.78rem !important; width:auto !important;
-    padding:0 14px !important; border-radius:0px !important;
+    padding:0 14px !important; border-radius:4px !important;
 }}
 .toggle-btn .stButton > button:hover {{
     background:{accent} !important; border-color:{text_h} !important; color:{text_h} !important;
@@ -364,7 +364,7 @@ input[type="password"]:active {{
 .stDownloadButton > button {{
     background:{surface} !important; border:3px solid {accent3} !important;
     color:{accent3} !important; box-shadow:4px 4px 0px {accent3} !important;
-    border-radius:0px !important; height:52px !important; font-size:0.9rem !important;
+    border-radius:6px !important; height:52px !important; font-size:0.9rem !important;
     font-weight:800 !important; width:100% !important; transition:all 0.1s !important;
     text-transform:uppercase !important; letter-spacing:1px !important;
 }}
@@ -377,7 +377,7 @@ input[type="password"]:active {{
 .stats-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1.5rem 0; }}
 .stat-card {{
     background:{surface}; border:3px solid {border};
-    border-radius:0px; padding:1.5rem; position:relative; overflow:hidden;
+    border-radius:8px; padding:1.5rem; position:relative; overflow:hidden;
     box-shadow: 4px 4px 0px {shadow_col};
 }}
 .stat-card::before {{
@@ -393,7 +393,7 @@ input[type="password"]:active {{
 /* TINGKAT BADGE */
 .tingkat-badge {{
     display:inline-flex; align-items:center; gap:6px;
-    padding:4px 12px; border-radius:0px; font-size:0.72rem; font-weight:800;
+    padding:4px 12px; border-radius:4px; font-size:0.72rem; font-weight:800;
     letter-spacing:2px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; margin-top:0.4rem;
     border:2px solid;
 }}
@@ -404,7 +404,7 @@ input[type="password"]:active {{
 .file-badge {{
     display:inline-flex; align-items:center; gap:8px;
     background:{surface}; border:2px solid {accent3};
-    color:{accent3}; padding:8px 16px; border-radius:0px;
+    color:{accent3}; padding:8px 16px; border-radius:6px;
     font-size:0.8rem; font-weight:700; font-family:'JetBrains Mono',monospace; margin:0.5rem 0;
     box-shadow: 3px 3px 0px {accent3};
 }}
@@ -413,7 +413,7 @@ input[type="password"]:active {{
 .log-title {{ color:{text_muted}; font-size:10px; font-weight:800; letter-spacing:3px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; }}
 .log-item {{
     background:{surface}; border:2px solid {border};
-    border-radius:0px; padding:0.9rem 1.1rem; margin-bottom:0.55rem;
+    border-radius:6px; padding:0.9rem 1.1rem; margin-bottom:0.55rem;
     transition:border-color 0.15s; box-shadow:3px 3px 0px {border2};
 }}
 .log-item:hover {{ border-color:{accent}; box-shadow:3px 3px 0px {accent}; }}
@@ -431,7 +431,7 @@ input[type="password"]:active {{
 .log-item-count {{ color:{text_muted}; font-size:0.7rem; }}
 .log-badge {{
     display:inline-flex; align-items:center;
-    padding:2px 7px; border-radius:0px; font-size:0.62rem;
+    padding:2px 7px; border-radius:3px; font-size:0.62rem;
     font-weight:800; letter-spacing:1px; font-family:'JetBrains Mono',monospace; vertical-align:middle;
     border:1.5px solid;
 }}
@@ -442,7 +442,7 @@ input[type="password"]:active {{
 /* REKAP CARD */
 .rekap-card {{
     background:{surface}; border:2px solid {border};
-    border-radius:0px; padding:1rem 1.25rem; margin-bottom:0.55rem;
+    border-radius:6px; padding:1rem 1.25rem; margin-bottom:0.55rem;
     display:flex; align-items:center; justify-content:space-between; gap:1rem;
     box-shadow: 3px 3px 0px {border2}; transition:all 0.15s;
 }}
@@ -461,13 +461,13 @@ input[type="password"]:active {{
 .status-selesai {{
     display:inline-flex; align-items:center; gap:4px;
     background:rgba(0,200,122,0.1); border:2px solid {accent3};
-    color:{accent3}; padding:2px 10px; border-radius:0px;
+    color:{accent3}; padding:2px 10px; border-radius:3px;
     font-size:0.65rem; font-weight:800; letter-spacing:1px; font-family:'JetBrains Mono',monospace;
 }}
 .status-pending {{
     display:inline-flex; align-items:center; gap:4px;
     background:rgba(255,215,0,0.08); border:2px solid {accent2};
-    color:{accent2}; padding:2px 10px; border-radius:0px;
+    color:{accent2}; padding:2px 10px; border-radius:3px;
     font-size:0.65rem; font-weight:800; letter-spacing:1px; font-family:'JetBrains Mono',monospace;
 }}
 
@@ -482,10 +482,10 @@ input[type="password"]:active {{
 }}
 
 /* MISC */
-[data-testid="stAlert"] {{ border-radius:0px !important; padding:0.85rem 1rem !important; border-left:4px solid !important; }}
+[data-testid="stAlert"] {{ border-radius:6px !important; padding:0.85rem 1rem !important; border-left:4px solid !important; }}
 hr {{ border-color:{border2} !important; margin:1.5rem 0 !important; }}
 [data-testid="stDataFrame"] {{
-    border-radius:0px !important; overflow:hidden !important; border:2px solid {border} !important;
+    border-radius:6px !important; overflow:hidden !important; border:2px solid {border} !important;
     box-shadow: 4px 4px 0px {border} !important;
 }}
 h3, .stSubheader {{
@@ -1440,7 +1440,7 @@ st.markdown(f"""
         Versi 1.0 &nbsp;·&nbsp; 2025 &nbsp;·&nbsp; All Rights Reserved
     </div>
     <div style="display:inline-block; background:rgba(239,68,68,0.06);
-        border:1px solid rgba(239,68,68,0.15); border-radius:0px; padding:6px 16px;">
+        border:1px solid rgba(239,68,68,0.15); border-radius:4px; padding:6px 16px;">
         <span style="font-size:0.65rem; color:#f87171; letter-spacing:0.5px;">
             ⚠️ Hak Cipta Pribadi — Dilarang digandakan, dimodifikasi, atau digunakan tanpa izin tertulis dari pemilik
         </span>
