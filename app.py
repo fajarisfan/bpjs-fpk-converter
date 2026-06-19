@@ -399,6 +399,33 @@ def inject_css(dark: bool):
         font-family: 'JetBrains Mono', monospace;
     }}
 
+    /* ── LOGIN THEME TOGGLE ──────────────────────────────── */
+    .login-top {{
+        display: flex;
+        justify-content: flex-end;
+        padding: 0.5rem 1rem;
+        position: fixed;
+        top: 0;
+        right: 0;
+        z-index: 999;
+    }}
+    .login-top .theme-btn {{
+        background: {surface};
+        border: 1px solid {border};
+        border-radius: 40px;
+        padding: 0.2rem 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: {text_h};
+        cursor: pointer;
+        transition: all 0.15s ease;
+        box-shadow: 0 2px 8px {shadow};
+    }}
+    .login-top .theme-btn:hover {{
+        border-color: {PRIMARY_COLOR};
+        background: {surface2};
+    }}
+
     /* ── BUTTONS ──────────────────────────────────────────── */
     .stButton > button {{
         background: {PRIMARY_COLOR} !important;
@@ -797,19 +824,18 @@ if 'logged_in' not in st.session_state:
 if 'dark_mode' not in st.session_state:
     st.session_state.dark_mode = True
 
-inject_css(st.session_state.dark_mode)
-
-SESSION_TIMEOUT_HOURS = 8
-if st.session_state.logged_in:
-    login_time = st.session_state.get("login_time")
-    if login_time:
-        elapsed = (now_wib() - datetime.fromisoformat(login_time)).total_seconds() / 3600
-        if elapsed > SESSION_TIMEOUT_HOURS:
-            st.session_state.logged_in = False
-            st.session_state.login_time = None
+# ── LOGIN PAGE WITH THEME TOGGLE ──────────────────────────
+if not st.session_state.logged_in:
+    # Tampilkan toggle tema di pojok kanan atas
+    col_empty, col_theme = st.columns([6, 1])
+    with col_theme:
+        icon = "☀️" if st.session_state.dark_mode else "🌙"
+        if st.button(icon, help="Ganti tema", key="login_theme_toggle"):
+            st.session_state.dark_mode = not st.session_state.dark_mode
             st.rerun()
 
-if not st.session_state.logged_in:
+    inject_css(st.session_state.dark_mode)
+
     st.markdown("""
     <div class="login-wrapper">
         <div class="login-card">
@@ -853,6 +879,19 @@ if not st.session_state.logged_in:
             else:
                 st.error(msg)
     st.stop()
+
+# ── SETELAH LOGIN ──────────────────────────────────────────
+inject_css(st.session_state.dark_mode)
+
+SESSION_TIMEOUT_HOURS = 8
+if st.session_state.logged_in:
+    login_time = st.session_state.get("login_time")
+    if login_time:
+        elapsed = (now_wib() - datetime.fromisoformat(login_time)).total_seconds() / 3600
+        if elapsed > SESSION_TIMEOUT_HOURS:
+            st.session_state.logged_in = False
+            st.session_state.login_time = None
+            st.rerun()
 
 # ── HELPERS ──────────────────────────────────────────────────
 def panggil_api_proses(uf, timeout=60):
