@@ -1350,11 +1350,12 @@ with tab_csv:
 
 
 # ══════════════════════════════════════════════════════════════
-# LOG & REKAP — BAGIAN YANG DIPERBAIKI (FINAL)
+# LOG & REKAP — VERSI RINGKAS, TANPA HTML, NATIVE STREAMLIT
 # ══════════════════════════════════════════════════════════════
 st.divider()
 log_data = load_log()
 
+# ── Rekap Bulanan ──
 if log_data:
     bulan_order = ["JANUARI","FEBRUARI","MARET","APRIL","MEI","JUNI",
                    "JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"]
@@ -1374,97 +1375,77 @@ if log_data:
                        bulan_order.index(x.split()[0]) if x.split()[0] in bulan_order else 99),
         reverse=True)
 
-    st.markdown('<div class="section-title">📅 Rekap Per Bulan</div>', unsafe_allow_html=True)
+    st.markdown("### 📅 Rekap Per Bulan")
     for p in sorted_periods:
         r = rekap[p]
         total_rp = f"Rp {r['total']:,.0f}".replace(",", ".")
         tkt_str = " · ".join(sorted(t for t in r['tingkats'] if t))
-        st.markdown(f"""
-        <div class="rekap-card">
-            <div>
-                <div class="period">{p}</div>
-                <div class="meta">{r['konversi']}x konversi · {r['count']} SEP · {tkt_str}</div>
-            </div>
-            <div class="total">{total_rp}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    st.divider()
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown(f"**{p}**  \n{r['konversi']}x konversi · {r['count']} SEP · {tkt_str}")
+        with col2:
+            st.markdown(f"**{total_rp}**")
+        st.divider()
 
 if log_data:
-    st.markdown('<div class="section-title">📊 Rekap Per Periode</div>', unsafe_allow_html=True)
+    st.markdown("### 📊 Rekap Per Periode")
     df_chart = build_chart(log_data)
     if df_chart is not None:
         st.bar_chart(df_chart, use_container_width=True, height=220,
                      color=["#e040fb","#00b0ff", SECONDARY, PRIMARY_COLOR][:len(df_chart.columns)])
     st.divider()
 
-if log_data:
-    total_entri = len(log_data)
-    total_selesai = sum(1 for x in log_data if x.get('status') == 'Selesai')
-    total_pending = total_entri - total_selesai
-    total_nominal = sum(x['total'] for x in log_data)
-    nominal_fmt = f"Rp {total_nominal:,.0f}".replace(",", ".")
-
+# ── Riwayat Konversi (Versi Ringkas) ──
 col_title, col_hapus = st.columns([4, 1])
 with col_title:
-    st.markdown('<div class="section-title">🕓 Riwayat Konversi</div>', unsafe_allow_html=True)
+    st.markdown("### 🕓 Riwayat Konversi")
 with col_hapus:
     if log_data:
-        if st.button("Hapus", key="hapus_log"):
+        if st.button("🗑️ Hapus", key="hapus_log"):
             hapus_log()
             st.session_state.results = []
             st.rerun()
 
 if not log_data:
-    st.markdown('<div style="text-align:center;padding:2rem 0;color:#888;font-style:italic;">Belum ada riwayat konversi.</div>', unsafe_allow_html=True)
+    st.info("Belum ada riwayat konversi.")
 else:
     for i, item in enumerate(log_data):
-        # ── Ambil data ──
+        # Ambil data
+        nama_file = item['nama_file']
         tkt = item.get('tingkat', '')
-        t_cls = tkt.lower() if tkt in ('RITL','RJTL','RITP','RJTP') else 'other'
-        badge = f'<span class="log-badge {t_cls}">{tkt}</span>' if tkt else ''
-
         jenis = item.get('jenis', 'Reguler')
-        jenis_badge = '<span class="log-badge-susulan">📌 Susulan</span>' if jenis == "Susulan" else ""
-
         status = item.get('status', 'Belum Diambil')
-        if status == 'Selesai':
-            status_html = '<span class="status-selesai">✓ Selesai</span>'
-            # Waktu selesai ditampilkan sebagai teks biasa tanpa span
-            waktu_selesai = item.get("waktu_selesai", "")
-            footer_extra = f'<span style="color:#888;font-size:0.68rem;">📥 {waktu_selesai}</span>' if waktu_selesai else ''
-        else:
-            status_html = '<span class="status-pending">⏳ Belum Diambil</span>'
-            footer_extra = ''
-
+        waktu = item['waktu']
         total_rp = f"Rp {item['total']:,.0f}".replace(",", ".")
+        jumlah_sep = item['jumlah']
+        waktu_selesai = item.get('waktu_selesai', '')
 
-        # ── Bangun HTML dengan satu string, tanpa variabel perantara ──
-        html = f'''
-        <div class="log-item">
-            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:0.35rem;">
-                <span class="log-name">📄 {item['nama_file']}</span>
-                {badge}
-                {jenis_badge}
-                {status_html}
-            </div>
-            <div class="log-meta">
-                <span>🕓 {item['waktu']}</span>
-                <span class="sep">·</span>
-                <span class="total">{total_rp}</span>
-                <span class="sep">·</span>
-                <span class="count">{item['jumlah']} SEP</span>
-                {footer_extra}
-            </div>
-        </div>
-        '''
-        st.markdown(html, unsafe_allow_html=True)
+        # ── Satu baris utama ──
+        cols = st.columns([3, 1.2, 1.5, 0.8])  # file, badge, info, tombol
+        with cols[0]:
+            st.markdown(f"**📄 {nama_file}**")
+        with cols[1]:
+            if tkt:
+                st.markdown(f"`{tkt}`", help="Tingkat Pelayanan")
+        with cols[2]:
+            if status == "Selesai":
+                st.success("✅ Selesai")
+            else:
+                st.warning("⏳ Belum Diambil")
+        with cols[3]:
+            if status != "Selesai":
+                if st.button("✓", key=f"tandai_{i}", help="Tandai selesai"):
+                    update_log_status(nama_file, 'Selesai')
+                    st.rerun()
 
-        # Tombol "Tandai Selesai" hanya jika status belum selesai
-        if status != 'Selesai':
-            if st.button("✓ Tandai Selesai", key=f"tandai_{i}"):
-                update_log_status(item['nama_file'], 'Selesai')
-                st.rerun()
+        # ── Baris kedua: detail nominal & waktu selesai ──
+        detail_cols = st.columns([3, 2])
+        with detail_cols[0]:
+            st.caption(f"🕓 {waktu}  ·  {total_rp}  ·  {jumlah_sep} SEP")
+        with detail_cols[1]:
+            if status == "Selesai" and waktu_selesai:
+                st.caption(f"📥 {waktu_selesai}")
+        st.divider()
 
 # ── FOOTER ───────────────────────────────────────────────────
 _dark_ft = st.session_state.get('dark_mode', True)
