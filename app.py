@@ -1350,7 +1350,7 @@ with tab_csv:
 
 
 # ══════════════════════════════════════════════════════════════
-# LOG & REKAP — BAGIAN YANG DIPERBAIKI
+# LOG & REKAP — BAGIAN YANG DIPERBAIKI (FINAL)
 # ══════════════════════════════════════════════════════════════
 st.divider()
 log_data = load_log()
@@ -1419,6 +1419,7 @@ if not log_data:
     st.markdown('<div style="text-align:center;padding:2rem 0;color:#888;font-style:italic;">Belum ada riwayat konversi.</div>', unsafe_allow_html=True)
 else:
     for i, item in enumerate(log_data):
+        # ── Ambil data ──
         tkt = item.get('tingkat', '')
         t_cls = tkt.lower() if tkt in ('RITL','RJTL','RITP','RJTP') else 'other'
         badge = f'<span class="log-badge {t_cls}">{tkt}</span>' if tkt else ''
@@ -1429,15 +1430,16 @@ else:
         status = item.get('status', 'Belum Diambil')
         if status == 'Selesai':
             status_html = '<span class="status-selesai">✓ Selesai</span>'
-            footer_extra = f'<span style="color:#888;font-size:0.68rem;">📥 {item.get("waktu_selesai", "")}</span>' if item.get("waktu_selesai") else ''
+            # Waktu selesai ditampilkan sebagai teks biasa tanpa span
+            waktu_selesai = item.get("waktu_selesai", "")
+            footer_extra = f'<span style="color:#888;font-size:0.68rem;">📥 {waktu_selesai}</span>' if waktu_selesai else ''
         else:
             status_html = '<span class="status-pending">⏳ Belum Diambil</span>'
             footer_extra = ''
 
         total_rp = f"Rp {item['total']:,.0f}".replace(",", ".")
 
-        # ═══ PERBAIKAN UTAMA DI SINI ═══
-        # Hanya satu span.count di dalam div.log-meta, tidak ada duplikasi.
+        # ── Bangun HTML dengan satu string, tanpa variabel perantara ──
         html = f'''
         <div class="log-item">
             <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:0.35rem;">
@@ -1451,7 +1453,7 @@ else:
                 <span class="sep">·</span>
                 <span class="total">{total_rp}</span>
                 <span class="sep">·</span>
-                <span class="count">{item['jumlah']} SEP</span>   <!-- HANYA SATU, DI SINI -->
+                <span class="count">{item['jumlah']} SEP</span>
                 {footer_extra}
             </div>
         </div>
