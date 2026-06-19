@@ -544,23 +544,6 @@ def inject_css(dark: bool):
         margin-bottom: 1.75rem;
         font-weight: 400;
     }}
-    .pin-dots-row {{
-        display: flex;
-        justify-content: center;
-        gap: 12px;
-        margin-bottom: 1.5rem;
-    }}
-    .pin-dot {{
-        width: 14px; height: 14px;
-        border-radius: 50%;
-        border: 2px solid {border};
-        background: transparent;
-        transition: all 0.15s ease;
-    }}
-    .pin-dot.filled {{
-        background: {PRIMARY_COLOR};
-        border-color: {PRIMARY_COLOR};
-    }}
     .login-input-wrap {{
         margin-bottom: 1rem;
     }}
@@ -1158,7 +1141,7 @@ def animasi_terminal_proses(uf, dark: bool):
     jumlah = payload.get("jumlah", 0)
     total = payload.get("total", 0)
     duplikat = payload.get("duplikat", [])
-    proc_ms = payload.get("processing_time_ms", 1000) or 1000  # guard zero/None
+    proc_ms = payload.get("processing_time_ms", 1000) or 1000
     lat_ms = resp_meta.get("latency_ms", 0)
     filename = payload.get("filename", "")
     sep_list = df_res[["No.SEP", "Disetujui"]].to_dict(orient="records")
@@ -1233,7 +1216,8 @@ def build_chart(log_data):
     if not records:
         return None
     periods = sorted(set(k[0] for k in records),
-                     key=lambda x: (x.split()[-1], bulan_order.index(x.split()[0]) if x.split()[0] in bulan_order else 99))
+                     key=lambda x: (x.split()[-1] if len(x.split())>1 else "0000",
+                                    bulan_order.index(x.split()[0]) if x.split()[0] in bulan_order else 99))
     tingkats = sorted(set(k[1] for k in records))
     rows = []
     for p in periods:
@@ -1254,7 +1238,11 @@ _total_konversi  = len(log_data_for_hero)
 _total_selesai   = sum(1 for x in log_data_for_hero if x.get('status') == 'Selesai')
 _total_pending   = _total_konversi - _total_selesai
 _total_nominal   = sum(x['total'] for x in log_data_for_hero)
-_nom_hero        = f"Rp {_total_nominal/1_000_000:.1f}M" if _total_nominal >= 1_000_000 else f"Rp {_total_nominal:,.0f}".replace(",",".")
+# Format nominal penuh
+if _total_nominal >= 1_000_000:
+    _nom_hero = f"Rp {_total_nominal/1_000_000:.1f}M"
+else:
+    _nom_hero = f"Rp {_total_nominal:,.0f}".replace(",", ".")
 
 _dark_nav = st.session_state.get('dark_mode', True)
 _surf_nav = "#141414" if _dark_nav else "#ffffff"
@@ -1302,7 +1290,7 @@ if st.session_state.get("show_pin_form"):
             ok, msg = change_pin(p_lama, p_baru, p_konfirm)
             st.warning(msg) if not ok else st.success(msg)
 
-# ── HERO CARD (mengganti app-header + summary-grid lama) ────
+# ── HERO CARD ────────────────────────────────────────────────
 st.markdown(f"""
 <div class="hero-card">
     <div class="hero-label">FPK Converter · v1.0</div>
@@ -1593,10 +1581,8 @@ if log_data:
         rekap[period]['tingkats'].add(item.get('tingkat', ''))
 
     sorted_periods = sorted(rekap.keys(),
-        key=lambda x: (
-            x.split()[-1] if len(x.split()) > 1 else "0000",
-            bulan_order.index(x.split()[0]) if x.split()[0] in bulan_order else 99
-        ),
+        key=lambda x: (x.split()[-1] if len(x.split())>1 else "0000",
+                       bulan_order.index(x.split()[0]) if x.split()[0] in bulan_order else 99),
         reverse=True)
 
     st.markdown('<div class="section-title">📅 Rekap Per Bulan</div>', unsafe_allow_html=True)
@@ -1681,16 +1667,28 @@ else:
                 update_log_status(item['nama_file'], 'Selesai')
                 st.rerun()
 
-# ── BOTTOM NAV BAR ───────────────────────────────────────────
+# ── FOOTER ───────────────────────────────────────────────────
 _dark_ft = st.session_state.get('dark_mode', True)
-_bot_bg  = "#0a0a0a" if _dark_ft else "#ffffff"
-_bot_bdr = "#1e1e1e" if _dark_ft else "#e4e2dd"
-_bot_mut = "#555555" if _dark_ft else "#aaaaaa"
-
-# Pre-compute warna footer biar aman di f-string
 _ft_border = "rgba(255,255,255,0.05)" if _dark_ft else "rgba(0,0,0,0.05)"
 _ft_txt1   = "#888" if _dark_ft else "#555"
 _ft_txt2   = "#666" if _dark_ft else "#999"
+
+st.markdown(f"""
+<div style="text-align:center;padding:1.5rem 0 0.5rem;margin-top:1.5rem;border-top:1px solid {_ft_border};">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:{_ft_txt1};margin-bottom:0.25rem;">
+        Dikembangkan oleh <strong style="color:#6366f1;">Isfan Fajar Anugrah</strong>
+    </div>
+    <div style="font-size:0.6rem;color:{_ft_txt2};">Versi 1.0 · 2025 · All Rights Reserved</div>
+    <div style="display:inline-block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);border-radius:40px;padding:3px 14px;margin-top:0.5rem;">
+        <span style="font-size:0.58rem;color:#f87171;">⚠️ Hak Cipta Pribadi — Dilarang digandakan tanpa izin</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# ── BOTTOM NAV BAR ───────────────────────────────────────────
+_bot_bg  = "#0a0a0a" if _dark_ft else "#ffffff"
+_bot_bdr = "#1e1e1e" if _dark_ft else "#e4e2dd"
+_bot_mut = "#555555" if _dark_ft else "#aaaaaa"
 
 st.markdown(f"""
 <div class="bottom-nav-bar">
@@ -1710,16 +1708,6 @@ st.markdown(f"""
     <div class="bottom-nav-item">
         <div class="bottom-nav-icon">⚙️</div>
         <div class="bottom-nav-label">Setelan</div>
-    </div>
-</div>
-
-<div style="text-align:center;padding:1.5rem 0 0.5rem;margin-top:1.5rem;border-top:1px solid {_ft_border};">
-    <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:{_ft_txt1};margin-bottom:0.25rem;">
-        Dikembangkan oleh <strong style="color:#6366f1;">Isfan Fajar Anugrah</strong>
-    </div>
-    <div style="font-size:0.6rem;color:{_ft_txt2};">Versi 1.0 · 2025 · All Rights Reserved</div>
-    <div style="display:inline-block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);border-radius:40px;padding:3px 14px;margin-top:0.5rem;">
-        <span style="font-size:0.58rem;color:#f87171;">⚠️ Hak Cipta Pribadi — Dilarang digandakan tanpa izin</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
