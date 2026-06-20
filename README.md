@@ -40,7 +40,7 @@ This tool automates the entire extraction pipeline with two core modules:
 
 ## 🚀 Live Demo
 
-🔗 (https://paid-in-heaven.streamlit.app)
+🔗 (https://i-love-jaspel.streamlit.app)
 
 ---
 
