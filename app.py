@@ -9,6 +9,7 @@ import streamlit as st
 import requests
 
 from datetime import datetime, timezone, timedelta
+from dummy_pdf import build_dummy_fpk_pdf, BULAN_LIST, TINGKAT_LIST
 
 # ── WARNA ──────────────────────────────────────────────────
 PRIMARY_COLOR = "#ff6b35"
@@ -36,6 +37,12 @@ if 'errors' not in st.session_state:
     st.session_state.errors = []
 if 'show_done' not in st.session_state:
     st.session_state.show_done = False
+if 'demo_mode' not in st.session_state:
+    st.session_state.demo_mode = False
+if 'demo_pdf_bytes' not in st.session_state:
+    st.session_state.demo_pdf_bytes = None
+if 'demo_pdf_info' not in st.session_state:
+    st.session_state.demo_pdf_info = None
 
 # ── CONFIG ──────────────────────────────────────────────────
 LOG_FILE  = "/tmp/log_konversi.json"
@@ -1113,6 +1120,81 @@ with tab_pdf:
         st.error("⚠️ Backend API gagal start. Coba refresh halaman.")
     elif _api_status in ("started", "already_running"):
         st.caption(f"🟢 Backend API aktif di `{API_URL}`")
+
+    # ── MODE DEMO (data dummy untuk simulasi/video, bukan data asli) ──
+    _dark_demo = st.session_state.get('dark_mode', True)
+    _demo_bg = "#1a1410" if _dark_demo else "#fff8ec"
+    _demo_bdr = "#3a2a14" if _dark_demo else "#f0d9a8"
+    _demo_txt = "#f0c674" if _dark_demo else "#7a5a10"
+
+    col_demo_toggle, col_demo_label = st.columns([1, 6])
+    with col_demo_toggle:
+        st.session_state.demo_mode = st.toggle(
+            "Mode Demo", value=st.session_state.demo_mode,
+            key="toggle_demo_mode", label_visibility="collapsed"
+        )
+    with col_demo_label:
+        st.markdown(
+            f'<div style="font-size:0.85rem;font-weight:700;padding-top:2px;">'
+            f'🎭 Mode Demo {"— AKTIF" if st.session_state.demo_mode else ""}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+    if st.session_state.demo_mode:
+        st.markdown(
+            f'<div style="background:{_demo_bg};border:1px solid {_demo_bdr};border-radius:14px;'
+            f'padding:0.9rem 1.1rem;margin:0.5rem 0 1rem;font-size:0.8rem;color:{_demo_txt};">'
+            f'⚠️ <b>Mode Demo aktif.</b> Generate PDF berisi data <b>fiktif/acak</b> '
+            f'(bukan data pasien asli) untuk keperluan simulasi/rekaman video. '
+            f'Nonaktifkan toggle ini untuk kembali memproses PDF asli.'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+        with st.expander("⚙️ Generator PDF Dummy", expanded=(st.session_state.demo_pdf_bytes is None)):
+            colg1, colg2, colg3 = st.columns(3)
+            with colg1:
+                gen_bulan = st.selectbox("Bulan Pelayanan", ["(acak)"] + BULAN_LIST, index=0, key="gen_bulan")
+            with colg2:
+                gen_tahun = st.selectbox("Tahun", ["(acak)", 2025, 2026], index=0, key="gen_tahun")
+            with colg3:
+                gen_tingkat = st.selectbox("Tingkat Pelayanan", ["(acak)"] + TINGKAT_LIST, index=0, key="gen_tingkat")
+            gen_jumlah = st.slider("Jumlah baris SEP", min_value=2, max_value=30, value=8, key="gen_jumlah")
+
+            if st.button("🎲 Generate PDF Dummy", use_container_width=True, key="btn_gen_dummy"):
+                tmp_out = "/tmp/_demo_fpk_dummy.pdf"
+                info = build_dummy_fpk_pdf(
+                    tmp_out,
+                    jumlah_baris=gen_jumlah,
+                    bulan=None if gen_bulan == "(acak)" else gen_bulan,
+                    tahun=None if gen_tahun == "(acak)" else int(gen_tahun),
+                    tingkat=None if gen_tingkat == "(acak)" else gen_tingkat,
+                )
+                with open(tmp_out, "rb") as f:
+                    st.session_state.demo_pdf_bytes = f.read()
+                st.session_state.demo_pdf_info = info
+                st.rerun()
+
+            if st.session_state.demo_pdf_bytes:
+                info = st.session_state.demo_pdf_info
+                total_fmt = f"Rp {info['total_disetujui']:,}".replace(",", ".")
+                st.success(
+                    f"✅ PDF dummy siap — **{info['nama_rs']}** · {info['tingkat']} · "
+                    f"{info['bulan'].capitalize()} {info['tahun']} · {info['jumlah_baris']} SEP · {total_fmt}"
+                )
+                fname_demo = f"DUMMY_FPK_{info['tingkat']}_{info['bulan'].upper()}_{info['tahun']}.pdf"
+                st.download_button(
+                    "⬇ Download PDF Dummy",
+                    data=st.session_state.demo_pdf_bytes,
+                    file_name=fname_demo,
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key="dl_demo_pdf"
+                )
+                st.caption("💡 Download lalu upload file ini ke kolom upload di bawah untuk simulasi proses konversi.")
+
+        st.divider()
 
     uploaded_files = st.file_uploader(
         "Upload PDF FPK (bisa lebih dari satu)",
