@@ -104,6 +104,21 @@ def update_log_status(nama_file, status):
     with open(LOG_FILE, "w") as f:
         json.dump(log[:100], f, ensure_ascii=False, indent=2)
 
+def unique_filename(base_filename: str, existing_names: set) -> str:
+    """
+    Kalau nama sudah ada, tambah _2, _3, dst.
+    FPK_RITL_MEI_2026_SUSULAN.csv -> _SUSULAN_2.csv -> _SUSULAN_3.csv
+    """
+    if base_filename not in existing_names:
+        return base_filename
+    name, ext = os.path.splitext(base_filename)
+    counter = 2
+    while True:
+        candidate = f"{name}_{counter}{ext}"
+        if candidate not in existing_names:
+            return candidate
+        counter += 1
+
 # ── PIN ─────────────────────────────────────────────────────
 MAX_ATTEMPT = 5
 LOCKOUT_MIN = 5
@@ -1232,6 +1247,13 @@ with tab_pdf:
                     if is_susulan:
                         base, ext = os.path.splitext(filename)
                         filename = f"{base}_SUSULAN{ext}"
+
+                    # ── Anti-overwrite: cek nama di log + hasil batch session ini ──
+                    existing_names = (
+                        {x['nama_file'] for x in load_log()} |
+                        {r['filename'] for r in results}
+                    )
+                    filename = unique_filename(filename, existing_names)
 
                     tingkat = payload['tingkat']
                     total = payload['total']
