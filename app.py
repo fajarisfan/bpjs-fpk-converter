@@ -105,10 +105,6 @@ def update_log_status(nama_file, status):
         json.dump(log[:100], f, ensure_ascii=False, indent=2)
 
 def unique_filename(base_filename: str, existing_names: set) -> str:
-    """
-    Kalau nama sudah ada, tambah _2, _3, dst.
-    FPK_RITL_MEI_2026_SUSULAN.csv -> _SUSULAN_2.csv -> _SUSULAN_3.csv
-    """
     if base_filename not in existing_names:
         return base_filename
     name, ext = os.path.splitext(base_filename)
@@ -603,9 +599,9 @@ def inject_css(dark):
         gap: 4px;
     }}
     .status-pending {{
-        background: rgba(255,215,0,0.08);
-        border: 1.5px solid {ACCENT};
-        color: {ACCENT};
+        background: rgba(180,130,0,0.08);
+        border: 1.5px solid #b45309;
+        color: #b45309;
         padding: 2px 12px;
         border-radius: 40px;
         font-size: 0.62rem;
@@ -734,6 +730,100 @@ def inject_css(dark):
         .login-card {{ padding: 2rem 1.25rem 1.75rem !important; }}
         .login-card h2 {{ font-size: 1.3rem !important; }}
         .login-icon-ring {{ width: 60px !important; height: 60px !important; font-size: 1.6rem !important; }}
+    }}
+
+    /* ── STREAMLIT NATIVE ELEMENT OVERRIDES ── */
+    /* Global text color */
+    .stApp, .stApp p, .stApp span, .stApp div,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stVerticalBlock"] {{
+        color: {text_body} !important;
+    }}
+    /* Headings */
+    .stApp h1, .stApp h2, .stApp h3,
+    .stApp h4, .stApp h5, .stApp h6 {{
+        color: {text_h} !important;
+    }}
+    /* Markdown text */
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li,
+    [data-testid="stMarkdownContainer"] span {{
+        color: {text_body} !important;
+    }}
+    /* Caption / small text */
+    [data-testid="stCaptionContainer"],
+    .stCaption, small {{
+        color: {text_muted} !important;
+    }}
+    /* Text input */
+    [data-baseweb="input"] input,
+    [data-baseweb="textarea"] textarea,
+    .stTextInput input {{
+        background: {input_bg} !important;
+        color: {input_col} !important;
+        border-color: {input_bdr} !important;
+    }}
+    [data-baseweb="input"],
+    [data-baseweb="base-input"] {{
+        background: {input_bg} !important;
+    }}
+    /* Input label */
+    .stTextInput label,
+    .stSelectbox label,
+    .stRadio label p,
+    .stFileUploader label {{
+        color: {label_col} !important;
+    }}
+    /* File uploader text */
+    [data-testid="stFileUploader"] span,
+    [data-testid="stFileUploader"] p,
+    [data-testid="stFileUploaderDropzoneInstructions"] {{
+        color: {text_muted} !important;
+    }}
+    /* Expander header */
+    [data-testid="stExpander"] summary,
+    [data-testid="stExpander"] summary span,
+    [data-testid="stExpander"] summary p {{
+        color: {text_h} !important;
+    }}
+    /* Expander content */
+    [data-testid="stExpander"] [data-testid="stExpanderDetails"] p,
+    [data-testid="stExpander"] [data-testid="stExpanderDetails"] span {{
+        color: {text_body} !important;
+    }}
+    /* Tabs */
+    [data-testid="stTabs"] button[data-baseweb="tab"] {{
+        color: {text_muted} !important;
+    }}
+    /* Alert / info / warning boxes */
+    [data-testid="stAlert"] p,
+    [data-testid="stAlert"] span {{
+        color: inherit !important;
+    }}
+    /* Selectbox */
+    [data-baseweb="select"] div,
+    [data-baseweb="select"] span {{
+        background: {input_bg} !important;
+        color: {input_col} !important;
+    }}
+    /* Download button text */
+    .stDownloadButton > button {{
+        color: {SECONDARY} !important;
+    }}
+    /* Code blocks */
+    code, pre, .stCode {{
+        background: {surface2} !important;
+        color: {text_h} !important;
+        border: 1px solid {border} !important;
+    }}
+    /* Spinner / status */
+    [data-testid="stStatusWidget"] p,
+    [data-testid="stStatusWidget"] span {{
+        color: {text_body} !important;
+    }}
+    /* Bar chart labels */
+    .vega-embed text {{
+        fill: {text_muted} !important;
     }}
     </style>
     """, unsafe_allow_html=True)
