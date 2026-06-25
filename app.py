@@ -1263,59 +1263,61 @@ def animasi_terminal_proses(uf, dark: bool):
     render(lines)
     time.sleep(0.2)
 
-    # ── Fase 3: stream SEP — sliding window, semua ditampilkan urut ──
-    WINDOW_SIZE    = 20
-    TARGET_SEC     = 90.0
-    raw_delay      = TARGET_SEC / max(1, row_count)
-    TERMINAL_DELAY = max(0.005, min(0.25, raw_delay))
+    # ── Fase 3: stream SEP — pre-build semua baris, render throttle by time ──
+    WINDOW_SIZE  = 20
+    RENDER_EVERY = 0.08   # detik — render ke UI max ~12x/detik, browser bisa ikutin
+    TARGET_SEC   = max(4.0, row_count * 0.003)  # minimal 4 detik, ~3ms/baris
 
-    prog       = st.empty()
-    sep_window = []
-    last_pct   = -1
-
+    # Pre-build semua baris HTML dulu (pure Python, cepat)
+    all_lines = []
     for i, row in enumerate(sep_list):
         no_urut = i + 1
         sep     = str(row["No.SEP"])
         nom     = int(row["Disetujui"])
         nom_fmt = f"Rp {nom:,}".replace(",", ".")
-        comma   = "" if i == row_count - 1 else ","
-        is_last = (i == row_count - 1)
-
-        new_line = (
+        all_lines.append((
+            no_urut,
             f'<div style="display:flex;gap:4px;align-items:baseline;white-space:nowrap;">'
             f'<span style="color:{dim};min-width:42px;text-align:right;flex-shrink:0;">{no_urut}.</span>'
             f'<span style="color:{grn};flex:1;overflow:hidden;text-overflow:ellipsis;">{sep}</span>'
             f'<span style="color:{yel};font-weight:700;flex-shrink:0;text-align:right;">{nom_fmt}</span>'
             f'</div>'
-        )
+        ))
 
-        sep_window.append(new_line)
+    prog         = st.empty()
+    sep_window   = []
+    last_render  = time.time()
+    # Hitung delay antar baris supaya total animasi = TARGET_SEC
+    per_row_sleep = TARGET_SEC / max(1, row_count)
+
+    for i, (no_urut, html_line) in enumerate(all_lines):
+        is_last = (i == row_count - 1)
+
+        sep_window.append(html_line)
         if len(sep_window) > WINDOW_SIZE:
             sep_window.pop(0)
 
-        # Render terminal — header + window saja (berat konstan ~20 baris)
-        render(lines + sep_window)
-
-        # Progress bar — update tiap 1% perubahan ATAU baris terakhir (paksa 100%)
-        pct = int(((i + 1) / row_count) * 100)
-        if pct != last_pct or is_last:
-            last_pct = pct
-            _pct_display = 100 if is_last else pct  # paksa 100% di baris terakhir
+        now = time.time()
+        # Render ke UI hanya kalau sudah lewat RENDER_EVERY detik ATAU baris terakhir
+        if (now - last_render >= RENDER_EVERY) or is_last:
+            last_render = now
+            pct = 100 if is_last else int((no_urut / row_count) * 100)
+            render(lines + sep_window)
             prog.markdown(
                 f'<div style="font-family:JetBrains Mono,monospace;font-size:0.7rem;'
                 f'display:flex;align-items:center;gap:10px;margin-top:6px;">'
                 f'<span style="color:{grn};font-weight:700;white-space:nowrap;">'
                 f'{no_urut:,}/{row_count:,} SEP</span>'
                 f'<div style="flex:1;height:4px;background:{bar_bg};border-radius:4px;">'
-                f'<div style="width:{_pct_display}%;height:4px;'
+                f'<div style="width:{pct}%;height:4px;'
                 f'background:linear-gradient(90deg,{acc},{grn});'
-                f'border-radius:4px;transition:width 0.1s;"></div></div>'
+                f'border-radius:4px;transition:width 0.06s;"></div></div>'
                 f'<span style="color:{"#00ff88" if is_last else acc};font-weight:700;">'
-                f'{_pct_display}%</span></div>',
+                f'{pct}%</span></div>',
                 unsafe_allow_html=True
             )
 
-        time.sleep(TERMINAL_DELAY)
+        time.sleep(per_row_sleep)
 
     # Tahan sebentar biar 100% kelihatan
     time.sleep(0.5)
