@@ -13,31 +13,40 @@ from datetime import datetime, timezone, timedelta
 from dummy_pdf import build_dummy_fpk_pdf, BULAN_LIST, TINGKAT_LIST
 
 # ── COLOR SYSTEM ──────────────────────────────────────────────
-_DEFAULT_HUE = 138
-_DEFAULT_SAT = 88
-
 def hsl_to_hex(h: int, s: int, l: int) -> str:
     r, g, b = colorsys.hls_to_rgb(h / 360, l / 100, s / 100)
     return "#{:02x}{:02x}{:02x}".format(int(r * 255), int(g * 255), int(b * 255))
 
-def generate_palette(hue: int, sat: int) -> dict:
-    s = max(40, min(100, sat))
-    h_sec = (hue + 145) % 360
-    h_acc = (hue + 55)  % 360
-    h_pur = (hue + 200) % 360
+def hex_to_hsl(hex_color: str):
+    """Return (h 0-360, s 0-100, l 0-100) from #rrggbb"""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = [int(hex_color[i:i+2], 16) / 255 for i in (0, 2, 4)]
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+    return round(h * 360), round(s * 100), round(l * 100)
+
+def derive_variants(hex_color: str) -> dict:
+    """Dari 1 hex warna, generate varian gelap/terang/glow/bg."""
+    h, s, l = hex_to_hsl(hex_color)
     return {
-        "primary":      hsl_to_hex(hue,  s,              52),
-        "primary_d":    hsl_to_hex(hue,  s,              40),
-        "primary_glow": hsl_to_hex(hue,  s,              70),
-        "primary_bg":   hsl_to_hex(hue,  max(20, s-30),  18),
-        "primary_bg_l": hsl_to_hex(hue,  max(20, s-30),  94),
-        "secondary":    hsl_to_hex(h_sec, max(40, s-15), 48),
-        "secondary_bg": hsl_to_hex(h_sec, max(20, s-40), 90),
-        "accent":       hsl_to_hex(h_acc, max(40, s-20), 50),
-        "accent_bg":    hsl_to_hex(h_acc, max(20, s-40), 90),
-        "purple":       hsl_to_hex(h_pur, max(40, s-10), 60),
-        "purple_bg":    hsl_to_hex(h_pur, max(20, s-40), 90),
+        "base":   hex_color,
+        "dark":   hsl_to_hex(h, s, max(25, l - 12)),
+        "glow":   hsl_to_hex(h, s, min(85, l + 18)),
+        "bg_d":   hsl_to_hex(h, max(15, s - 35), 14),
+        "bg_l":   hsl_to_hex(h, max(15, s - 35), 93),
     }
+
+# Preset palette curated — kombinasi yang udah teruji enak dilihat
+_PRESETS_PALETTE = [
+    # (nama,          primary,    secondary,  accent,     purple)
+    ("🍊 Oranye",    "#ff6b35",  "#00c47a",  "#ffd700",  "#a78bfa"),
+    ("🟢 Hijau",     "#19f05a",  "#a121d4",  "#3eb8da",  "#f0a519"),
+    ("💜 Ungu",      "#a855f7",  "#22d3ee",  "#fb923c",  "#34d399"),
+    ("🔵 Biru",      "#3b82f6",  "#10b981",  "#f59e0b",  "#e879f9"),
+    ("🌸 Rose",      "#f43f5e",  "#a78bfa",  "#fb923c",  "#34d399"),
+    ("🩵 Cyan",      "#06b6d4",  "#f59e0b",  "#ec4899",  "#84cc16"),
+    ("🖤 Mono",      "#e2e8f0",  "#94a3b8",  "#64748b",  "#475569"),
+    ("🔴 Merah",     "#ef4444",  "#3b82f6",  "#fbbf24",  "#a78bfa"),
+]
 
 st.set_page_config(page_title="FPK Converter", page_icon="📄", layout="wide")
 
@@ -48,13 +57,36 @@ for _k, _v in {
     "show_pin_form": False, "show_theme_panel": False,
     "results": [], "errors": [], "show_done": False,
     "demo_mode": False, "demo_pdf_bytes": None, "demo_pdf_info": None,
-    "color_hue": _DEFAULT_HUE, "color_sat": _DEFAULT_SAT,
+    # Warna independen — masing-masing bebas dipilih
+    "c_primary":   "#ff6b35",
+    "c_secondary": "#00c47a",
+    "c_accent":    "#ffd700",
+    "c_purple":    "#a78bfa",
 }.items():
     if _k not in st.session_state:
         st.session_state[_k] = _v
 
 # ── ACTIVE PALETTE ─────────────────────────────────────────────
-_PAL          = generate_palette(st.session_state.color_hue, st.session_state.color_sat)
+def build_palette() -> dict:
+    p  = derive_variants(st.session_state.c_primary)
+    s  = derive_variants(st.session_state.c_secondary)
+    a  = derive_variants(st.session_state.c_accent)
+    pu = derive_variants(st.session_state.c_purple)
+    return {
+        "primary":      p["base"],
+        "primary_d":    p["dark"],
+        "primary_glow": p["glow"],
+        "primary_bg":   p["bg_d"],
+        "primary_bg_l": p["bg_l"],
+        "secondary":    s["base"],
+        "secondary_bg": s["bg_l"],
+        "accent":       a["base"],
+        "accent_bg":    a["bg_l"],
+        "purple":       pu["base"],
+        "purple_bg":    pu["bg_l"],
+    }
+
+_PAL          = build_palette()
 PRIMARY_COLOR = _PAL["primary"]
 SECONDARY     = _PAL["secondary"]
 ACCENT        = _PAL["accent"]
@@ -993,23 +1025,28 @@ def render_result(res, idx=0):
             st.rerun()
 
 def animasi_terminal_proses(uf, dark: bool):
-    acc = PRIMARY_COLOR
-    grn = SECONDARY
-    yel = ACCENT
-    dim = "#555555"
-    blu = "#00b0ff"
-    surf = "#0d0d0d" if dark else "#f5f0e8"
-    bdr_pnl = "#444444" if dark else "#333333"
-    txt = "#f0f0f0" if dark else "#111111"
-    title_c = "#888888" if dark else "#666666"
+    # Semua warna dari palette aktif — ikut slider 🎨
+    acc     = PRIMARY_COLOR                          # prompt, progress %
+    grn     = SECONDARY                             # status OK, SEP value, count
+    yel     = ACCENT                                # key JSON, nominal
+    blu     = _PAL["primary_glow"]                  # bracket JSON (lighter primary)
+    dim     = _PAL["primary_bg"] if dark else _PAL["primary_bg_l"]  # dimmed text
+    pur     = _PAL["purple"]                        # tingkat label
+    surf    = "#080808" if dark else "#fafaf8"
+    bdr_pnl = PRIMARY_COLOR + "44"                  # border panel pakai primary transparan
+    txt     = "#e0e0e0" if dark else "#1a1a1a"
+    title_c = PRIMARY_COLOR                         # judul "API RESPONSE" pakai primary
+    bar_bg  = "#1a1a1a" if dark else "#e0e0e0"      # background progress bar
 
     term = st.empty()
     def render(lines):
         visible = lines[-40:]
         inner = "".join(f'<div style="margin:0;line-height:1.65;">{l}</div>' for l in visible)
         term.markdown(f"""
-        <div style="background:{surf};border:2px solid {bdr_pnl};border-radius:16px;padding:1rem 1.2rem;font-family:'JetBrains Mono',monospace;font-size:0.74rem;box-shadow:0 8px 30px rgba(0,0,0,0.4);height:360px;overflow:hidden;">
-            <div style="color:{title_c};font-weight:700;font-size:0.65rem;letter-spacing:2px;border-bottom:1px solid {bdr_pnl};padding-bottom:0.35rem;margin-bottom:0.6rem;">API RESPONSE</div>
+        <div style="background:{surf};border:2px solid {bdr_pnl};border-radius:16px;padding:1rem 1.2rem;font-family:'JetBrains Mono',monospace;font-size:0.74rem;box-shadow:0 8px 30px {PRIMARY_COLOR}22;height:360px;overflow:hidden;">
+            <div style="color:{title_c};font-weight:700;font-size:0.65rem;letter-spacing:2px;border-bottom:1px solid {bdr_pnl};padding-bottom:0.35rem;margin-bottom:0.6rem;">
+                ▶ API RESPONSE · <span style="color:{grn};">LIVE</span>
+            </div>
             <div style="overflow:hidden;height:300px;">{inner}</div>
         </div>
         """, unsafe_allow_html=True)
@@ -1019,32 +1056,32 @@ def animasi_terminal_proses(uf, dark: bool):
         return f'<span style="color:{c};">{text}</span>'
 
     lines = []
-    lines.append(ln('$ POST /api/proses → localhost:8000', acc))
+    lines.append(ln(f'$ POST /api/proses → localhost:8000', acc))
     lines.append(ln(f'  file    : {uf.name}', dim))
     lines.append(ln(f'  size    : {round(len(uf.getvalue())/1024, 1)} KB', dim))
-    lines.append(ln('  status  : waiting...', dim))
+    lines.append(ln(f'  status  : waiting...', dim))
     render(lines)
 
     payload, df_res, req_meta, resp_meta = panggil_api_proses(uf)
 
     tingkat = payload.get("tingkat", "FPK")
-    jumlah = payload.get("jumlah", 0)
-    total = payload.get("total", 0)
+    jumlah  = payload.get("jumlah", 0)
+    total   = payload.get("total", 0)
     duplikat = payload.get("duplikat", [])
     proc_ms = payload.get("processing_time_ms", 1000) or 1000
-    lat_ms = resp_meta.get("latency_ms", 0)
+    lat_ms  = resp_meta.get("latency_ms", 0)
     filename = payload.get("filename", "")
     sep_list = df_res[["No.SEP", "Disetujui"]].to_dict(orient="records")
 
     lines[-1] = ln(f'  status  : 200 OK — {lat_ms} ms', grn)
-    lines.append(ln(f'  tingkat : {tingkat}', grn))
+    lines.append(ln(f'  tingkat : {tingkat}', pur))
     lines.append(ln(f'  jumlah  : {jumlah} SEP', grn))
-    lines.append(ln(f'  proses  : {proc_ms} ms', grn))
+    lines.append(ln(f'  proses  : {proc_ms} ms', acc))
     lines.append(ln(''))
     lines.append(ln('{', txt))
     lines.append(ln(f'  "file"    : "{filename}",', yel))
-    lines.append(ln(f'  "tingkat" : "{tingkat}",', yel))
-    lines.append(ln(f'  "jumlah"  : {jumlah},', yel))
+    lines.append(ln(f'  "tingkat" : "{tingkat}",', pur))
+    lines.append(ln(f'  "jumlah"  : {jumlah},', grn))
     lines.append(ln('  "data"    : [', txt))
     render(lines)
     time.sleep(0.3)
@@ -1069,9 +1106,12 @@ def animasi_terminal_proses(uf, dark: bool):
         render(lines)
         pct = int(((i + 1) / row_count) * 100)
         prog.markdown(
-            f'<div style="font-family:JetBrains Mono,monospace;font-size:0.7rem;color:{dim};display:flex;align-items:center;gap:10px;margin-top:4px;">'
+            f'<div style="font-family:JetBrains Mono,monospace;font-size:0.7rem;'
+            f'display:flex;align-items:center;gap:10px;margin-top:6px;">'
             f'<span style="color:{grn};font-weight:700;">{i+1:,} / {row_count:,} SEP</span>'
-            f'<div style="flex:1;height:3px;background:#222;border-radius:4px;"><div style="width:{pct}%;height:3px;background:{grn};border-radius:4px;"></div></div>'
+            f'<div style="flex:1;height:4px;background:{bar_bg};border-radius:4px;">'
+            f'<div style="width:{pct}%;height:4px;background:linear-gradient(90deg,{acc},{grn});'
+            f'border-radius:4px;transition:width 0.1s;"></div></div>'
             f'<span style="color:{acc};font-weight:700;">{pct}%</span></div>',
             unsafe_allow_html=True
         )
@@ -1083,7 +1123,8 @@ def animasi_terminal_proses(uf, dark: bool):
     lines.append(ln(f'  "total_disetujui" : {total},', yel))
     if duplikat:
         lines.append(ln(f'  "duplikat"        : {len(duplikat)} SEP,', "#ff4444"))
-    lines.append(ln('  "status"          : "DONE ✓"', grn))
+    lines.append(ln(f'  "status"          : "DONE ✓"', grn))
+    lines.append(ln(f'  "nominal"         : "{total_fmt}"', acc))
     lines.append(ln('}', txt))
     render(lines)
     time.sleep(0.5)
@@ -1174,15 +1215,6 @@ with col_logout_nav:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── PANEL WARNA ───────────────────────────────────────────────
-_PRESETS_PALETTE = [
-    ("🍊 Oranye Api",    20,  88),
-    ("💜 Ungu Elektrik", 270, 80),
-    ("🔵 Biru Laut",     210, 85),
-    ("🌸 Rose Gold",     340, 72),
-    ("🟢 Hijau Matrix",  138, 88),
-    ("🩵 Cyan Neon",     185, 90),
-]
-
 if st.session_state.get("show_theme_panel"):
     _dark_p = st.session_state.dark_mode
     _surf_p = "#1a1a1a" if _dark_p else "#ffffff"
@@ -1190,110 +1222,116 @@ if st.session_state.get("show_theme_panel"):
     _txt_p  = "#f0f0f0" if _dark_p else "#1a1a1a"
     _mut_p  = "#666"    if _dark_p else "#888"
 
-    st.markdown(f"""
-    <div style="background:{_surf_p};border:1px solid {_bdr_p};border-radius:24px;
-                padding:1.25rem 1.5rem;margin-bottom:1rem;">
-        <div style="font-size:0.62rem;font-weight:800;letter-spacing:2px;
-                    color:{_mut_p};text-transform:uppercase;
-                    border-left:3px solid {PRIMARY_COLOR};padding-left:8px;
-                    margin-bottom:0.75rem;font-family:'JetBrains Mono',monospace;">
-            🎨 Kustomisasi Warna
-        </div>
-        <div style="font-size:0.72rem;color:{_txt_p};margin-bottom:0.4rem;font-weight:600;">
-            Hue aktif: <span style="color:{PRIMARY_COLOR};font-family:'JetBrains Mono',monospace;">
-            {st.session_state.color_hue}° / sat {st.session_state.color_sat}%</span>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0.5rem;">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-                <div style="width:32px;height:32px;border-radius:50%;background:{_PAL["primary"]};
-                            box-shadow:0 0 10px {_PAL["primary"]}55;"></div>
-                <span style="font-size:0.58rem;color:{_mut_p};font-family:monospace;">Primary</span>
-                <span style="font-size:0.55rem;color:{_mut_p};font-family:monospace;">{_PAL["primary"]}</span>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-                <div style="width:32px;height:32px;border-radius:50%;background:{_PAL["secondary"]};
-                            box-shadow:0 0 10px {_PAL["secondary"]}55;"></div>
-                <span style="font-size:0.58rem;color:{_mut_p};font-family:monospace;">Secondary</span>
-                <span style="font-size:0.55rem;color:{_mut_p};font-family:monospace;">{_PAL["secondary"]}</span>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-                <div style="width:32px;height:32px;border-radius:50%;background:{_PAL["accent"]};
-                            box-shadow:0 0 10px {_PAL["accent"]}55;"></div>
-                <span style="font-size:0.58rem;color:{_mut_p};font-family:monospace;">Accent</span>
-                <span style="font-size:0.55rem;color:{_mut_p};font-family:monospace;">{_PAL["accent"]}</span>
-            </div>
-            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
-                <div style="width:32px;height:32px;border-radius:50%;background:{_PAL["purple"]};
-                            box-shadow:0 0 10px {_PAL["purple"]}55;"></div>
-                <span style="font-size:0.58rem;color:{_mut_p};font-family:monospace;">Purple</span>
-                <span style="font-size:0.55rem;color:{_mut_p};font-family:monospace;">{_PAL["purple"]}</span>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    # ── Info card per warna (keterangan) ──
+    _COLOR_INFO = [
+        ("c_primary",   PRIMARY_COLOR,       "Primary",
+         "Tombol utama · logo pill · hero title · border aktif · tab aktif · scrollbar · terminal prompt",
+         [("bg", "Proses →", "#fff"), ("bg", "FPK", "#fff")]),
+        ("c_secondary", SECONDARY,           "Secondary",
+         "Badge Selesai · nominal total · tombol download · stat Selesai · progress bar",
+         [("border", "✓ Selesai", None), ("text", "Rp 4.200.000", None), ("border", "⬇ Download", None)]),
+        ("c_accent",    ACCENT,              "Accent",
+         "Badge Pending · stat pending · warning · progress bar kanan",
+         [("border_amber", "⏳ Pending", None), ("text", "3 file", None)]),
+        ("c_purple",    _PAL["purple"],      "Purple",
+         "Total nominal hero card · badge RITL/RJTL · stat ke-4 · tingkat di terminal",
+         [("text", "Rp 2.3M", None), ("border", "RITL", None), ("border", "RJTL", None)]),
+    ]
 
-    # Preset palette
-    st.markdown(f'<div style="font-size:0.7rem;font-weight:700;color:{_mut_p};margin-bottom:0.5rem;">Preset</div>',
-                unsafe_allow_html=True)
-    pcols = st.columns(3)
-    for idx, (label, h, s) in enumerate(_PRESETS_PALETTE):
-        pal_prev = generate_palette(h, s)
-        with pcols[idx % 3]:
+    for key, col, name, desc, examples in _COLOR_INFO:
+        ex_html = ""
+        for style, label, fg in examples:
+            if style == "bg":
+                ex_html += f'<span style="background:{col};color:{fg};font-size:0.6rem;padding:2px 9px;border-radius:99px;font-weight:700;margin-right:4px;">{label}</span>'
+            elif style == "border":
+                ex_html += f'<span style="border:1.5px solid {col};color:{col};font-size:0.6rem;padding:2px 9px;border-radius:99px;font-weight:700;margin-right:4px;">{label}</span>'
+            elif style == "border_amber":
+                ex_html += f'<span style="border:1.5px solid #b45309;color:#b45309;font-size:0.6rem;padding:2px 9px;border-radius:99px;font-weight:700;margin-right:4px;">{label}</span>'
+            elif style == "text":
+                ex_html += f'<span style="color:{col};font-size:0.6rem;font-weight:800;margin-right:4px;">{label}</span>'
+
+        st.markdown(f"""
+        <div style="display:flex;align-items:flex-start;gap:12px;
+                    background:{_bdr_p};border-radius:16px;padding:10px 14px;margin-bottom:8px;">
+            <div style="width:40px;height:40px;border-radius:12px;flex-shrink:0;
+                        background:{col};box-shadow:0 0 14px {col}66;margin-top:2px;"></div>
+            <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                    <span style="font-size:0.75rem;font-weight:800;color:{_txt_p};">{name}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:{_mut_p};">{col}</span>
+                </div>
+                <div style="font-size:0.63rem;color:{_mut_p};margin-bottom:6px;line-height:1.5;">{desc}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:4px;">{ex_html}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.75rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Preset Palette</div>', unsafe_allow_html=True)
+
+    # Preset grid — 4 kolom
+    pcols = st.columns(4)
+    for idx, (label, p, s, a, pu) in enumerate(_PRESETS_PALETTE):
+        with pcols[idx % 4]:
             st.markdown(f"""
-            <div style="display:flex;gap:3px;margin-bottom:3px;">
-                <div style="width:10px;height:10px;border-radius:50%;background:{pal_prev['primary']};"></div>
-                <div style="width:10px;height:10px;border-radius:50%;background:{pal_prev['secondary']};"></div>
-                <div style="width:10px;height:10px;border-radius:50%;background:{pal_prev['accent']};"></div>
+            <div style="display:flex;gap:3px;margin-bottom:4px;justify-content:center;">
+                <div style="width:11px;height:11px;border-radius:50%;background:{p};"></div>
+                <div style="width:11px;height:11px;border-radius:50%;background:{s};"></div>
+                <div style="width:11px;height:11px;border-radius:50%;background:{a};"></div>
+                <div style="width:11px;height:11px;border-radius:50%;background:{pu};"></div>
             </div>
             """, unsafe_allow_html=True)
-            safe_key = label.replace(" ","_").replace("🍊","").replace("💜","").replace("🔵","").replace("🌸","").replace("🟢","").replace("🩵","")
+            safe_key = "".join(x for x in label if x.isalnum() or x == "_")
             if st.button(label, key=f"preset_{safe_key}", use_container_width=True):
-                st.session_state.color_hue = h
-                st.session_state.color_sat = s
+                st.session_state.c_primary   = p
+                st.session_state.c_secondary = s
+                st.session_state.c_accent    = a
+                st.session_state.c_purple    = pu
                 st.rerun()
 
-    st.markdown("<div style='margin:0.5rem 0'></div>", unsafe_allow_html=True)
+    st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.75rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Custom — Pilih Bebas</div>', unsafe_allow_html=True)
 
-    # Slider custom
-    st.markdown(f'<div style="font-size:0.7rem;font-weight:700;color:{_mut_p};margin-bottom:0.3rem;">Custom</div>',
-                unsafe_allow_html=True)
-    new_hue = st.slider("🎡 Hue (0–360)", 0, 360,
-                         st.session_state.color_hue, 1, key="slider_hue",
-                         help="Geser untuk pilih warna dasar")
-    new_sat = st.slider("💧 Saturasi (40–100)", 40, 100,
-                         st.session_state.color_sat, 1, key="slider_sat",
-                         help="Geser untuk atur intensitas warna")
+    # 4 color picker independen
+    cp1, cp2, cp3, cp4 = st.columns(4)
+    with cp1:
+        st.markdown(f'<div style="font-size:0.62rem;font-weight:700;color:{PRIMARY_COLOR};text-align:center;margin-bottom:2px;">Primary</div>', unsafe_allow_html=True)
+        new_p = st.color_picker("", st.session_state.c_primary,   key="pick_p", label_visibility="collapsed")
+    with cp2:
+        st.markdown(f'<div style="font-size:0.62rem;font-weight:700;color:{SECONDARY};text-align:center;margin-bottom:2px;">Secondary</div>', unsafe_allow_html=True)
+        new_s = st.color_picker("", st.session_state.c_secondary, key="pick_s", label_visibility="collapsed")
+    with cp3:
+        st.markdown(f'<div style="font-size:0.62rem;font-weight:700;color:{ACCENT};text-align:center;margin-bottom:2px;">Accent</div>', unsafe_allow_html=True)
+        new_a = st.color_picker("", st.session_state.c_accent,    key="pick_a", label_visibility="collapsed")
+    with cp4:
+        st.markdown(f'<div style="font-size:0.62rem;font-weight:700;color:{_PAL["purple"]};text-align:center;margin-bottom:2px;">Purple</div>', unsafe_allow_html=True)
+        new_pu = st.color_picker("", st.session_state.c_purple,   key="pick_pu", label_visibility="collapsed")
 
-    # Preview live swatch
-    prev_pal = generate_palette(new_hue, new_sat)
+    # Preview live
     st.markdown(f"""
-    <div style="display:flex;gap:8px;margin:0.5rem 0;align-items:center;">
-        <div style="width:28px;height:28px;border-radius:50%;background:{prev_pal['primary']};"></div>
-        <div style="width:28px;height:28px;border-radius:50%;background:{prev_pal['secondary']};"></div>
-        <div style="width:28px;height:28px;border-radius:50%;background:{prev_pal['accent']};"></div>
-        <div style="width:28px;height:28px;border-radius:50%;background:{prev_pal['purple']};"></div>
-        <span style="font-size:0.68rem;color:{_mut_p};font-family:monospace;">preview →</span>
-        <span style="background:{prev_pal['primary']};color:#fff;font-size:0.65rem;
-                     padding:3px 10px;border-radius:99px;font-weight:700;">Tombol</span>
-        <span style="border:1.5px solid {prev_pal['secondary']};color:{prev_pal['secondary']};
-                     font-size:0.65rem;padding:3px 10px;border-radius:99px;font-weight:700;">Selesai</span>
-        <span style="border:1.5px solid {prev_pal['accent']};color:{prev_pal['accent']};
-                     font-size:0.65rem;padding:3px 10px;border-radius:99px;font-weight:700;">Pending</span>
+    <div style="display:flex;gap:6px;align-items:center;margin:0.6rem 0;flex-wrap:wrap;">
+        <span style="font-size:0.6rem;color:{_mut_p};font-family:monospace;">preview →</span>
+        <span style="background:{new_p};color:#fff;font-size:0.62rem;padding:3px 11px;border-radius:99px;font-weight:700;">Proses</span>
+        <span style="border:1.5px solid {new_s};color:{new_s};font-size:0.62rem;padding:3px 11px;border-radius:99px;font-weight:700;">✓ Selesai</span>
+        <span style="border:1.5px solid #b45309;color:#b45309;font-size:0.62rem;padding:3px 11px;border-radius:99px;font-weight:700;">⏳ Pending</span>
+        <span style="border:1.5px solid {new_pu};color:{new_pu};font-size:0.62rem;padding:3px 11px;border-radius:99px;font-weight:700;">RITL</span>
+        <span style="color:{new_s};font-size:0.62rem;font-weight:800;">Rp 2.3M</span>
     </div>
     """, unsafe_allow_html=True)
 
-    ca, cb = st.columns([2, 1])
-    with ca:
+    ba, bb = st.columns([3, 1])
+    with ba:
         if st.button("✅ Terapkan", key="apply_color", use_container_width=True):
-            st.session_state.color_hue = new_hue
-            st.session_state.color_sat = new_sat
+            st.session_state.c_primary   = new_p
+            st.session_state.c_secondary = new_s
+            st.session_state.c_accent    = new_a
+            st.session_state.c_purple    = new_pu
             st.rerun()
-    with cb:
+    with bb:
         if st.button("↺ Reset", key="reset_color", use_container_width=True):
-            st.session_state.color_hue = _DEFAULT_HUE
-            st.session_state.color_sat = _DEFAULT_SAT
+            st.session_state.c_primary   = "#ff6b35"
+            st.session_state.c_secondary = "#00c47a"
+            st.session_state.c_accent    = "#ffd700"
+            st.session_state.c_purple    = "#a78bfa"
             st.rerun()
-
 if st.session_state.get("show_pin_form"):
     with st.expander("🔑 Ganti PIN", expanded=True):
         st.info("💡 Untuk ganti PIN, ubah nilai **PIN** di **Streamlit Cloud → Settings → Secrets**, lalu klik **Reboot app**.")
