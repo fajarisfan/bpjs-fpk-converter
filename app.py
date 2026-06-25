@@ -1180,7 +1180,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Refresh palette tiap rerun biar ikut perubahan warna ──
-_PAL          = generate_palette(st.session_state.color_hue, st.session_state.color_sat)
+_PAL          = build_palette()
 PRIMARY_COLOR = _PAL["primary"]
 SECONDARY     = _PAL["secondary"]
 ACCENT        = _PAL["accent"]
