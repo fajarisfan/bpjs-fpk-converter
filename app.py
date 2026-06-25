@@ -162,6 +162,161 @@ def unique_filename(base_filename: str, existing_names: set) -> str:
             return candidate
         counter += 1
 
+# ── TELEGRAM BOT ──────────────────────────────────────────────
+def get_tele_config():
+    """Ambil token & chat_id dari Streamlit secrets."""
+    try:
+        token   = str(st.secrets.get("TELEGRAM_TOKEN", ""))
+        chat_id = str(st.secrets.get("TELEGRAM_CHAT_ID", ""))
+        return token, chat_id
+    except Exception:
+        return "", ""
+
+def tele_configured() -> bool:
+    token, chat_id = get_tele_config()
+    return bool(token and chat_id)
+
+def kirim_notif_telegram(entry: dict) -> tuple[bool, str]:
+    """Kirim notif konversi berhasil ke Telegram."""
+    token, chat_id = get_tele_config()
+    if not token or not chat_id:
+        return False, "Token/Chat ID belum dikonfigurasi"
+    nom = f"Rp {entry['total']:,}".replace(",", ".")
+    jenis_label = f" · 📌 {entry.get('jenis','Reguler')}" if entry.get('jenis') == 'Susulan' else ""
+    msg = (
+        f"📄 *FPK Converter — Konversi Berhasil*\n\n"
+        f"🏥 *File*: `{entry['nama_file']}`\n"
+        f"🔖 *Tingkat*: {entry.get('tingkat','–')}{jenis_label}\n"
+        f"🔢 *Jumlah SEP*: {entry['jumlah']:,}\n"
+        f"💰 *Total Nominal*: {nom}\n"
+        f"🕓 *Waktu*: {entry['waktu']}\n"
+        f"📊 *Status*: {'✅ Selesai' if entry.get('status')=='Selesai' else '⏳ Belum Diambil'}\n"
+    )
+    try:
+        resp = requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"},
+            timeout=8
+        )
+        if resp.ok:
+            return True, "✅ Notif terkirim ke Telegram"
+        return False, f"❌ Gagal: {resp.json().get('description','unknown error')}"
+    except Exception as e:
+        return False, f"❌ Error: {e}"
+
+def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
+    """Kirim rekap semua riwayat ke Telegram."""
+    token, chat_id = get_tele_config()
+    if not token or not chat_id:
+        return False, "Token/Chat ID belum dikonfigurasi"
+    if not log_data:
+        return False, "Belum ada data konversi"
+    total_nom = sum(x['total'] for x in log_data)
+    total_sep = sum(x['jumlah'] for x in log_data)
+    selesai   = sum(1 for x in log_data if x.get('status') == 'Selesai')
+    nom_fmt   = f"Rp {total_nom:,}".replace(",", ".")
+    rows = ""
+    for i, x in enumerate(log_data[:20], 1):
+        nom = f"Rp {x['total']:,}".replace(",",".")
+        st_icon = "✅" if x.get('status') == 'Selesai' else "⏳"
+        rows += f"{i}. `{x['nama_file']}`\n   {st_icon} {x['jumlah']:,} SEP · {nom} · {x['waktu']}\n"
+    if len(log_data) > 20:
+        rows += f"\n_...dan {len(log_data)-20} lainnya_\n"
+    msg = (
+        f"📊 *Rekap FPK Converter*\n\n"
+        f"📁 Total file: *{len(log_data)}*\n"
+        f"✅ Selesai: *{selesai}* · ⏳ Pending: *{len(log_data)-selesai}*\n"
+        f"🔢 Total SEP: *{total_sep:,}*\n"
+        f"💰 Total Nominal: *{nom_fmt}*\n\n"
+        f"*Riwayat:*\n{rows}"
+    )
+    try:
+        resp = requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"},
+            timeout=8
+        )
+        if resp.ok:
+            return True, "✅ Rekap terkirim ke Telegram"
+        return False, f"❌ Gagal: {resp.json().get('description','unknown error')}"
+    except Exception as e:
+        return False, f"❌ Error: {e}"
+
+def handle_bot_command(text: str, log_data: list) -> str:
+    """Proses perintah bot dari kolom chat di app."""
+    text = text.strip().lower()
+    if text in ["/start", "/help", "help", "bantuan"]:
+        return (
+            "🤖 *FPK Bot* siap!\n\n"
+            "Perintah yang tersedia:\n"
+            "`/rekap` — ringkasan semua konversi\n"
+            "`/riwayat` — 10 konversi terakhir\n"
+            "`/cari [kata]` — cari by nama file/bulan\n"
+            "`/total` — total nominal semua file\n"
+            "`/pending` — file yang belum diambil"
+        )
+    elif text in ["/rekap", "rekap"]:
+        if not log_data:
+            return "📭 Belum ada data konversi."
+        total_nom = sum(x['total'] for x in log_data)
+        total_sep = sum(x['jumlah'] for x in log_data)
+        selesai   = sum(1 for x in log_data if x.get('status') == 'Selesai')
+        nom_fmt   = f"Rp {total_nom:,}".replace(",", ".")
+        return (
+            f"📊 *Rekap FPK Converter*\n\n"
+            f"📁 Total file: *{len(log_data)}*\n"
+            f"✅ Selesai: *{selesai}* · ⏳ Pending: *{len(log_data)-selesai}*\n"
+            f"🔢 Total SEP: *{total_sep:,}*\n"
+            f"💰 Total Nominal: *{nom_fmt}*"
+        )
+    elif text in ["/riwayat", "riwayat"]:
+        if not log_data:
+            return "📭 Belum ada riwayat."
+        rows = ""
+        for i, x in enumerate(log_data[:10], 1):
+            nom = f"Rp {x['total']:,}".replace(",",".")
+            st_icon = "✅" if x.get('status') == 'Selesai' else "⏳"
+            rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP · {nom}\n   🕓 {x['waktu']}\n\n"
+        return f"📋 *10 Konversi Terakhir*\n\n{rows}"
+    elif text in ["/total", "total"]:
+        if not log_data:
+            return "📭 Belum ada data."
+        total_nom = sum(x['total'] for x in log_data)
+        total_sep = sum(x['jumlah'] for x in log_data)
+        return (
+            f"💰 *Total Keseluruhan*\n\n"
+            f"Nominal: *Rp {total_nom:,}*\n"
+            f"SEP: *{total_sep:,}*\n"
+            f"File: *{len(log_data)}*"
+        ).replace(",", ".")
+    elif text in ["/pending", "pending"]:
+        pending = [x for x in log_data if x.get('status') != 'Selesai']
+        if not pending:
+            return "✅ Semua file sudah diambil!"
+        rows = ""
+        for i, x in enumerate(pending, 1):
+            nom = f"Rp {x['total']:,}".replace(",",".")
+            rows += f"{i}. `{x['nama_file']}`\n   {x['jumlah']:,} SEP · {nom} · {x['waktu']}\n\n"
+        return f"⏳ *{len(pending)} File Belum Diambil*\n\n{rows}"
+    elif text.startswith("/cari ") or text.startswith("cari "):
+        keyword = text.split(" ", 1)[1].strip().lower()
+        hasil = [x for x in log_data if keyword in x.get('nama_file','').lower()
+                 or keyword in x.get('waktu','').lower()
+                 or keyword in x.get('tingkat','').lower()]
+        if not hasil:
+            return f"🔍 Tidak ada hasil untuk *{keyword}*"
+        rows = ""
+        for i, x in enumerate(hasil[:10], 1):
+            nom = f"Rp {x['total']:,}".replace(",",".")
+            st_icon = "✅" if x.get('status') == 'Selesai' else "⏳"
+            rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP · {nom}\n\n"
+        return f"🔍 *Hasil cari '{keyword}'* ({len(hasil)} ditemukan)\n\n{rows}"
+    else:
+        return (
+            "❓ Perintah tidak dikenal.\n"
+            "Ketik `/help` untuk daftar perintah."
+        )
+
 # ── PIN ─────────────────────────────────────────────────────
 MAX_ATTEMPT = 5
 LOCKOUT_MIN = 5
@@ -1025,112 +1180,190 @@ def render_result(res, idx=0):
             st.rerun()
 
 def animasi_terminal_proses(uf, dark: bool):
-    # Semua warna dari palette aktif — ikut slider 🎨
-    acc     = PRIMARY_COLOR                          # prompt, progress %
-    grn     = SECONDARY                             # status OK, SEP value, count
-    yel     = ACCENT                                # key JSON, nominal
-    blu     = _PAL["primary_glow"]                  # bracket JSON (lighter primary)
-    dim     = _PAL["primary_bg"] if dark else _PAL["primary_bg_l"]  # dimmed text
-    pur     = _PAL["purple"]                        # tingkat label
+    acc     = PRIMARY_COLOR
+    grn     = SECONDARY
+    yel     = ACCENT
+    blu     = _PAL["primary_glow"]
+    dim     = _PAL["primary_bg"] if dark else _PAL["primary_bg_l"]
+    pur     = _PAL["purple"]
     surf    = "#080808" if dark else "#fafaf8"
-    bdr_pnl = PRIMARY_COLOR + "44"                  # border panel pakai primary transparan
+    bdr_pnl = PRIMARY_COLOR + "44"
     txt     = "#e0e0e0" if dark else "#1a1a1a"
-    title_c = PRIMARY_COLOR                         # judul "API RESPONSE" pakai primary
-    bar_bg  = "#1a1a1a" if dark else "#e0e0e0"      # background progress bar
+    bar_bg  = "#1a1a1a" if dark else "#e0e0e0"
 
     term = st.empty()
-    def render(lines):
-        visible = lines[-40:]
-        inner = "".join(f'<div style="margin:0;line-height:1.65;">{l}</div>' for l in visible)
+
+    def render(lines, done=False):
+        visible = lines[-60:]
+        inner = "".join(
+            f'<div style="margin:0;line-height:1.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{l}</div>'
+            for l in visible
+        )
+        dot = f'<span style="color:{grn};">●</span>' if not done else f'<span style="color:{acc};">✓</span>'
+        label = "LIVE" if not done else "DONE"
+        label_col = grn if not done else acc
         term.markdown(f"""
-        <div style="background:{surf};border:2px solid {bdr_pnl};border-radius:16px;padding:1rem 1.2rem;font-family:'JetBrains Mono',monospace;font-size:0.74rem;box-shadow:0 8px 30px {PRIMARY_COLOR}22;height:360px;overflow:hidden;">
-            <div style="color:{title_c};font-weight:700;font-size:0.65rem;letter-spacing:2px;border-bottom:1px solid {bdr_pnl};padding-bottom:0.35rem;margin-bottom:0.6rem;">
-                ▶ API RESPONSE · <span style="color:{grn};">LIVE</span>
+        <div style="background:{surf};border:2px solid {bdr_pnl};border-radius:16px;
+                    padding:1rem 1.2rem;font-family:'JetBrains Mono',monospace;
+                    font-size:0.74rem;box-shadow:0 8px 30px {PRIMARY_COLOR}22;">
+            <div style="color:{PRIMARY_COLOR};font-weight:700;font-size:0.65rem;letter-spacing:2px;
+                        border-bottom:1px solid {bdr_pnl};padding-bottom:0.35rem;margin-bottom:0.6rem;
+                        display:flex;align-items:center;gap:6px;">
+                {dot}&nbsp;API RESPONSE
+                <span style="color:{label_col};margin-left:4px;">· {label}</span>
             </div>
-            <div style="overflow:hidden;height:300px;">{inner}</div>
+            <div style="overflow-y:auto;height:280px;scrollbar-width:thin;
+                        scrollbar-color:{bdr_pnl} transparent;" id="term-out">
+                {inner}
+            </div>
         </div>
+        <script>
+            setTimeout(function(){{
+                var el=document.getElementById('term-out');
+                if(el) el.scrollTop=el.scrollHeight;
+            }},30);
+        </script>
         """, unsafe_allow_html=True)
 
     def ln(text, color=None):
-        c = color or txt
-        return f'<span style="color:{c};">{text}</span>'
+        col = color or txt
+        return f'<span style="color:{col};">{text}</span>'
 
+    # ── Fase 1: header request ──
     lines = []
-    lines.append(ln(f'$ POST /api/proses → localhost:8000', acc))
-    lines.append(ln(f'  file    : {uf.name}', dim))
-    lines.append(ln(f'  size    : {round(len(uf.getvalue())/1024, 1)} KB', dim))
-    lines.append(ln(f'  status  : waiting...', dim))
+    lines.append(ln(f'$ POST /api/proses', acc))
+    lines.append(ln(f'  file   : {uf.name}', dim))
+    lines.append(ln(f'  size   : {round(len(uf.getvalue())/1024,1)} KB', dim))
+    lines.append(ln(f'  status : connecting...', dim))
     render(lines)
 
     payload, df_res, req_meta, resp_meta = panggil_api_proses(uf)
 
-    tingkat = payload.get("tingkat", "FPK")
-    jumlah  = payload.get("jumlah", 0)
-    total   = payload.get("total", 0)
+    tingkat  = payload.get("tingkat", "FPK")
+    jumlah   = payload.get("jumlah", 0)
+    total    = payload.get("total", 0)
     duplikat = payload.get("duplikat", [])
-    proc_ms = payload.get("processing_time_ms", 1000) or 1000
-    lat_ms  = resp_meta.get("latency_ms", 0)
+    proc_ms  = payload.get("processing_time_ms", 1000) or 1000
+    lat_ms   = resp_meta.get("latency_ms", 0)
     filename = payload.get("filename", "")
     sep_list = df_res[["No.SEP", "Disetujui"]].to_dict(orient="records")
+    row_count = max(1, jumlah)
 
-    lines[-1] = ln(f'  status  : 200 OK — {lat_ms} ms', grn)
-    lines.append(ln(f'  tingkat : {tingkat}', pur))
-    lines.append(ln(f'  jumlah  : {jumlah} SEP', grn))
-    lines.append(ln(f'  proses  : {proc_ms} ms', acc))
+    # ── Fase 2: response header ──
+    lines[-1] = ln(f'  status : 200 OK · {lat_ms}ms', grn)
+    lines.append(ln(f'  tingkat: {tingkat}', pur))
+    lines.append(ln(f'  jumlah : {jumlah} SEP', grn))
+    lines.append(ln(f'  proc   : {proc_ms}ms', acc))
     lines.append(ln(''))
     lines.append(ln('{', txt))
     lines.append(ln(f'  "file"    : "{filename}",', yel))
     lines.append(ln(f'  "tingkat" : "{tingkat}",', pur))
     lines.append(ln(f'  "jumlah"  : {jumlah},', grn))
-    lines.append(ln('  "data"    : [', txt))
+    lines.append(ln('  "data": [', txt))
     render(lines)
-    time.sleep(0.3)
+    time.sleep(0.2)
 
-    row_count = max(1, jumlah)
-    delay_sec = (proc_ms / row_count) / 1000
-    delay_sec = max(0.01, min(0.5, delay_sec))
+    # ── Fase 3: stream SEP — terminal & progress bar dipisah ──
+    #
+    # Prinsip:
+    # - Terminal hanya tampilkan MAX_VISIBLE baris SEP (kelihatan live ngetik)
+    # - Progress bar update lebih sering (tiap progress_batch rows)
+    # - Sisanya di-skip di terminal tapi progress tetap jalan smooth
+    # - Total durasi animasi ~12-15 detik
+    #
+    MAX_VISIBLE    = 120   # max baris SEP yang ditampilkan di terminal
+    TERMINAL_DELAY = 0.07  # jeda tiap render terminal (detik)
+    PROGRESS_DELAY = 0.04  # jeda progress bar saat fast-forward
+
+    # Hitung sampling: kalau SEP > MAX_VISIBLE, ambil sampel merata
+    if row_count <= MAX_VISIBLE:
+        # Semua ditampilkan satu per satu
+        terminal_indices = set(range(row_count))
+        term_batch = 1
+    else:
+        # Sampel merata — satu tiap N rows
+        step = row_count / MAX_VISIBLE
+        terminal_indices = set(int(i * step) for i in range(MAX_VISIBLE))
+        terminal_indices.add(row_count - 1)  # pastikan baris terakhir masuk
+        term_batch = max(1, int(step) // 2)  # batch untuk fast-forward
+
+    # Hitung progress_batch: progress update tiap ~1%
+    progress_batch = max(1, row_count // 100)
 
     prog = st.empty()
+    terminal_count = 0   # berapa baris yang sudah masuk terminal
+    fast_buf       = []  # buffer rows yang di-skip terminal
+    last_prog_update = -1
 
     for i, row in enumerate(sep_list):
-        sep = str(row["No.SEP"])
-        nom = int(row["Disetujui"])
-        comma = "" if i == len(sep_list) - 1 else ","
+        sep   = str(row["No.SEP"])
+        nom   = int(row["Disetujui"])
+        comma = "" if i == row_count - 1 else ","
+        is_last = (i == row_count - 1)
+
+        if i in terminal_indices:
+            # Kalau ada fast-forward rows yang pending, flush dulu sebagai summary
+            if len(fast_buf) > 0:
+                lines.append(
+                    f'<span style="color:{dim};">  ... +{len(fast_buf):,} SEP</span>'
+                )
+                fast_buf = []
+
+            # Tampilkan baris ini di terminal
+            lines.append(
+                f'<span style="color:{blu};">  {{"No.SEP":"</span>'
+                f'<span style="color:{grn};">{sep}</span>'
+                f'<span style="color:{blu};">","Disetujui":</span>'
+                f'<span style="color:{yel};">{nom}</span>'
+                f'<span style="color:{blu};">}}{comma}</span>'
+            )
+            terminal_count += 1
+            render(lines)
+            time.sleep(TERMINAL_DELAY)
+        else:
+            fast_buf.append(i)
+
+        # Update progress bar tiap progress_batch rows atau baris terakhir
+        pct = int(((i + 1) / row_count) * 100)
+        if pct != last_prog_update or is_last:
+            last_prog_update = pct
+            prog.markdown(
+                f'<div style="font-family:JetBrains Mono,monospace;font-size:0.7rem;'
+                f'display:flex;align-items:center;gap:10px;margin-top:6px;">'
+                f'<span style="color:{grn};font-weight:700;white-space:nowrap;">'
+                f'{i+1:,}/{row_count:,} SEP</span>'
+                f'<div style="flex:1;height:4px;background:{bar_bg};border-radius:4px;">'
+                f'<div style="width:{pct}%;height:4px;'
+                f'background:linear-gradient(90deg,{acc},{grn});'
+                f'border-radius:4px;transition:width 0.15s;"></div></div>'
+                f'<span style="color:{acc};font-weight:700;">{pct}%</span></div>',
+                unsafe_allow_html=True
+            )
+            if i not in terminal_indices:
+                time.sleep(PROGRESS_DELAY)
+
+    # Flush sisa fast_buf kalau ada
+    if fast_buf:
         lines.append(
-            f'<span style="color:{blu};">    {{"No.SEP": "</span>'
-            f'<span style="color:{grn};">{sep}</span>'
-            f'<span style="color:{blu};">", "Disetujui": </span>'
-            f'<span style="color:{yel};">{nom}</span>'
-            f'<span style="color:{blu};">}}{comma}</span>'
+            f'<span style="color:{dim};">  ... +{len(fast_buf):,} SEP</span>'
         )
         render(lines)
-        pct = int(((i + 1) / row_count) * 100)
-        prog.markdown(
-            f'<div style="font-family:JetBrains Mono,monospace;font-size:0.7rem;'
-            f'display:flex;align-items:center;gap:10px;margin-top:6px;">'
-            f'<span style="color:{grn};font-weight:700;">{i+1:,} / {row_count:,} SEP</span>'
-            f'<div style="flex:1;height:4px;background:{bar_bg};border-radius:4px;">'
-            f'<div style="width:{pct}%;height:4px;background:linear-gradient(90deg,{acc},{grn});'
-            f'border-radius:4px;transition:width 0.1s;"></div></div>'
-            f'<span style="color:{acc};font-weight:700;">{pct}%</span></div>',
-            unsafe_allow_html=True
-        )
-        time.sleep(delay_sec)
 
     prog.empty()
+
+    # ── Fase 4: footer ──
     total_fmt = f"Rp {total:,}".replace(",", ".")
     lines.append(ln('  ],', txt))
-    lines.append(ln(f'  "total_disetujui" : {total},', yel))
+    lines.append(ln(f'  "total"  : {total},', yel))
+    lines.append(ln(f'  "nominal": "{total_fmt}",', acc))
     if duplikat:
-        lines.append(ln(f'  "duplikat"        : {len(duplikat)} SEP,', "#ff4444"))
-    lines.append(ln(f'  "status"          : "DONE ✓"', grn))
-    lines.append(ln(f'  "nominal"         : "{total_fmt}"', acc))
+        lines.append(ln(f'  "duplikat": {len(duplikat)} SEP,', "#ff4444"))
+    lines.append(ln('  "status" : "DONE ✓"', grn))
     lines.append(ln('}', txt))
-    render(lines)
-    time.sleep(0.5)
+    render(lines, done=True)
+    time.sleep(0.6)
     term.empty()
     return payload, df_res, req_meta, resp_meta
-
 def build_chart(log_data):
     if not log_data:
         return None
@@ -1508,7 +1741,7 @@ with tab_pdf:
                         'jenis': 'Susulan' if is_susulan else 'Reguler',
                         'api_log': {'request': req_meta, 'response': resp_meta},
                     })
-                    save_log({
+                    entry = {
                         'waktu': now_wib().strftime("%d %b %Y, %H:%M") + " WIB",
                         'nama_file': filename,
                         'tingkat': tingkat,
@@ -1517,7 +1750,11 @@ with tab_pdf:
                         'jenis': 'Susulan' if is_susulan else 'Reguler',
                         'status': 'Belum Diambil',
                         'waktu_selesai': None,
-                    })
+                    }
+                    save_log(entry)
+                    # Auto-kirim notif Telegram jika sudah dikonfigurasi
+                    if tele_configured():
+                        kirim_notif_telegram(entry)
                 except RuntimeError as e:
                     msg = e.args[0] if e.args else str(e)
                     errors.append(f"❌ {uf.name}: {msg}")
@@ -1694,8 +1931,100 @@ with tab_csv:
 
 
 # ══════════════════════════════════════════════════════════════
-# LOG & REKAP — VERSI RINGKAS, TANPA HTML, NATIVE STREAMLIT
+# TELEGRAM BOT
 # ══════════════════════════════════════════════════════════════
+st.divider()
+_dark_tele = st.session_state.get('dark_mode', True)
+_surf_tele = "#141414" if _dark_tele else "#ffffff"
+_bdr_tele  = "#242424" if _dark_tele else "#e4e2dd"
+_txt_tele  = "#f0f0f0" if _dark_tele else "#1a1a1a"
+_mut_tele  = "#666"    if _dark_tele else "#888"
+
+_tele_ok = tele_configured()
+
+st.markdown(f"""
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+    <div style="font-size:0.65rem;font-weight:800;letter-spacing:2px;color:{_mut_tele};
+                text-transform:uppercase;border-left:3px solid {PRIMARY_COLOR};
+                padding-left:8px;font-family:'JetBrains Mono',monospace;">
+        🤖 Telegram Bot
+    </div>
+    <div style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
+                color:{'#00c47a' if _tele_ok else '#f87171'};">
+        {'● Terhubung' if _tele_ok else '○ Belum dikonfigurasi'}
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+if not _tele_ok:
+    st.markdown(f"""
+    <div style="background:{_surf_tele};border:1px solid {_bdr_tele};border-radius:20px;
+                padding:1.25rem 1.5rem;">
+        <div style="font-size:0.78rem;font-weight:700;color:{_txt_tele};margin-bottom:0.5rem;">
+            Cara setup bot:
+        </div>
+        <div style="font-size:0.72rem;color:{_mut_tele};line-height:1.8;">
+            1. Chat <code style="color:{PRIMARY_COLOR};">@BotFather</code> di Telegram → buat bot baru → salin token<br>
+            2. Chat <code style="color:{PRIMARY_COLOR};">@userinfobot</code> → salin Chat ID lo<br>
+            3. Di Streamlit Cloud → <b>Settings → Secrets</b> → tambahkan:<br>
+            <code style="background:#0a0a0a;padding:6px 10px;border-radius:8px;
+                         display:inline-block;margin-top:6px;font-size:0.68rem;
+                         color:{SECONDARY};">TELEGRAM_TOKEN = "xxx:yyy"<br>
+TELEGRAM_CHAT_ID = "123456789"</code>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    _log_for_bot = load_log()
+    tele_col1, tele_col2 = st.columns([3, 1])
+    with tele_col1:
+        # Chat interface
+        if 'bot_history' not in st.session_state:
+            st.session_state.bot_history = [
+                ("bot", "👋 Halo! Gua FPK Bot. Ketik `/help` untuk lihat perintah yang tersedia.")
+            ]
+        # Render chat history
+        for role, msg in st.session_state.bot_history[-8:]:
+            is_bot = (role == "bot")
+            align  = "flex-start" if is_bot else "flex-end"
+            bg     = _surf_tele if is_bot else PRIMARY_COLOR
+            col    = _txt_tele  if is_bot else "#fff"
+            icon   = "🤖" if is_bot else "👤"
+            st.markdown(f"""
+            <div style="display:flex;justify-content:{align};margin-bottom:8px;">
+                <div style="max-width:85%;background:{bg};border:1px solid {_bdr_tele};
+                            border-radius:{'18px 18px 18px 4px' if is_bot else '18px 18px 4px 18px'};
+                            padding:10px 14px;font-size:0.75rem;color:{col};
+                            line-height:1.6;white-space:pre-wrap;font-family:'JetBrains Mono',monospace;">
+                    {msg.replace('*','').replace('`','')}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        user_input = st.text_input("", placeholder="Ketik perintah... /help /rekap /riwayat /pending /cari",
+                                    key="bot_input", label_visibility="collapsed")
+        bc1, bc2, bc3 = st.columns([3, 1, 1])
+        with bc1:
+            if st.button("Kirim", key="bot_send", use_container_width=True):
+                if user_input.strip():
+                    st.session_state.bot_history.append(("user", user_input))
+                    reply = handle_bot_command(user_input, _log_for_bot)
+                    st.session_state.bot_history.append(("bot", reply))
+                    st.rerun()
+        with bc2:
+            if st.button("Hapus Chat", key="bot_clear", use_container_width=True):
+                st.session_state.bot_history = [
+                    ("bot", "👋 Chat dikosongkan. Ketik `/help` untuk mulai lagi.")
+                ]
+                st.rerun()
+        with bc3:
+            if st.button("📤 Kirim Rekap", key="bot_send_rekap", use_container_width=True,
+                         help="Kirim rekap lengkap ke Telegram lo"):
+                ok, msg = kirim_rekap_telegram(_log_for_bot)
+                if ok:
+                    st.success(msg)
+                else:
+                    st.error(msg)
 st.divider()
 log_data = load_log()
 
