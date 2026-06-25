@@ -1263,70 +1263,50 @@ def animasi_terminal_proses(uf, dark: bool):
     render(lines)
     time.sleep(0.2)
 
-    # ── Fase 3: stream SEP — terminal & progress bar dipisah ──
+    # ── Fase 3: stream SEP — sliding window, semua ditampilkan urut ──
     #
-    # Prinsip:
-    # - Terminal hanya tampilkan MAX_VISIBLE baris SEP (kelihatan live ngetik)
-    # - Progress bar update lebih sering (tiap progress_batch rows)
-    # - Sisanya di-skip di terminal tapi progress tetap jalan smooth
-    # - Total durasi animasi ~12-15 detik
+    # Sliding window: terminal selalu render 20 baris terakhir — berat konstan.
+    # Semua SEP muncul berurutan 1–N, tidak ada yang di-skip.
+    # Delay adaptif: makin banyak SEP makin kencang, target max ~90 detik.
     #
-    MAX_VISIBLE    = 120   # max baris SEP yang ditampilkan di terminal
-    TERMINAL_DELAY = 0.07  # jeda tiap render terminal (detik)
-    PROGRESS_DELAY = 0.04  # jeda progress bar saat fast-forward
+    WINDOW_SIZE = 20
+    TARGET_SEC  = 90.0   # durasi animasi maksimal (detik)
 
-    # Hitung sampling: kalau SEP > MAX_VISIBLE, ambil sampel merata
-    if row_count <= MAX_VISIBLE:
-        # Semua ditampilkan satu per satu
-        terminal_indices = set(range(row_count))
-        term_batch = 1
-    else:
-        # Sampel merata — satu tiap N rows
-        step = row_count / MAX_VISIBLE
-        terminal_indices = set(int(i * step) for i in range(MAX_VISIBLE))
-        terminal_indices.add(row_count - 1)  # pastikan baris terakhir masuk
-        term_batch = max(1, int(step) // 2)  # batch untuk fast-forward
+    # Delay per baris: kalau kelamaan, percepat otomatis
+    raw_delay = TARGET_SEC / max(1, row_count)
+    # Floor 0.005s (200 baris/detik), ceiling 0.25s buat file kecil
+    TERMINAL_DELAY = max(0.005, min(0.25, raw_delay))
 
-    # Hitung progress_batch: progress update tiap ~1%
-    progress_batch = max(1, row_count // 100)
-
-    prog = st.empty()
-    terminal_count = 0   # berapa baris yang sudah masuk terminal
-    fast_buf       = []  # buffer rows yang di-skip terminal
-    last_prog_update = -1
+    prog       = st.empty()
+    sep_window = []
+    last_pct   = -1
 
     for i, row in enumerate(sep_list):
-        sep   = str(row["No.SEP"])
-        nom   = int(row["Disetujui"])
-        comma = "" if i == row_count - 1 else ","
+        sep     = str(row["No.SEP"])
+        nom     = int(row["Disetujui"])
+        comma   = "" if i == row_count - 1 else ","
         is_last = (i == row_count - 1)
 
-        if i in terminal_indices:
-            # Kalau ada fast-forward rows yang pending, flush dulu sebagai summary
-            if len(fast_buf) > 0:
-                lines.append(
-                    f'<span style="color:{dim};">  ... +{len(fast_buf):,} SEP</span>'
-                )
-                fast_buf = []
+        new_line = (
+            f'<span style="color:{dim};font-size:0.65rem;">  {i+1:>5}.</span>'
+            f'<span style="color:{blu};">  {{"No.SEP":"</span>'
+            f'<span style="color:{grn};">{sep}</span>'
+            f'<span style="color:{blu};">","Disetujui":</span>'
+            f'<span style="color:{yel};">{nom}</span>'
+            f'<span style="color:{blu};">}}{comma}</span>'
+        )
 
-            # Tampilkan baris ini di terminal
-            lines.append(
-                f'<span style="color:{blu};">  {{"No.SEP":"</span>'
-                f'<span style="color:{grn};">{sep}</span>'
-                f'<span style="color:{blu};">","Disetujui":</span>'
-                f'<span style="color:{yel};">{nom}</span>'
-                f'<span style="color:{blu};">}}{comma}</span>'
-            )
-            terminal_count += 1
-            render(lines)
-            time.sleep(TERMINAL_DELAY)
-        else:
-            fast_buf.append(i)
+        sep_window.append(new_line)
+        if len(sep_window) > WINDOW_SIZE:
+            sep_window.pop(0)
 
-        # Update progress bar tiap progress_batch rows atau baris terakhir
+        # Render terminal — header + window (berat konstan ~20 baris)
+        render(lines + sep_window)
+
+        # Update progress bar tiap 1% atau baris terakhir
         pct = int(((i + 1) / row_count) * 100)
-        if pct != last_prog_update or is_last:
-            last_prog_update = pct
+        if pct != last_pct or is_last:
+            last_pct = pct
             prog.markdown(
                 f'<div style="font-family:JetBrains Mono,monospace;font-size:0.7rem;'
                 f'display:flex;align-items:center;gap:10px;margin-top:6px;">'
@@ -1335,19 +1315,12 @@ def animasi_terminal_proses(uf, dark: bool):
                 f'<div style="flex:1;height:4px;background:{bar_bg};border-radius:4px;">'
                 f'<div style="width:{pct}%;height:4px;'
                 f'background:linear-gradient(90deg,{acc},{grn});'
-                f'border-radius:4px;transition:width 0.15s;"></div></div>'
+                f'border-radius:4px;transition:width 0.12s;"></div></div>'
                 f'<span style="color:{acc};font-weight:700;">{pct}%</span></div>',
                 unsafe_allow_html=True
             )
-            if i not in terminal_indices:
-                time.sleep(PROGRESS_DELAY)
 
-    # Flush sisa fast_buf kalau ada
-    if fast_buf:
-        lines.append(
-            f'<span style="color:{dim};">  ... +{len(fast_buf):,} SEP</span>'
-        )
-        render(lines)
+        time.sleep(TERMINAL_DELAY)
 
     prog.empty()
 
