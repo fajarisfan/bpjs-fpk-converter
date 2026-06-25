@@ -4,6 +4,7 @@ import re
 import time
 import socket
 import threading
+import colorsys
 import pandas as pd
 import streamlit as st
 import requests
@@ -11,52 +12,52 @@ import requests
 from datetime import datetime, timezone, timedelta
 from dummy_pdf import build_dummy_fpk_pdf, BULAN_LIST, TINGKAT_LIST
 
-# ── WARNA DEFAULT ──────────────────────────────────────────
-_DEFAULT_PRIMARY   = "#ff6b35"
-_DEFAULT_SECONDARY = "#00c47a"
-_DEFAULT_ACCENT    = "#ffd700"
+# ── COLOR SYSTEM ──────────────────────────────────────────────
+_DEFAULT_HUE = 138
+_DEFAULT_SAT = 88
+
+def hsl_to_hex(h: int, s: int, l: int) -> str:
+    r, g, b = colorsys.hls_to_rgb(h / 360, l / 100, s / 100)
+    return "#{:02x}{:02x}{:02x}".format(int(r * 255), int(g * 255), int(b * 255))
+
+def generate_palette(hue: int, sat: int) -> dict:
+    s = max(40, min(100, sat))
+    h_sec = (hue + 145) % 360
+    h_acc = (hue + 55)  % 360
+    h_pur = (hue + 200) % 360
+    return {
+        "primary":      hsl_to_hex(hue,  s,              52),
+        "primary_d":    hsl_to_hex(hue,  s,              40),
+        "primary_glow": hsl_to_hex(hue,  s,              70),
+        "primary_bg":   hsl_to_hex(hue,  max(20, s-30),  18),
+        "primary_bg_l": hsl_to_hex(hue,  max(20, s-30),  94),
+        "secondary":    hsl_to_hex(h_sec, max(40, s-15), 48),
+        "secondary_bg": hsl_to_hex(h_sec, max(20, s-40), 90),
+        "accent":       hsl_to_hex(h_acc, max(40, s-20), 50),
+        "accent_bg":    hsl_to_hex(h_acc, max(20, s-40), 90),
+        "purple":       hsl_to_hex(h_pur, max(40, s-10), 60),
+        "purple_bg":    hsl_to_hex(h_pur, max(20, s-40), 90),
+    }
 
 st.set_page_config(page_title="FPK Converter", page_icon="📄", layout="wide")
 
-# ── SESSION STATE ──────────────────────────────────────────
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-if 'dark_mode' not in st.session_state:
-    st.session_state.dark_mode = True
-if 'attempts' not in st.session_state:
-    st.session_state.attempts = 0
-if 'locked_until' not in st.session_state:
-    st.session_state.locked_until = None
-if 'login_time' not in st.session_state:
-    st.session_state.login_time = None
-if 'show_pin_form' not in st.session_state:
-    st.session_state.show_pin_form = False
-if 'show_theme_panel' not in st.session_state:
-    st.session_state.show_theme_panel = False
-if 'results' not in st.session_state:
-    st.session_state.results = []
-if 'errors' not in st.session_state:
-    st.session_state.errors = []
-if 'show_done' not in st.session_state:
-    st.session_state.show_done = False
-if 'demo_mode' not in st.session_state:
-    st.session_state.demo_mode = False
-if 'demo_pdf_bytes' not in st.session_state:
-    st.session_state.demo_pdf_bytes = None
-if 'demo_pdf_info' not in st.session_state:
-    st.session_state.demo_pdf_info = None
-# warna — bisa diubah dari UI
-if 'color_primary' not in st.session_state:
-    st.session_state.color_primary   = _DEFAULT_PRIMARY
-if 'color_secondary' not in st.session_state:
-    st.session_state.color_secondary = _DEFAULT_SECONDARY
-if 'color_accent' not in st.session_state:
-    st.session_state.color_accent    = _DEFAULT_ACCENT
+# ── SESSION STATE ──────────────────────────────────────────────
+for _k, _v in {
+    "logged_in": False, "dark_mode": True, "attempts": 0,
+    "locked_until": None, "login_time": None,
+    "show_pin_form": False, "show_theme_panel": False,
+    "results": [], "errors": [], "show_done": False,
+    "demo_mode": False, "demo_pdf_bytes": None, "demo_pdf_info": None,
+    "color_hue": _DEFAULT_HUE, "color_sat": _DEFAULT_SAT,
+}.items():
+    if _k not in st.session_state:
+        st.session_state[_k] = _v
 
-# shortcut — dipakai di seluruh file
-PRIMARY_COLOR = st.session_state.color_primary
-SECONDARY     = st.session_state.color_secondary
-ACCENT        = st.session_state.color_accent
+# ── ACTIVE PALETTE ─────────────────────────────────────────────
+_PAL          = generate_palette(st.session_state.color_hue, st.session_state.color_sat)
+PRIMARY_COLOR = _PAL["primary"]
+SECONDARY     = _PAL["secondary"]
+ACCENT        = _PAL["accent"]
 
 # ── CONFIG ──────────────────────────────────────────────────
 LOG_FILE  = "/tmp/log_konversi.json"
@@ -613,9 +614,9 @@ def inject_css(dark):
         gap: 4px;
     }}
     .status-pending {{
-        background: rgba(255,215,0,0.08);
-        border: 1.5px solid {ACCENT};
-        color: {ACCENT};
+        background: rgba(180,130,0,0.08);
+        border: 1.5px solid #b45309;
+        color: #b45309;
         padding: 2px 12px;
         border-radius: 40px;
         font-size: 0.62rem;
@@ -748,73 +749,55 @@ def inject_css(dark):
 
     /* ── STREAMLIT CHROME ── */
     [data-testid="stDecoration"] {{
-        background: linear-gradient(90deg, {PRIMARY_COLOR}, #e040fb) !important;
+        background: linear-gradient(90deg, {PRIMARY_COLOR}, {SECONDARY}) !important;
         height: 3px !important;
     }}
-    [data-testid="stHeader"] {{
-        background: {bg} !important;
-        border-bottom: 1px solid {border} !important;
-    }}
+    [data-testid="stHeader"] {{ background: {bg} !important; border-bottom: 1px solid {border} !important; }}
     [data-testid="stToolbar"] {{ background: {bg} !important; }}
     [data-testid="stToolbar"] button {{ color: {text_muted} !important; border-radius: 8px !important; }}
     [data-testid="stToolbar"] button:hover {{ background: {surface2} !important; color: {PRIMARY_COLOR} !important; }}
     #MainMenu {{ visibility: hidden; }}
     footer {{ visibility: hidden; display: none !important; }}
-    .viewerBadge_container__r5tak,
     [data-testid="stAppDeployButton"] {{ display: none !important; }}
     [data-testid="stStatusWidget"] {{
-        background: {surface} !important;
-        border: 1px solid {border} !important;
-        border-radius: 16px !important;
-        padding: 0.5rem 0.75rem !important;
+        background: {surface} !important; border: 1px solid {border} !important;
+        border-radius: 16px !important; padding: 0.5rem 0.75rem !important;
     }}
     [data-testid="stStatusWidget"] span,
     [data-testid="stStatusWidget"] p {{ color: {text_muted} !important; font-size: 0.75rem !important; }}
     [data-testid="stSidebar"] {{ background: {surface} !important; border-right: 1px solid {border} !important; }}
     [data-testid="stSidebar"] * {{ color: {text_body} !important; }}
     [data-testid="stToast"] {{
-        background: {surface2} !important;
-        border: 1px solid {border} !important;
-        border-radius: 14px !important;
-        color: {text_h} !important;
+        background: {surface2} !important; border: 1px solid {border} !important;
+        border-radius: 14px !important; color: {text_h} !important;
     }}
     ::-webkit-scrollbar {{ width: 4px; height: 4px; }}
     ::-webkit-scrollbar-track {{ background: {bg}; }}
     ::-webkit-scrollbar-thumb {{ background: {border2}; border-radius: 99px; }}
     ::-webkit-scrollbar-thumb:hover {{ background: {PRIMARY_COLOR}; }}
 
-    /* ── STREAMLIT NATIVE TEXT OVERRIDES ── */
-    .stApp, .stApp p, .stApp span, .stApp div,
-    [data-testid="stAppViewContainer"],
-    [data-testid="stVerticalBlock"] {{ color: {text_body} !important; }}
-    .stApp h1, .stApp h2, .stApp h3,
-    .stApp h4, .stApp h5, .stApp h6 {{ color: {text_h} !important; }}
+    /* ── NATIVE TEXT OVERRIDES (light mode fix) ── */
+    .stApp, .stApp p, .stApp span, .stApp div {{ color: {text_body} !important; }}
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{ color: {text_h} !important; }}
     [data-testid="stMarkdownContainer"] p,
     [data-testid="stMarkdownContainer"] li,
     [data-testid="stMarkdownContainer"] span {{ color: {text_body} !important; }}
     [data-testid="stCaptionContainer"], .stCaption, small {{ color: {text_muted} !important; }}
-    [data-baseweb="input"] input,
-    [data-baseweb="textarea"] textarea,
-    .stTextInput input {{
-        background: {input_bg} !important;
-        color: {input_col} !important;
-        border-color: {input_bdr} !important;
+    [data-baseweb="input"] input, [data-baseweb="textarea"] textarea, .stTextInput input {{
+        background: {input_bg} !important; color: {input_col} !important; border-color: {input_bdr} !important;
     }}
     [data-baseweb="input"], [data-baseweb="base-input"] {{ background: {input_bg} !important; }}
-    .stTextInput label, .stSelectbox label,
-    .stRadio label p, .stFileUploader label {{ color: {label_col} !important; }}
+    .stTextInput label, .stSelectbox label, .stRadio label p, .stFileUploader label {{ color: {label_col} !important; }}
     [data-testid="stFileUploader"] span,
-    [data-testid="stFileUploader"] p,
-    [data-testid="stFileUploaderDropzoneInstructions"] {{ color: {text_muted} !important; }}
+    [data-testid="stFileUploader"] p {{ color: {text_muted} !important; }}
     [data-testid="stExpander"] summary,
-    [data-testid="stExpander"] summary span,
-    [data-testid="stExpander"] summary p {{ color: {text_h} !important; }}
+    [data-testid="stExpander"] summary span {{ color: {text_h} !important; }}
     [data-testid="stExpander"] [data-testid="stExpanderDetails"] p,
     [data-testid="stExpander"] [data-testid="stExpanderDetails"] span {{ color: {text_body} !important; }}
     [data-testid="stTabs"] button[data-baseweb="tab"] {{ color: {text_muted} !important; }}
-    [data-baseweb="select"] div,
-    [data-baseweb="select"] span {{ background: {input_bg} !important; color: {input_col} !important; }}
-    .stDownloadButton > button {{ color: {SECONDARY} !important; }}
+    [data-baseweb="select"] div, [data-baseweb="select"] span {{
+        background: {input_bg} !important; color: {input_col} !important;
+    }}
     code, pre, .stCode {{ background: {surface2} !important; color: {text_h} !important; border: 1px solid {border} !important; }}
     .vega-embed text {{ fill: {text_muted} !important; }}
     </style>
@@ -861,9 +844,6 @@ if not st.session_state.logged_in:
                 st.error(msg)
     st.markdown('<div style="text-align:center;margin-top:0.5rem;"><span style="font-family:JetBrains Mono,monospace;font-size:0.62rem;opacity:0.35;">v1.0 · privasi terlindungi</span></div>', unsafe_allow_html=True)
     st.stop()
-
-# ── SETELAH LOGIN ──────────────────────────────────────────
-inject_css(st.session_state.dark_mode)
 
 # ── HELPERS ──────────────────────────────────────────────────
 def panggil_api_proses(uf, timeout=60):
@@ -1141,11 +1121,6 @@ def build_chart(log_data):
 # HALAMAN UTAMA
 # ══════════════════════════════════════════════════════════════
 
-# Refresh warna dari session_state (ikut perubahan color picker)
-PRIMARY_COLOR = st.session_state.color_primary
-SECONDARY     = st.session_state.color_secondary
-ACCENT        = st.session_state.color_accent
-
 log_data_for_hero = load_log()
 _total_konversi = len(log_data_for_hero)
 _total_selesai = sum(1 for x in log_data_for_hero if x.get('status') == 'Selesai')
@@ -1163,11 +1138,18 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# ── Refresh palette tiap rerun biar ikut perubahan warna ──
+_PAL          = generate_palette(st.session_state.color_hue, st.session_state.color_sat)
+PRIMARY_COLOR = _PAL["primary"]
+SECONDARY     = _PAL["secondary"]
+ACCENT        = _PAL["accent"]
+inject_css(st.session_state.dark_mode)
+
 col_sp_nav, col_theme_nav, col_paint_nav, col_pin_nav, col_logout_nav = st.columns([4, 1, 1, 1, 1])
 with col_theme_nav:
     st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
     icon = st.session_state.get('_toggle_icon', '☀️')
-    if st.button(icon, help=st.session_state.get('_toggle_tip','Ganti tema'), key="theme_toggle"):
+    if st.button(icon, help=st.session_state.get('_toggle_tip', 'Ganti tema'), key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1191,85 +1173,129 @@ with col_logout_nav:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ── PANEL KUSTOMISASI WARNA ──────────────────────────────────
-_PRESETS = {
-    "🍊 Oranye (Default)": ("#ff6b35", "#00c47a", "#ffd700"),
-    "💜 Ungu Neon":        ("#a855f7", "#22d3ee", "#f43f5e"),
-    "🔵 Biru Elektrik":    ("#3b82f6", "#10b981", "#f59e0b"),
-    "🌸 Rose Gold":        ("#f43f5e", "#a78bfa", "#fb923c"),
-    "🟢 Hijau Matrix":     ("#00c47a", "#00b0ff", "#ffd700"),
-}
+# ── PANEL WARNA ───────────────────────────────────────────────
+_PRESETS_PALETTE = [
+    ("🍊 Oranye Api",    20,  88),
+    ("💜 Ungu Elektrik", 270, 80),
+    ("🔵 Biru Laut",     210, 85),
+    ("🌸 Rose Gold",     340, 72),
+    ("🟢 Hijau Matrix",  138, 88),
+    ("🩵 Cyan Neon",     185, 90),
+]
 
 if st.session_state.get("show_theme_panel"):
     _dark_p = st.session_state.dark_mode
-    _surf_p = "#1a1a1a" if _dark_p else "#f5f4f2"
+    _surf_p = "#1a1a1a" if _dark_p else "#ffffff"
     _bdr_p  = "#2a2a2a" if _dark_p else "#e4e2dd"
     _txt_p  = "#f0f0f0" if _dark_p else "#1a1a1a"
     _mut_p  = "#666"    if _dark_p else "#888"
 
     st.markdown(f"""
-    <div style="background:{_surf_p};border:1px solid {_bdr_p};border-radius:24px;padding:1.25rem 1.5rem;margin-bottom:1rem;">
-        <div style="font-size:0.65rem;font-weight:800;letter-spacing:2px;color:{_mut_p};text-transform:uppercase;
-                    border-left:3px solid {PRIMARY_COLOR};padding-left:8px;margin-bottom:1rem;
-                    font-family:'JetBrains Mono',monospace;">
+    <div style="background:{_surf_p};border:1px solid {_bdr_p};border-radius:24px;
+                padding:1.25rem 1.5rem;margin-bottom:1rem;">
+        <div style="font-size:0.62rem;font-weight:800;letter-spacing:2px;
+                    color:{_mut_p};text-transform:uppercase;
+                    border-left:3px solid {PRIMARY_COLOR};padding-left:8px;
+                    margin-bottom:0.75rem;font-family:'JetBrains Mono',monospace;">
             🎨 Kustomisasi Warna
+        </div>
+        <div style="font-size:0.72rem;color:{_txt_p};margin-bottom:0.4rem;font-weight:600;">
+            Hue aktif: <span style="color:{PRIMARY_COLOR};font-family:'JetBrains Mono',monospace;">
+            {st.session_state.color_hue}° / sat {st.session_state.color_sat}%</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0.5rem;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:{_PAL["primary"]};
+                            box-shadow:0 0 10px {_PAL["primary"]}55;"></div>
+                <span style="font-size:0.58rem;color:{_mut_p};font-family:monospace;">Primary</span>
+                <span style="font-size:0.55rem;color:{_mut_p};font-family:monospace;">{_PAL["primary"]}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:{_PAL["secondary"]};
+                            box-shadow:0 0 10px {_PAL["secondary"]}55;"></div>
+                <span style="font-size:0.58rem;color:{_mut_p};font-family:monospace;">Secondary</span>
+                <span style="font-size:0.55rem;color:{_mut_p};font-family:monospace;">{_PAL["secondary"]}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:{_PAL["accent"]};
+                            box-shadow:0 0 10px {_PAL["accent"]}55;"></div>
+                <span style="font-size:0.58rem;color:{_mut_p};font-family:monospace;">Accent</span>
+                <span style="font-size:0.55rem;color:{_mut_p};font-family:monospace;">{_PAL["accent"]}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:32px;height:32px;border-radius:50%;background:{_PAL["purple"]};
+                            box-shadow:0 0 10px {_PAL["purple"]}55;"></div>
+                <span style="font-size:0.58rem;color:{_mut_p};font-family:monospace;">Purple</span>
+                <span style="font-size:0.55rem;color:{_mut_p};font-family:monospace;">{_PAL["purple"]}</span>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     # Preset palette
-    st.markdown(f'<div style="font-size:0.72rem;font-weight:700;color:{_mut_p};margin-bottom:0.5rem;">Preset Palette</div>', unsafe_allow_html=True)
-    preset_cols = st.columns(len(_PRESETS))
-    for i, (label, (p, s, a)) in enumerate(_PRESETS.items()):
-        with preset_cols[i]:
-            # Swatch preview
+    st.markdown(f'<div style="font-size:0.7rem;font-weight:700;color:{_mut_p};margin-bottom:0.5rem;">Preset</div>',
+                unsafe_allow_html=True)
+    pcols = st.columns(3)
+    for idx, (label, h, s) in enumerate(_PRESETS_PALETTE):
+        pal_prev = generate_palette(h, s)
+        with pcols[idx % 3]:
             st.markdown(f"""
-            <div style="display:flex;gap:3px;margin-bottom:4px;justify-content:center;">
-                <div style="width:14px;height:14px;border-radius:50%;background:{p};"></div>
-                <div style="width:14px;height:14px;border-radius:50%;background:{s};"></div>
-                <div style="width:14px;height:14px;border-radius:50%;background:{a};"></div>
+            <div style="display:flex;gap:3px;margin-bottom:3px;">
+                <div style="width:10px;height:10px;border-radius:50%;background:{pal_prev['primary']};"></div>
+                <div style="width:10px;height:10px;border-radius:50%;background:{pal_prev['secondary']};"></div>
+                <div style="width:10px;height:10px;border-radius:50%;background:{pal_prev['accent']};"></div>
             </div>
             """, unsafe_allow_html=True)
-            safe_key = label.replace(" ", "_").replace("(", "").replace(")", "")
-            if st.button(label.split()[0], key=f"preset_{safe_key}", help=label, use_container_width=True):
-                st.session_state.color_primary   = p
-                st.session_state.color_secondary = s
-                st.session_state.color_accent    = a
+            safe_key = label.replace(" ","_").replace("🍊","").replace("💜","").replace("🔵","").replace("🌸","").replace("🟢","").replace("🩵","")
+            if st.button(label, key=f"preset_{safe_key}", use_container_width=True):
+                st.session_state.color_hue = h
+                st.session_state.color_sat = s
                 st.rerun()
 
-    st.markdown("<div style='margin:0.75rem 0 0.5rem'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin:0.5rem 0'></div>", unsafe_allow_html=True)
 
-    # Custom picker
-    st.markdown(f'<div style="font-size:0.72rem;font-weight:700;color:{_mut_p};margin-bottom:0.5rem;">Custom</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
-    with c1:
-        st.markdown('<div style="font-size:0.65rem;font-weight:700;color:#888;text-align:center;">Primary</div>', unsafe_allow_html=True)
-        new_p = st.color_picker("", st.session_state.color_primary, key="pick_primary", label_visibility="collapsed")
-    with c2:
-        st.markdown('<div style="font-size:0.65rem;font-weight:700;color:#888;text-align:center;">Secondary</div>', unsafe_allow_html=True)
-        new_s = st.color_picker("", st.session_state.color_secondary, key="pick_secondary", label_visibility="collapsed")
-    with c3:
-        st.markdown('<div style="font-size:0.65rem;font-weight:700;color:#888;text-align:center;">Accent</div>', unsafe_allow_html=True)
-        new_a = st.color_picker("", st.session_state.color_accent, key="pick_accent", label_visibility="collapsed")
-    with c4:
-        st.markdown('<div style="font-size:0.65rem;font-weight:700;color:#888;text-align:center;">&nbsp;</div>', unsafe_allow_html=True)
-        if st.button("Terapkan", key="apply_color"):
-            st.session_state.color_primary   = new_p
-            st.session_state.color_secondary = new_s
-            st.session_state.color_accent    = new_a
+    # Slider custom
+    st.markdown(f'<div style="font-size:0.7rem;font-weight:700;color:{_mut_p};margin-bottom:0.3rem;">Custom</div>',
+                unsafe_allow_html=True)
+    new_hue = st.slider("🎡 Hue (0–360)", 0, 360,
+                         st.session_state.color_hue, 1, key="slider_hue",
+                         help="Geser untuk pilih warna dasar")
+    new_sat = st.slider("💧 Saturasi (40–100)", 40, 100,
+                         st.session_state.color_sat, 1, key="slider_sat",
+                         help="Geser untuk atur intensitas warna")
+
+    # Preview live swatch
+    prev_pal = generate_palette(new_hue, new_sat)
+    st.markdown(f"""
+    <div style="display:flex;gap:8px;margin:0.5rem 0;align-items:center;">
+        <div style="width:28px;height:28px;border-radius:50%;background:{prev_pal['primary']};"></div>
+        <div style="width:28px;height:28px;border-radius:50%;background:{prev_pal['secondary']};"></div>
+        <div style="width:28px;height:28px;border-radius:50%;background:{prev_pal['accent']};"></div>
+        <div style="width:28px;height:28px;border-radius:50%;background:{prev_pal['purple']};"></div>
+        <span style="font-size:0.68rem;color:{_mut_p};font-family:monospace;">preview →</span>
+        <span style="background:{prev_pal['primary']};color:#fff;font-size:0.65rem;
+                     padding:3px 10px;border-radius:99px;font-weight:700;">Tombol</span>
+        <span style="border:1.5px solid {prev_pal['secondary']};color:{prev_pal['secondary']};
+                     font-size:0.65rem;padding:3px 10px;border-radius:99px;font-weight:700;">Selesai</span>
+        <span style="border:1.5px solid {prev_pal['accent']};color:{prev_pal['accent']};
+                     font-size:0.65rem;padding:3px 10px;border-radius:99px;font-weight:700;">Pending</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    ca, cb = st.columns([2, 1])
+    with ca:
+        if st.button("✅ Terapkan", key="apply_color", use_container_width=True):
+            st.session_state.color_hue = new_hue
+            st.session_state.color_sat = new_sat
             st.rerun()
-
-    # Reset
-    rc1, rc2 = st.columns([3, 1])
-    with rc2:
-        if st.button("Reset Default", key="reset_color"):
-            st.session_state.color_primary   = _DEFAULT_PRIMARY
-            st.session_state.color_secondary = _DEFAULT_SECONDARY
-            st.session_state.color_accent    = _DEFAULT_ACCENT
+    with cb:
+        if st.button("↺ Reset", key="reset_color", use_container_width=True):
+            st.session_state.color_hue = _DEFAULT_HUE
+            st.session_state.color_sat = _DEFAULT_SAT
             st.rerun()
 
 if st.session_state.get("show_pin_form"):
-    with st.expander("Ganti PIN", expanded=True):
+    with st.expander("🔑 Ganti PIN", expanded=True):
         st.info("💡 Untuk ganti PIN, ubah nilai **PIN** di **Streamlit Cloud → Settings → Secrets**, lalu klik **Reboot app**.")
         p_lama = st.text_input("PIN Lama", type="password", placeholder="", key="p_lama")
         p_baru = st.text_input("PIN Baru", type="password", placeholder="", key="p_baru")
