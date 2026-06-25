@@ -1264,17 +1264,9 @@ def animasi_terminal_proses(uf, dark: bool):
     time.sleep(0.2)
 
     # ── Fase 3: stream SEP — sliding window, semua ditampilkan urut ──
-    #
-    # Sliding window: terminal selalu render 20 baris terakhir — berat konstan.
-    # Semua SEP muncul berurutan 1–N, tidak ada yang di-skip.
-    # Delay adaptif: makin banyak SEP makin kencang, target max ~90 detik.
-    #
-    WINDOW_SIZE = 20
-    TARGET_SEC  = 90.0   # durasi animasi maksimal (detik)
-
-    # Delay per baris: kalau kelamaan, percepat otomatis
-    raw_delay = TARGET_SEC / max(1, row_count)
-    # Floor 0.005s (200 baris/detik), ceiling 0.25s buat file kecil
+    WINDOW_SIZE    = 20
+    TARGET_SEC     = 90.0
+    raw_delay      = TARGET_SEC / max(1, row_count)
     TERMINAL_DELAY = max(0.005, min(0.25, raw_delay))
 
     prog       = st.empty()
@@ -1282,17 +1274,19 @@ def animasi_terminal_proses(uf, dark: bool):
     last_pct   = -1
 
     for i, row in enumerate(sep_list):
+        no_urut = i + 1
         sep     = str(row["No.SEP"])
         nom     = int(row["Disetujui"])
+        nom_fmt = f"Rp {nom:,}".replace(",", ".")
         comma   = "" if i == row_count - 1 else ","
         is_last = (i == row_count - 1)
 
         new_line = (
-            f'<span style="color:{dim};font-size:0.65rem;">  {i+1:>5}.</span>'
+            f'<span style="color:{dim};">  {no_urut:>5}.</span>'
             f'<span style="color:{blu};">  {{"No.SEP":"</span>'
             f'<span style="color:{grn};">{sep}</span>'
             f'<span style="color:{blu};">","Disetujui":</span>'
-            f'<span style="color:{yel};">{nom}</span>'
+            f'<span style="color:{yel};">{nom_fmt}</span>'
             f'<span style="color:{blu};">}}{comma}</span>'
         )
 
@@ -1300,41 +1294,46 @@ def animasi_terminal_proses(uf, dark: bool):
         if len(sep_window) > WINDOW_SIZE:
             sep_window.pop(0)
 
-        # Render terminal — header + window (berat konstan ~20 baris)
+        # Render terminal — header + window saja (berat konstan ~20 baris)
         render(lines + sep_window)
 
-        # Update progress bar tiap 1% atau baris terakhir
+        # Progress bar — update tiap 1% perubahan ATAU baris terakhir (paksa 100%)
         pct = int(((i + 1) / row_count) * 100)
         if pct != last_pct or is_last:
             last_pct = pct
+            _pct_display = 100 if is_last else pct  # paksa 100% di baris terakhir
             prog.markdown(
                 f'<div style="font-family:JetBrains Mono,monospace;font-size:0.7rem;'
                 f'display:flex;align-items:center;gap:10px;margin-top:6px;">'
                 f'<span style="color:{grn};font-weight:700;white-space:nowrap;">'
-                f'{i+1:,}/{row_count:,} SEP</span>'
+                f'{no_urut:,}/{row_count:,} SEP</span>'
                 f'<div style="flex:1;height:4px;background:{bar_bg};border-radius:4px;">'
-                f'<div style="width:{pct}%;height:4px;'
+                f'<div style="width:{_pct_display}%;height:4px;'
                 f'background:linear-gradient(90deg,{acc},{grn});'
-                f'border-radius:4px;transition:width 0.12s;"></div></div>'
-                f'<span style="color:{acc};font-weight:700;">{pct}%</span></div>',
+                f'border-radius:4px;transition:width 0.1s;"></div></div>'
+                f'<span style="color:{"#00ff88" if is_last else acc};font-weight:700;">'
+                f'{_pct_display}%</span></div>',
                 unsafe_allow_html=True
             )
 
         time.sleep(TERMINAL_DELAY)
 
+    # Tahan sebentar biar 100% kelihatan
+    time.sleep(0.5)
     prog.empty()
 
-    # ── Fase 4: footer ──
+    # ── Fase 4: footer — append ke window terakhir ──
     total_fmt = f"Rp {total:,}".replace(",", ".")
-    lines.append(ln('  ],', txt))
-    lines.append(ln(f'  "total"  : {total},', yel))
-    lines.append(ln(f'  "nominal": "{total_fmt}",', acc))
+    footer_lines = list(sep_window)  # mulai dari window terakhir yang keliatan
+    footer_lines.append(ln('  ],', txt))
+    footer_lines.append(ln(f'  "total"  : {total},', yel))
+    footer_lines.append(ln(f'  "nominal": "{total_fmt}",', acc))
     if duplikat:
-        lines.append(ln(f'  "duplikat": {len(duplikat)} SEP,', "#ff4444"))
-    lines.append(ln('  "status" : "DONE ✓"', grn))
-    lines.append(ln('}', txt))
-    render(lines, done=True)
-    time.sleep(0.6)
+        footer_lines.append(ln(f'  "duplikat": {len(duplikat)} SEP,', "#ff4444"))
+    footer_lines.append(ln('  "status" : "DONE ✓"', grn))
+    footer_lines.append(ln('}', txt))
+    render(lines + footer_lines, done=True)
+    time.sleep(0.8)
     term.empty()
     return payload, df_res, req_meta, resp_meta
 def build_chart(log_data):
