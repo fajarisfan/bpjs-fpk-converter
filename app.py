@@ -1196,7 +1196,7 @@ def animasi_terminal_proses(uf, dark: bool):
     def render(lines, done=False):
         visible = lines[-60:]
         inner = "".join(
-            f'<div style="margin:0;line-height:1.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{l}</div>'
+            f'<div style="margin:0 0 1px 0;line-height:1.6;">{l}</div>'
             for l in visible
         )
         dot = f'<span style="color:{grn};">●</span>' if not done else f'<span style="color:{acc};">✓</span>'
@@ -1282,12 +1282,11 @@ def animasi_terminal_proses(uf, dark: bool):
         is_last = (i == row_count - 1)
 
         new_line = (
-            f'<span style="color:{dim};">  {no_urut:>5}.</span>'
-            f'<span style="color:{blu};">  {{"No.SEP":"</span>'
-            f'<span style="color:{grn};">{sep}</span>'
-            f'<span style="color:{blu};">","Disetujui":</span>'
-            f'<span style="color:{yel};">{nom_fmt}</span>'
-            f'<span style="color:{blu};">}}{comma}</span>'
+            f'<div style="display:flex;gap:4px;align-items:baseline;white-space:nowrap;">'
+            f'<span style="color:{dim};min-width:42px;text-align:right;flex-shrink:0;">{no_urut}.</span>'
+            f'<span style="color:{grn};flex:1;overflow:hidden;text-overflow:ellipsis;">{sep}</span>'
+            f'<span style="color:{yel};font-weight:700;flex-shrink:0;text-align:right;">{nom_fmt}</span>'
+            f'</div>'
         )
 
         sep_window.append(new_line)
