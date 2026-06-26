@@ -192,10 +192,21 @@ def kirim_notif_telegram(entry: dict) -> tuple[bool, str]:
         f"🕓 *Waktu*: {entry['waktu']}\n"
         f"📊 *Status*: {'✅ Selesai' if entry.get('status')=='Selesai' else '⏳ Belum Diambil'}\n"
     )
+    # Inline keyboard (opsional)
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "✅ Tandai Selesai", "callback_data": f"done_{entry['nama_file']}"}],
+        ]
+    }
     try:
         resp = requests.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"},
+            json={
+                "chat_id": chat_id,
+                "text": msg,
+                "parse_mode": "Markdown",
+                "reply_markup": json.dumps(keyboard)
+            },
             timeout=8
         )
         if resp.ok:
@@ -242,20 +253,74 @@ def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
     except Exception as e:
         return False, f"❌ Error: {e}"
 
+# ── BOT ISLAMI & HANDLER ──
+_QUOTES = [
+    "“Sebaik-baik manusia adalah yang paling bermanfaat bagi orang lain.” (HR. Thabrani)",
+    "“Barangsiapa yang beriman kepada Allah dan hari akhir, hendaklah ia berkata baik atau diam.” (HR. Bukhari & Muslim)",
+    "“Janganlah kalian saling membenci, saling dengki, dan saling membelakangi. Jadilah hamba-hamba Allah yang bersaudara.” (HR. Bukhari)",
+    "“Allah tidak melihat rupa dan harta kalian, tapi Dia melihat hati dan amal kalian.” (HR. Muslim)",
+    "“Senyummu di hadapan saudaramu adalah sedekah.” (HR. Tirmidzi)",
+]
+
+_JOKES = [
+    "Kenapa FPK Converter suka baca Al-Qur'an? Soalnya suka ayat-ayat 😂",
+    "Tahu kenapa programmer FPK gak pernah sedih? Karena selalu ada try-catch 🤣",
+    "Orang FPK kalau turun hujan? Pasti nunggu air terbit 😄",
+]
+
+_SAPANAN = ["kak", "gan", "brow", "bro", "bang", "mbak"]
+
 def handle_bot_command(text: str, log_data: list) -> str:
-    """Proses perintah bot dari kolom chat di app."""
-    text = text.strip().lower()
-    if text in ["/start", "/help", "help", "bantuan"]:
+    text_lower = text.strip().lower()
+
+    # ── KATA KHUSUS: ZIZAH ──
+    if "zizah" in text_lower:
         return (
-            "🤖 *FPK Bot* siap!\n\n"
-            "Perintah yang tersedia:\n"
-            "`/rekap` — ringkasan semua konversi\n"
-            "`/riwayat` — 10 konversi terakhir\n"
-            "`/cari [kata]` — cari by nama file/bulan\n"
-            "`/total` — total nominal semua file\n"
-            "`/pending` — file yang belum diambil"
+            "Jangan di pikirin lagi, dia lagi mikirin kamu, doain aja 🙏✨\n"
+            "Tenang aja, semua ada waktunya. Yang penting kamu tetap semangat dan sholat ya, kak! 💪"
         )
-    elif text in ["/rekap", "rekap"]:
+
+    # ── SALAM ISLAMI ──
+    if text_lower in ["assalamualaikum", "assalamu'alaikum", "salam", "salamualaikum"]:
+        return (
+            "Waalaikumsalam warahmatullahi wabarakatuh, kak! 😊\n"
+            "Semoga hari kakak penuh berkah dan dimudahkan segala urusan. Aamiin."
+        )
+
+    # ── SAPAAN ──
+    if any(kata in text_lower for kata in ["halo", "hai", "hey", "hello"]):
+        import random
+        sap = random.choice(_SAPANAN)
+        return f"Halo juga {sap}! Senang banget bisa ngobrol sama kakak 😄\nAda yang bisa gua bantu? Ketik /help buat lihat fitur."
+
+    # ── KABAR ──
+    if any(kata in text_lower for kata in ["kabar", "gimana", "apa kabar", "keadaan"]):
+        return (
+            "Alhamdulillah, baik banget kak! 😊\n"
+            "Semoga kakak juga selalu dalam keadaan sehat dan bahagia ya. "
+            "Kalau ada yang bisa gua bantu, tinggal bilang aja."
+        )
+
+    # ── DOA ──
+    if any(kata in text_lower for kata in ["doa", "restu", "berkah", "amin"]):
+        return (
+            "Aamiin Ya Rabbal Alamin 🤲\n"
+            "Semoga Allah mudahkan semua urusan kakak, diberi kesehatan, rezeki berkah, "
+            "dan selalu dalam lindungan-Nya. Jangan lupa sholat dan baca doa ya, kak!"
+        )
+
+    # ── PERINTAH /QUOTE ──
+    if text_lower in ["/quote", "quote"]:
+        import random
+        return f"📖 *Kutipan Hari Ini*\n\n{random.choice(_QUOTES)}"
+
+    # ── PERINTAH /JOKE ──
+    if text_lower in ["/joke", "joke"]:
+        import random
+        return f"😂 *Candaan Santai*\n\n{random.choice(_JOKES)}"
+
+    # ── /REKAP ──
+    if text in ["/rekap", "rekap"]:
         if not log_data:
             return "📭 Belum ada data konversi."
         total_nom = sum(x['total'] for x in log_data)
@@ -269,7 +334,9 @@ def handle_bot_command(text: str, log_data: list) -> str:
             f"🔢 Total SEP: *{total_sep:,}*\n"
             f"💰 Total Nominal: *{nom_fmt}*"
         )
-    elif text in ["/riwayat", "riwayat"]:
+
+    # ── /RIWAYAT ──
+    if text in ["/riwayat", "riwayat"]:
         if not log_data:
             return "📭 Belum ada riwayat."
         rows = ""
@@ -278,7 +345,9 @@ def handle_bot_command(text: str, log_data: list) -> str:
             st_icon = "✅" if x.get('status') == 'Selesai' else "⏳"
             rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP · {nom}\n   🕓 {x['waktu']}\n\n"
         return f"📋 *10 Konversi Terakhir*\n\n{rows}"
-    elif text in ["/total", "total"]:
+
+    # ── /TOTAL ──
+    if text in ["/total", "total"]:
         if not log_data:
             return "📭 Belum ada data."
         total_nom = sum(x['total'] for x in log_data)
@@ -289,7 +358,9 @@ def handle_bot_command(text: str, log_data: list) -> str:
             f"SEP: *{total_sep:,}*\n"
             f"File: *{len(log_data)}*"
         ).replace(",", ".")
-    elif text in ["/pending", "pending"]:
+
+    # ── /PENDING ──
+    if text in ["/pending", "pending"]:
         pending = [x for x in log_data if x.get('status') != 'Selesai']
         if not pending:
             return "✅ Semua file sudah diambil!"
@@ -298,7 +369,32 @@ def handle_bot_command(text: str, log_data: list) -> str:
             nom = f"Rp {x['total']:,}".replace(",",".")
             rows += f"{i}. `{x['nama_file']}`\n   {x['jumlah']:,} SEP · {nom} · {x['waktu']}\n\n"
         return f"⏳ *{len(pending)} File Belum Diambil*\n\n{rows}"
-    elif text.startswith("/cari ") or text.startswith("cari "):
+
+    # ── /TOP ──
+    if text in ["/top", "top"]:
+        if not log_data:
+            return "📭 Belum ada data."
+        sorted_data = sorted(log_data, key=lambda x: x['total'], reverse=True)[:5]
+        rows = ""
+        for i, x in enumerate(sorted_data, 1):
+            nom = f"Rp {x['total']:,}".replace(",", ".")
+            rows += f"{i}. `{x['nama_file']}` → {nom}\n"
+        return f"🏆 *Top 5 Konversi Terbesar*\n\n{rows}"
+
+    # ── /SEARCH ──
+    if text.startswith("/search ") or text.startswith("search "):
+        keyword = text.split(" ", 1)[1].strip()
+        hasil = [x for x in log_data if keyword.lower() in x.get('nama_file','').lower()]
+        if not hasil:
+            return f"🔍 Tidak ada file dengan kata *{keyword}*"
+        rows = ""
+        for x in hasil[:5]:
+            nom = f"Rp {x['total']:,}".replace(",", ".")
+            rows += f"• `{x['nama_file']}` → {nom}\n"
+        return f"🔍 *Hasil cari '{keyword}'* ({len(hasil)} ditemukan)\n\n{rows}"
+
+    # ── /CARI (alias) ──
+    if text.startswith("/cari ") or text.startswith("cari "):
         keyword = text.split(" ", 1)[1].strip().lower()
         hasil = [x for x in log_data if keyword in x.get('nama_file','').lower()
                  or keyword in x.get('waktu','').lower()
@@ -311,10 +407,33 @@ def handle_bot_command(text: str, log_data: list) -> str:
             st_icon = "✅" if x.get('status') == 'Selesai' else "⏳"
             rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP · {nom}\n\n"
         return f"🔍 *Hasil cari '{keyword}'* ({len(hasil)} ditemukan)\n\n{rows}"
+
+    # ── /HELP ──
+    if text in ["/help", "help", "bantuan"]:
+        return (
+            "🤖 *FPK Bot — Asisten Konversi FPK*\n\n"
+            "Assalamualaikum kak! Gua siap bantu konversi data FPK. 😊\n\n"
+            "📌 *Perintah yang tersedia:*\n"
+            "`/rekap`     → Ringkasan semua konversi\n"
+            "`/riwayat`   → 10 konversi terakhir\n"
+            "`/total`     → Total nominal & SEP\n"
+            "`/pending`   → File yang belum diambil\n"
+            "`/top`       → Top 5 konversi terbesar\n"
+            "`/search <kata>` → Cari file\n"
+            "`/cari <kata>`   → Cari file (alias)\n"
+            "`/quote`     → Kutipan inspiratif\n"
+            "`/joke`      → Candaan santai\n"
+            "`/help`      → Tampilkan ini\n\n"
+            "💬 *Kakak juga bisa ngobrol santai sama gua,*\n"
+            "misalnya: *halo, apa kabar, atau doa.*"
+        )
+
+    # ── FALLBACK ──
     else:
         return (
-            "❓ Perintah tidak dikenal.\n"
-            "Ketik `/help` untuk daftar perintah."
+            "Maaf kak, gua belum paham maksudnya 😅\n"
+            "Coba ketik `/help` buat lihat perintah yang tersedia, "
+            "atau kakak bisa ngobrol santai kayak 'halo', 'apa kabar', 'doa', 'assalamualaikum'."
         )
 
 # ── PIN ─────────────────────────────────────────────────────
@@ -1323,9 +1442,9 @@ def animasi_terminal_proses(uf, dark: bool):
     time.sleep(0.5)
     prog.empty()
 
-    # ── Fase 4: footer — append ke window terakhir ──
+    # ── Fase 4: footer ──
     total_fmt = f"Rp {total:,}".replace(",", ".")
-    footer_lines = list(sep_window)  # mulai dari window terakhir yang keliatan
+    footer_lines = list(sep_window)
     footer_lines.append(ln('  ],', txt))
     footer_lines.append(ln(f'  "total"  : {total},', yel))
     footer_lines.append(ln(f'  "nominal": "{total_fmt}",', acc))
@@ -1337,6 +1456,7 @@ def animasi_terminal_proses(uf, dark: bool):
     time.sleep(0.8)
     term.empty()
     return payload, df_res, req_meta, resp_meta
+
 def build_chart(log_data):
     if not log_data:
         return None
@@ -1374,10 +1494,9 @@ _total_selesai = sum(1 for x in log_data_for_hero if x.get('status') == 'Selesai
 _total_pending = _total_konversi - _total_selesai
 _total_nominal = sum(x['total'] for x in log_data_for_hero)
 
-# ── Format nominal PENUH ────────────────────────────────────
 _nominal_str = f"Rp {_total_nominal:,.0f}".replace(",", ".")
 
-# ── TOP NAV ──────────────────────────────────────────────────
+# ── TOP NAV ──
 st.markdown("""
 <div class="top-nav">
     <div class="top-nav-logo"><span>FPK CONVERTER</span></div>
@@ -1385,7 +1504,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Refresh palette tiap rerun biar ikut perubahan warna ──
 _PAL          = build_palette()
 PRIMARY_COLOR = _PAL["primary"]
 SECONDARY     = _PAL["secondary"]
@@ -1420,7 +1538,7 @@ with col_logout_nav:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ── PANEL WARNA ───────────────────────────────────────────────
+# ── PANEL WARNA ──
 if st.session_state.get("show_theme_panel"):
     _dark_p = st.session_state.dark_mode
     _surf_p = "#1a1a1a" if _dark_p else "#ffffff"
@@ -1428,7 +1546,6 @@ if st.session_state.get("show_theme_panel"):
     _txt_p  = "#f0f0f0" if _dark_p else "#1a1a1a"
     _mut_p  = "#666"    if _dark_p else "#888"
 
-    # ── Info card per warna (keterangan) ──
     _COLOR_INFO = [
         ("c_primary",   PRIMARY_COLOR,       "Primary",
          "Tombol utama · logo pill · hero title · border aktif · tab aktif · scrollbar · terminal prompt",
@@ -1474,7 +1591,6 @@ if st.session_state.get("show_theme_panel"):
 
     st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.75rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Preset Palette</div>', unsafe_allow_html=True)
 
-    # Preset grid — 4 kolom
     pcols = st.columns(4)
     for idx, (label, p, s, a, pu) in enumerate(_PRESETS_PALETTE):
         with pcols[idx % 4]:
@@ -1496,7 +1612,6 @@ if st.session_state.get("show_theme_panel"):
 
     st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.75rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Custom — Pilih Bebas</div>', unsafe_allow_html=True)
 
-    # 4 color picker independen
     cp1, cp2, cp3, cp4 = st.columns(4)
     with cp1:
         st.markdown(f'<div style="font-size:0.62rem;font-weight:700;color:{PRIMARY_COLOR};text-align:center;margin-bottom:2px;">Primary</div>', unsafe_allow_html=True)
@@ -1511,7 +1626,6 @@ if st.session_state.get("show_theme_panel"):
         st.markdown(f'<div style="font-size:0.62rem;font-weight:700;color:{_PAL["purple"]};text-align:center;margin-bottom:2px;">Purple</div>', unsafe_allow_html=True)
         new_pu = st.color_picker("", st.session_state.c_purple,   key="pick_pu", label_visibility="collapsed")
 
-    # Preview live
     st.markdown(f"""
     <div style="display:flex;gap:6px;align-items:center;margin:0.6rem 0;flex-wrap:wrap;">
         <span style="font-size:0.6rem;color:{_mut_p};font-family:monospace;">preview →</span>
@@ -1538,6 +1652,7 @@ if st.session_state.get("show_theme_panel"):
             st.session_state.c_accent    = "#ffd700"
             st.session_state.c_purple    = "#a78bfa"
             st.rerun()
+
 if st.session_state.get("show_pin_form"):
     with st.expander("🔑 Ganti PIN", expanded=True):
         st.info("💡 Untuk ganti PIN, ubah nilai **PIN** di **Streamlit Cloud → Settings → Secrets**, lalu klik **Reboot app**.")
@@ -1548,7 +1663,7 @@ if st.session_state.get("show_pin_form"):
             ok, msg = change_pin(p_lama, p_baru, p_konfirm)
             st.warning(msg) if not ok else st.success(msg)
 
-# ── HERO CARD ────────────────────────────────────────────────
+# ── HERO CARD ──
 st.markdown(f"""
 <div class="hero-card">
     <div class="hero-label">FPK Converter · v1.0</div>
@@ -1583,7 +1698,6 @@ with tab_pdf:
     elif _api_status in ("started", "already_running"):
         st.caption(f"🟢 Backend API aktif di `{API_URL}`")
 
-    # ── MODE DEMO (data dummy untuk simulasi/video, bukan data asli) ──
     _dark_demo = st.session_state.get('dark_mode', True)
     _demo_bg = "#1a1410" if _dark_demo else "#fff8ec"
     _demo_bdr = "#3a2a14" if _dark_demo else "#f0d9a8"
@@ -1725,7 +1839,6 @@ with tab_pdf:
                         'waktu_selesai': None,
                     }
                     save_log(entry)
-                    # Auto-kirim notif Telegram jika sudah dikonfigurasi
                     if tele_configured():
                         kirim_notif_telegram(entry)
                 except RuntimeError as e:
@@ -1763,7 +1876,7 @@ with tab_pdf:
                 with tab_h:
                     render_result(res, idx=i)
 
-# ── TAB KALKULATOR CSV ──────────────────────────────────────
+# ── TAB KALKULATOR CSV ──
 with tab_csv:
     _dark_c = st.session_state.get('dark_mode', True)
     _surf_c = "#1a1a1a" if _dark_c else "#ffffff"
@@ -1904,9 +2017,10 @@ with tab_csv:
 
 
 # ══════════════════════════════════════════════════════════════
-# TELEGRAM BOT
+# TELEGRAM BOT — UI RAPI & SCROLLABLE
 # ══════════════════════════════════════════════════════════════
 st.divider()
+
 _dark_tele = st.session_state.get('dark_mode', True)
 _surf_tele = "#141414" if _dark_tele else "#ffffff"
 _bdr_tele  = "#242424" if _dark_tele else "#e4e2dd"
@@ -1916,13 +2030,13 @@ _mut_tele  = "#666"    if _dark_tele else "#888"
 _tele_ok = tele_configured()
 
 st.markdown(f"""
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
-    <div style="font-size:0.65rem;font-weight:800;letter-spacing:2px;color:{_mut_tele};
-                text-transform:uppercase;border-left:3px solid {PRIMARY_COLOR};
-                padding-left:8px;font-family:'JetBrains Mono',monospace;">
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
+    <div style="font-size:0.7rem; font-weight:800; letter-spacing:2px; color:{_mut_tele};
+                text-transform:uppercase; border-left:3px solid {PRIMARY_COLOR};
+                padding-left:10px; font-family:'JetBrains Mono',monospace;">
         🤖 Telegram Bot
     </div>
-    <div style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
+    <div style="font-size:0.65rem; font-family:'JetBrains Mono',monospace;
                 color:{'#00c47a' if _tele_ok else '#f87171'};">
         {'● Terhubung' if _tele_ok else '○ Belum dikonfigurasi'}
     </div>
@@ -1930,75 +2044,132 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 if not _tele_ok:
-    st.markdown(f"""
-    <div style="background:{_surf_tele};border:1px solid {_bdr_tele};border-radius:20px;
-                padding:1.25rem 1.5rem;">
-        <div style="font-size:0.78rem;font-weight:700;color:{_txt_tele};margin-bottom:0.5rem;">
-            Cara setup bot:
-        </div>
-        <div style="font-size:0.72rem;color:{_mut_tele};line-height:1.8;">
-            1. Chat <code style="color:{PRIMARY_COLOR};">@BotFather</code> di Telegram → buat bot baru → salin token<br>
-            2. Chat <code style="color:{PRIMARY_COLOR};">@userinfobot</code> → salin Chat ID lo<br>
-            3. Di Streamlit Cloud → <b>Settings → Secrets</b> → tambahkan:<br>
-            <code style="background:#0a0a0a;padding:6px 10px;border-radius:8px;
-                         display:inline-block;margin-top:6px;font-size:0.68rem;
-                         color:{SECONDARY};">TELEGRAM_TOKEN = "xxx:yyy"<br>
-TELEGRAM_CHAT_ID = "123456789"</code>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.info("🔧 Setup bot: tambahkan `TELEGRAM_TOKEN` dan `TELEGRAM_CHAT_ID` di Secrets.")
 else:
     _log_for_bot = load_log()
-    tele_col1, tele_col2 = st.columns([3, 1])
-    with tele_col1:
-        # Chat interface
-        if 'bot_history' not in st.session_state:
-            st.session_state.bot_history = [
-                ("bot", "👋 Halo! Gua FPK Bot. Ketik `/help` untuk lihat perintah yang tersedia.")
-            ]
-        # Render chat history
-        for role, msg in st.session_state.bot_history[-8:]:
+
+    if 'bot_history' not in st.session_state:
+        st.session_state.bot_history = [
+            ("bot", "Assalamualaikum kak! 😊\nGua FPK Bot — asisten konversi FPK yang siap bantu.\nKetik /help untuk lihat perintah, atau ngobrol santai aja!")
+        ]
+
+    chat_container = st.container()
+    with chat_container:
+        st.markdown(f"""
+        <div style="background:{_surf_tele}; border:1px solid {_bdr_tele};
+                    border-radius:16px; padding:12px; height:320px; overflow-y:auto;
+                    margin-bottom:8px; display:flex; flex-direction:column; gap:6px;">
+        """, unsafe_allow_html=True)
+
+        for role, msg in st.session_state.bot_history[-12:]:
             is_bot = (role == "bot")
-            align  = "flex-start" if is_bot else "flex-end"
-            bg     = _surf_tele if is_bot else PRIMARY_COLOR
-            col    = _txt_tele  if is_bot else "#fff"
-            icon   = "🤖" if is_bot else "👤"
+            align = "flex-start" if is_bot else "flex-end"
+            bg = _surf_tele if is_bot else PRIMARY_COLOR
+            color = _txt_tele if is_bot else "#fff"
+            avatar = "🤖" if is_bot else "👤"
+            border_radius = "18px 18px 18px 4px" if is_bot else "18px 18px 4px 18px"
             st.markdown(f"""
-            <div style="display:flex;justify-content:{align};margin-bottom:8px;">
-                <div style="max-width:85%;background:{bg};border:1px solid {_bdr_tele};
-                            border-radius:{'18px 18px 18px 4px' if is_bot else '18px 18px 4px 18px'};
-                            padding:10px 14px;font-size:0.75rem;color:{col};
-                            line-height:1.6;white-space:pre-wrap;font-family:'JetBrains Mono',monospace;">
-                    {msg.replace('*','').replace('`','')}
+            <div style="display:flex; justify-content:{align}; margin-bottom:4px;">
+                <div style="display:flex; gap:6px; align-items:flex-end; max-width:80%;
+                            flex-direction:{'row' if is_bot else 'row-reverse'};">
+                    <div style="font-size:1.2rem;">{avatar}</div>
+                    <div style="background:{bg}; border:1px solid {_bdr_tele};
+                                border-radius:{border_radius};
+                                padding:8px 12px; font-size:0.78rem; color:{color};
+                                line-height:1.5; word-wrap:break-word;">
+                        {msg.replace('*','').replace('`','')}
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-        user_input = st.text_input("", placeholder="Ketik perintah... /help /rekap /riwayat /pending /cari",
-                                    key="bot_input", label_visibility="collapsed")
-        bc1, bc2, bc3 = st.columns([3, 1, 1])
-        with bc1:
-            if st.button("Kirim", key="bot_send", use_container_width=True):
-                if user_input.strip():
-                    st.session_state.bot_history.append(("user", user_input))
-                    reply = handle_bot_command(user_input, _log_for_bot)
-                    st.session_state.bot_history.append(("bot", reply))
-                    st.rerun()
-        with bc2:
-            if st.button("Hapus Chat", key="bot_clear", use_container_width=True):
-                st.session_state.bot_history = [
-                    ("bot", "👋 Chat dikosongkan. Ketik `/help` untuk mulai lagi.")
-                ]
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <style>
+    .quick-reply {
+        background: #1e1e1e;
+        color: #e0e0e0;
+        border: 1px solid #333;
+        border-radius: 30px;
+        padding: 4px 14px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: 'Inter', sans-serif;
+        width: 100%;
+        text-align: center;
+    }
+    .quick-reply:hover {
+        background: #ff6b35;
+        color: #fff;
+        border-color: #ff6b35;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    col_q1, col_q2, col_q3 = st.columns(3)
+    with col_q1:
+        if st.button("📊 Rekap", key="q_rekap", use_container_width=True):
+            st.session_state.bot_history.append(("user", "/rekap"))
+            reply = handle_bot_command("/rekap", _log_for_bot)
+            st.session_state.bot_history.append(("bot", reply))
+            st.rerun()
+        if st.button("📖 Quote", key="q_quote", use_container_width=True):
+            st.session_state.bot_history.append(("user", "/quote"))
+            reply = handle_bot_command("/quote", _log_for_bot)
+            st.session_state.bot_history.append(("bot", reply))
+            st.rerun()
+    with col_q2:
+        if st.button("💰 Total", key="q_total", use_container_width=True):
+            st.session_state.bot_history.append(("user", "/total"))
+            reply = handle_bot_command("/total", _log_for_bot)
+            st.session_state.bot_history.append(("bot", reply))
+            st.rerun()
+        if st.button("😂 Joke", key="q_joke", use_container_width=True):
+            st.session_state.bot_history.append(("user", "/joke"))
+            reply = handle_bot_command("/joke", _log_for_bot)
+            st.session_state.bot_history.append(("bot", reply))
+            st.rerun()
+    with col_q3:
+        if st.button("⏳ Pending", key="q_pending", use_container_width=True):
+            st.session_state.bot_history.append(("user", "/pending"))
+            reply = handle_bot_command("/pending", _log_for_bot)
+            st.session_state.bot_history.append(("bot", reply))
+            st.rerun()
+        if st.button("❓ Help", key="q_help", use_container_width=True):
+            st.session_state.bot_history.append(("user", "/help"))
+            reply = handle_bot_command("/help", _log_for_bot)
+            st.session_state.bot_history.append(("bot", reply))
+            st.rerun()
+
+    col_inp, col_btn, col_clr = st.columns([4, 1, 1])
+    with col_inp:
+        user_input = st.text_input("", placeholder="Ketik pesan...", key="bot_input", label_visibility="collapsed")
+    with col_btn:
+        if st.button("Kirim", key="bot_send", use_container_width=True):
+            if user_input.strip():
+                st.session_state.bot_history.append(("user", user_input))
+                reply = handle_bot_command(user_input, _log_for_bot)
+                st.session_state.bot_history.append(("bot", reply))
                 st.rerun()
-        with bc3:
-            if st.button("📤 Kirim Rekap", key="bot_send_rekap", use_container_width=True,
-                         help="Kirim rekap lengkap ke Telegram lo"):
-                ok, msg = kirim_rekap_telegram(_log_for_bot)
-                if ok:
-                    st.success(msg)
-                else:
-                    st.error(msg)
+    with col_clr:
+        if st.button("🗑️", key="bot_clear", use_container_width=True, help="Hapus chat"):
+            st.session_state.bot_history = [
+                ("bot", "👋 Chat dikosongkan. Ketik /help untuk mulai lagi.")
+            ]
+            st.rerun()
+
+    if st.button("📤 Kirim Rekap ke Telegram", key="bot_send_rekap", use_container_width=True):
+        ok, msg = kirim_rekap_telegram(_log_for_bot)
+        if ok:
+            st.success(msg)
+        else:
+            st.error(msg)
+
 st.divider()
+
 log_data = load_log()
 
 # ── Rekap Bulanan ──
@@ -2041,7 +2212,7 @@ if log_data:
                      color=["#e040fb","#00b0ff", SECONDARY, PRIMARY_COLOR][:len(df_chart.columns)])
     st.divider()
 
-# ── Riwayat Konversi (Versi Ringkas) ──
+# ── Riwayat Konversi ──
 col_title, col_hapus = st.columns([4, 1])
 with col_title:
     st.markdown("### 🕓 Riwayat Konversi")
@@ -2056,7 +2227,6 @@ if not log_data:
     st.info("Belum ada riwayat konversi.")
 else:
     for i, item in enumerate(log_data):
-        # Ambil data
         nama_file = item['nama_file']
         tkt = item.get('tingkat', '')
         jenis = item.get('jenis', 'Reguler')
@@ -2066,8 +2236,7 @@ else:
         jumlah_sep = item['jumlah']
         waktu_selesai = item.get('waktu_selesai', '')
 
-        # ── Satu baris utama ──
-        cols = st.columns([3, 1.2, 1.5, 0.8])  # file, badge, info, tombol
+        cols = st.columns([3, 1.2, 1.5, 0.8])
         with cols[0]:
             st.markdown(f"**📄 {nama_file}**")
         with cols[1]:
@@ -2084,7 +2253,6 @@ else:
                     update_log_status(nama_file, 'Selesai')
                     st.rerun()
 
-        # ── Baris kedua: detail nominal & waktu selesai ──
         detail_cols = st.columns([3, 2])
         with detail_cols[0]:
             st.caption(f"🕓 {waktu}  ·  {total_rp}  ·  {jumlah_sep} SEP")
@@ -2093,7 +2261,7 @@ else:
                 st.caption(f"📥 {waktu_selesai}")
         st.divider()
 
-# ── FOOTER ───────────────────────────────────────────────────
+# ── FOOTER ──
 _dark_ft = st.session_state.get('dark_mode', True)
 _ft_border = "rgba(255,255,255,0.05)" if _dark_ft else "rgba(0,0,0,0.05)"
 _ft_txt1 = "#888" if _dark_ft else "#555"
