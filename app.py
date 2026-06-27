@@ -322,11 +322,31 @@ def chat_with_claude(history: list, log_data: list) -> str:
         + log_summary
     )
 
-    # Konversi history ke format Claude
-    messages = []
-    for role, msg in history[-10:]:  # max 10 pesan terakhir
+    # Konversi history ke format Claude — pastiin alternating user/assistant
+    raw_messages = []
+    for role, msg in history[-20:]:
         api_role = "user" if role == "user" else "assistant"
-        messages.append({"role": api_role, "content": msg})
+        if not msg.strip():
+            continue
+        raw_messages.append({"role": api_role, "content": msg.strip()})
+
+    # Dedupe: Claude API butuh alternating roles, tidak boleh 2x role sama berturut
+    messages = []
+    for m in raw_messages:
+        if messages and messages[-1]["role"] == m["role"]:
+            messages[-1]["content"] += "\n" + m["content"]
+        else:
+            messages.append(m)
+
+    # Harus diawali user
+    while messages and messages[0]["role"] != "user":
+        messages.pop(0)
+    # Harus diakhiri user
+    while messages and messages[-1]["role"] != "user":
+        messages.pop()
+
+    if not messages:
+        return "Maaf, pesan tidak valid. Coba kirim ulang ya kak!"
 
     try:
         resp = requests.post(
@@ -346,7 +366,11 @@ def chat_with_claude(history: list, log_data: list) -> str:
         )
         if resp.ok:
             return resp.json()["content"][0]["text"]
-        return f"❌ Error dari Claude API: {resp.status_code}"
+        try:
+            err_detail = resp.json().get("error", {}).get("message", resp.text)
+        except Exception:
+            err_detail = resp.text
+        return f"❌ Claude API error {resp.status_code}: {err_detail}"
     except Exception as e:
         return f"❌ Gagal menghubungi Claude: {e}"
 
