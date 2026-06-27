@@ -18,14 +18,12 @@ def hsl_to_hex(h: int, s: int, l: int) -> str:
     return "#{:02x}{:02x}{:02x}".format(int(r * 255), int(g * 255), int(b * 255))
 
 def hex_to_hsl(hex_color: str):
-    """Return (h 0-360, s 0-100, l 0-100) from #rrggbb"""
     hex_color = hex_color.lstrip("#")
     r, g, b = [int(hex_color[i:i+2], 16) / 255 for i in (0, 2, 4)]
     h, l, s = colorsys.rgb_to_hls(r, g, b)
     return round(h * 360), round(s * 100), round(l * 100)
 
 def derive_variants(hex_color: str) -> dict:
-    """Dari 1 hex warna, generate varian gelap/terang/glow/bg."""
     h, s, l = hex_to_hsl(hex_color)
     return {
         "base":   hex_color,
@@ -35,18 +33,40 @@ def derive_variants(hex_color: str) -> dict:
         "bg_l":   hsl_to_hex(h, max(15, s - 35), 93),
     }
 
-# Preset palette curated — kombinasi yang udah teruji enak dilihat
+# Preset palette — nama netral, warna enak dilihat
 _PRESETS_PALETTE = [
-    # (nama,          primary,    secondary,  accent,     purple)
-    ("🍊 Oranye",    "#ff6b35",  "#00c47a",  "#ffd700",  "#a78bfa"),
-    ("🟢 Hijau",     "#19f05a",  "#a121d4",  "#3eb8da",  "#f0a519"),
-    ("💜 Ungu",      "#a855f7",  "#22d3ee",  "#fb923c",  "#34d399"),
-    ("🔵 Biru",      "#3b82f6",  "#10b981",  "#f59e0b",  "#e879f9"),
-    ("🌸 Rose",      "#f43f5e",  "#a78bfa",  "#fb923c",  "#34d399"),
-    ("🩵 Cyan",      "#06b6d4",  "#f59e0b",  "#ec4899",  "#84cc16"),
-    ("🖤 Mono",      "#e2e8f0",  "#94a3b8",  "#64748b",  "#475569"),
-    ("🔴 Merah",     "#ef4444",  "#3b82f6",  "#fbbf24",  "#a78bfa"),
+    # (nama,         primary,    secondary,  accent,     purple)
+    ("🍊 Oranye",   "#ff6b35",  "#00c47a",  "#ffd700",  "#a78bfa"),
+    ("🟢 Hijau",    "#19f05a",  "#a121d4",  "#3eb8da",  "#f0a519"),
+    ("💜 Ungu",     "#a855f7",  "#22d3ee",  "#fb923c",  "#34d399"),
+    ("🔵 Biru",     "#3b82f6",  "#10b981",  "#f59e0b",  "#e879f9"),
+    ("🩵 Cyan",     "#06b6d4",  "#f59e0b",  "#ec4899",  "#84cc16"),
+    ("🖤 Mono",     "#e2e8f0",  "#94a3b8",  "#64748b",  "#475569"),
+    ("🔴 Merah",    "#ef4444",  "#3b82f6",  "#fbbf24",  "#a78bfa"),
+    ("🌿 Sage",     "#6db36d",  "#e07b39",  "#f0c030",  "#7b8fe0"),
 ]
+
+_FONT_OPTIONS = [
+    ("Inter",        "'Inter', sans-serif"),
+    ("Poppins",      "'Poppins', sans-serif"),
+    ("Roboto",       "'Roboto', sans-serif"),
+    ("DM Sans",      "'DM Sans', sans-serif"),
+    ("Nunito",       "'Nunito', sans-serif"),
+    ("Plus Jakarta", "'Plus Jakarta Sans', sans-serif"),
+    ("Sora",         "'Sora', sans-serif"),
+    ("Outfit",       "'Outfit', sans-serif"),
+]
+
+_FONT_IMPORT = {
+    "Inter":        "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap",
+    "Poppins":      "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap",
+    "Roboto":       "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap",
+    "DM Sans":      "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap",
+    "Nunito":       "https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap",
+    "Plus Jakarta": "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
+    "Sora":         "https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap",
+    "Outfit":       "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap",
+}
 
 st.set_page_config(page_title="FPK Converter", page_icon="📄", layout="wide")
 
@@ -57,11 +77,23 @@ for _k, _v in {
     "show_pin_form": False, "show_theme_panel": False,
     "results": [], "errors": [], "show_done": False,
     "demo_mode": False, "demo_pdf_bytes": None, "demo_pdf_info": None,
-    # Warna independen — masing-masing bebas dipilih
+    # Warna independen
     "c_primary":   "#ff6b35",
     "c_secondary": "#00c47a",
     "c_accent":    "#ffd700",
     "c_purple":    "#a78bfa",
+    # Warna section kustom
+    "c_bg":        "",       # kosong = ikut dark/light mode
+    "c_navbar":    "",
+    "c_sidebar":   "",
+    "c_header":    "",
+    "c_footer":    "",
+    "c_footer_txt":"",
+    # Font
+    "font_body":   "Inter",
+    # Bot history
+    "bot_history": [],
+    "bot_ai_mode": False,
 }.items():
     if _k not in st.session_state:
         st.session_state[_k] = _v
@@ -162,9 +194,8 @@ def unique_filename(base_filename: str, existing_names: set) -> str:
             return candidate
         counter += 1
 
-# ── TELEGRAM BOT ──────────────────────────────────────────────
+# ── TELEGRAM ──────────────────────────────────────────────────
 def get_tele_config():
-    """Ambil token & chat_id dari Streamlit secrets."""
     try:
         token   = str(st.secrets.get("TELEGRAM_TOKEN", ""))
         chat_id = str(st.secrets.get("TELEGRAM_CHAT_ID", ""))
@@ -177,7 +208,6 @@ def tele_configured() -> bool:
     return bool(token and chat_id)
 
 def kirim_notif_telegram(entry: dict) -> tuple[bool, str]:
-    """Kirim notif konversi berhasil ke Telegram."""
     token, chat_id = get_tele_config()
     if not token or not chat_id:
         return False, "Token/Chat ID belum dikonfigurasi"
@@ -192,7 +222,6 @@ def kirim_notif_telegram(entry: dict) -> tuple[bool, str]:
         f"🕓 *Waktu*: {entry['waktu']}\n"
         f"📊 *Status*: {'✅ Selesai' if entry.get('status')=='Selesai' else '⏳ Belum Diambil'}\n"
     )
-    # Inline keyboard (opsional)
     keyboard = {
         "inline_keyboard": [
             [{"text": "✅ Tandai Selesai", "callback_data": f"done_{entry['nama_file']}"}],
@@ -216,7 +245,6 @@ def kirim_notif_telegram(entry: dict) -> tuple[bool, str]:
         return False, f"❌ Error: {e}"
 
 def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
-    """Kirim rekap semua riwayat ke Telegram."""
     token, chat_id = get_tele_config()
     if not token or not chat_id:
         return False, "Token/Chat ID belum dikonfigurasi"
@@ -253,74 +281,113 @@ def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
     except Exception as e:
         return False, f"❌ Error: {e}"
 
-# ── BOT ISLAMI & HANDLER ──
+# ── AI CHAT (Claude API) ───────────────────────────────────────
+def get_claude_api_key() -> str:
+    try:
+        return str(st.secrets.get("ANTHROPIC_API_KEY", ""))
+    except Exception:
+        return ""
+
+def claude_configured() -> bool:
+    return bool(get_claude_api_key())
+
+def chat_with_claude(history: list, log_data: list) -> str:
+    api_key = get_claude_api_key()
+    if not api_key:
+        return "❌ API key Claude belum dikonfigurasi. Tambahkan `ANTHROPIC_API_KEY` di Secrets."
+
+    # Ringkas log data untuk context
+    log_summary = ""
+    if log_data:
+        total_nom = sum(x['total'] for x in log_data)
+        total_sep = sum(x['jumlah'] for x in log_data)
+        selesai = sum(1 for x in log_data if x.get('status') == 'Selesai')
+        nom_fmt = f"Rp {total_nom:,}".replace(",", ".")
+        log_summary = (
+            f"\n\nData konversi FPK saat ini:\n"
+            f"- Total file: {len(log_data)}\n"
+            f"- Selesai: {selesai}, Pending: {len(log_data)-selesai}\n"
+            f"- Total SEP: {total_sep:,}\n"
+            f"- Total Nominal: {nom_fmt}\n"
+            f"- File terbaru: {log_data[0]['nama_file'] if log_data else '-'}"
+        )
+
+    system_prompt = (
+        "Kamu adalah FPK Bot, asisten cerdas untuk aplikasi FPK Converter milik Isfan Fajar Anugrah. "
+        "Aplikasi ini digunakan di rumah sakit RSUD Cilegon untuk mengkonversi data klaim BPJS Kesehatan dari PDF ke CSV. "
+        "Kamu bisa membantu pertanyaan umum, ngobrol santai, memberikan motivasi Islami, "
+        "dan menjawab pertanyaan seputar data konversi FPK. "
+        "Jawab dengan bahasa Indonesia yang ramah, santai, dan sesekali gunakan kata-kata Islami seperti Alhamdulillah, Insya Allah, dll. "
+        "Jawaban singkat dan padat, maksimal 3-4 kalimat kecuali kalau ditanya detail."
+        + log_summary
+    )
+
+    # Konversi history ke format Claude
+    messages = []
+    for role, msg in history[-10:]:  # max 10 pesan terakhir
+        api_role = "user" if role == "user" else "assistant"
+        messages.append({"role": api_role, "content": msg})
+
+    try:
+        resp = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": "claude-haiku-4-5-20251001",
+                "max_tokens": 512,
+                "system": system_prompt,
+                "messages": messages,
+            },
+            timeout=20,
+        )
+        if resp.ok:
+            return resp.json()["content"][0]["text"]
+        return f"❌ Error dari Claude API: {resp.status_code}"
+    except Exception as e:
+        return f"❌ Gagal menghubungi Claude: {e}"
+
+# ── BOT COMMAND HANDLER ────────────────────────────────────────
 _QUOTES = [
-    "“Sebaik-baik manusia adalah yang paling bermanfaat bagi orang lain.” (HR. Thabrani)",
-    "“Barangsiapa yang beriman kepada Allah dan hari akhir, hendaklah ia berkata baik atau diam.” (HR. Bukhari & Muslim)",
-    "“Janganlah kalian saling membenci, saling dengki, dan saling membelakangi. Jadilah hamba-hamba Allah yang bersaudara.” (HR. Bukhari)",
-    "“Allah tidak melihat rupa dan harta kalian, tapi Dia melihat hati dan amal kalian.” (HR. Muslim)",
-    "“Senyummu di hadapan saudaramu adalah sedekah.” (HR. Tirmidzi)",
+    'Sebaik-baik manusia adalah yang paling bermanfaat bagi orang lain. (HR. Thabrani)',
+    'Barangsiapa yang beriman kepada Allah dan hari akhir, hendaklah ia berkata baik atau diam. (HR. Bukhari & Muslim)',
+    'Senyummu di hadapan saudaramu adalah sedekah. (HR. Tirmidzi)',
+    'Allah tidak melihat rupa dan harta kalian, tapi Dia melihat hati dan amal kalian. (HR. Muslim)',
 ]
 
 _JOKES = [
-    "Kenapa FPK Converter suka baca Al-Qur'an? Soalnya suka ayat-ayat 😂",
-    "Tahu kenapa programmer FPK gak pernah sedih? Karena selalu ada try-catch 🤣",
-    "Orang FPK kalau turun hujan? Pasti nunggu air terbit 😄",
+    "Kenapa programmer FPK gak pernah sedih? Karena selalu ada try-catch 🤣",
+    "Orang IT kalau turun hujan? Nunggu koneksi stabil dulu 😄",
+    "FPK Converter minta maaf ke PDF: 'Maaf ya, aku harus mengekstrak kamu' 😂",
 ]
-
-_SAPANAN = ["kak", "gan", "brow", "bro", "bang", "mbak"]
 
 def handle_bot_command(text: str, log_data: list) -> str:
     text_lower = text.strip().lower()
 
-    # ── KATA KHUSUS: ZIZAH ──
     if "zizah" in text_lower:
-        return (
-            "Jangan di pikirin lagi, dia lagi mikirin kamu, doain aja 🙏✨\n"
-            "Tenang aja, semua ada waktunya. Yang penting kamu tetap semangat dan sholat ya, kak! 💪"
-        )
+        return "Jangan di pikiran terus, doain aja yang terbaik buat dia 🙏✨\nYang penting kamu tetap semangat dan sholat ya!"
 
-    # ── SALAM ISLAMI ──
-    if text_lower in ["assalamualaikum", "assalamu'alaikum", "salam", "salamualaikum"]:
-        return (
-            "Waalaikumsalam warahmatullahi wabarakatuh, kak! 😊\n"
-            "Semoga hari kakak penuh berkah dan dimudahkan segala urusan. Aamiin."
-        )
+    if text_lower in ["assalamualaikum", "assalamu'alaikum", "salam"]:
+        return "Waalaikumsalam warahmatullahi wabarakatuh! 😊\nSemoga hari kakak penuh berkah dan dimudahkan segala urusan. Aamiin."
 
-    # ── SAPAAN ──
-    if any(kata in text_lower for kata in ["halo", "hai", "hey", "hello"]):
-        import random
-        sap = random.choice(_SAPANAN)
-        return f"Halo juga {sap}! Senang banget bisa ngobrol sama kakak 😄\nAda yang bisa gua bantu? Ketik /help buat lihat fitur."
+    if any(k in text_lower for k in ["halo", "hai", "hey", "hello"]):
+        return "Halo kak! Senang ngobrol sama kakak 😄\nKetik /help untuk lihat perintah, atau aktifkan Mode AI untuk chat cerdas!"
 
-    # ── KABAR ──
-    if any(kata in text_lower for kata in ["kabar", "gimana", "apa kabar", "keadaan"]):
-        return (
-            "Alhamdulillah, baik banget kak! 😊\n"
-            "Semoga kakak juga selalu dalam keadaan sehat dan bahagia ya. "
-            "Kalau ada yang bisa gua bantu, tinggal bilang aja."
-        )
+    if any(k in text_lower for k in ["kabar", "gimana", "apa kabar"]):
+        return "Alhamdulillah, baik banget kak! 😊\nSemoga kakak juga selalu sehat dan bahagia ya."
 
-    # ── DOA ──
-    if any(kata in text_lower for kata in ["doa", "restu", "berkah", "amin"]):
-        return (
-            "Aamiin Ya Rabbal Alamin 🤲\n"
-            "Semoga Allah mudahkan semua urusan kakak, diberi kesehatan, rezeki berkah, "
-            "dan selalu dalam lindungan-Nya. Jangan lupa sholat dan baca doa ya, kak!"
-        )
-
-    # ── PERINTAH /QUOTE ──
     if text_lower in ["/quote", "quote"]:
         import random
         return f"📖 *Kutipan Hari Ini*\n\n{random.choice(_QUOTES)}"
 
-    # ── PERINTAH /JOKE ──
     if text_lower in ["/joke", "joke"]:
         import random
         return f"😂 *Candaan Santai*\n\n{random.choice(_JOKES)}"
 
-    # ── /REKAP ──
-    if text in ["/rekap", "rekap"]:
+    if text_lower in ["/rekap", "rekap"]:
         if not log_data:
             return "📭 Belum ada data konversi."
         total_nom = sum(x['total'] for x in log_data)
@@ -335,19 +402,17 @@ def handle_bot_command(text: str, log_data: list) -> str:
             f"💰 Total Nominal: *{nom_fmt}*"
         )
 
-    # ── /RIWAYAT ──
-    if text in ["/riwayat", "riwayat"]:
+    if text_lower in ["/riwayat", "riwayat"]:
         if not log_data:
             return "📭 Belum ada riwayat."
         rows = ""
         for i, x in enumerate(log_data[:10], 1):
             nom = f"Rp {x['total']:,}".replace(",",".")
             st_icon = "✅" if x.get('status') == 'Selesai' else "⏳"
-            rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP · {nom}\n   🕓 {x['waktu']}\n\n"
+            rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP · {nom}\n\n"
         return f"📋 *10 Konversi Terakhir*\n\n{rows}"
 
-    # ── /TOTAL ──
-    if text in ["/total", "total"]:
+    if text_lower in ["/total", "total"]:
         if not log_data:
             return "📭 Belum ada data."
         total_nom = sum(x['total'] for x in log_data)
@@ -359,19 +424,17 @@ def handle_bot_command(text: str, log_data: list) -> str:
             f"File: *{len(log_data)}*"
         ).replace(",", ".")
 
-    # ── /PENDING ──
-    if text in ["/pending", "pending"]:
+    if text_lower in ["/pending", "pending"]:
         pending = [x for x in log_data if x.get('status') != 'Selesai']
         if not pending:
             return "✅ Semua file sudah diambil!"
         rows = ""
         for i, x in enumerate(pending, 1):
             nom = f"Rp {x['total']:,}".replace(",",".")
-            rows += f"{i}. `{x['nama_file']}`\n   {x['jumlah']:,} SEP · {nom} · {x['waktu']}\n\n"
+            rows += f"{i}. `{x['nama_file']}`\n   {x['jumlah']:,} SEP · {nom}\n\n"
         return f"⏳ *{len(pending)} File Belum Diambil*\n\n{rows}"
 
-    # ── /TOP ──
-    if text in ["/top", "top"]:
+    if text_lower in ["/top", "top"]:
         if not log_data:
             return "📭 Belum ada data."
         sorted_data = sorted(log_data, key=lambda x: x['total'], reverse=True)[:5]
@@ -381,20 +444,7 @@ def handle_bot_command(text: str, log_data: list) -> str:
             rows += f"{i}. `{x['nama_file']}` → {nom}\n"
         return f"🏆 *Top 5 Konversi Terbesar*\n\n{rows}"
 
-    # ── /SEARCH ──
-    if text.startswith("/search ") or text.startswith("search "):
-        keyword = text.split(" ", 1)[1].strip()
-        hasil = [x for x in log_data if keyword.lower() in x.get('nama_file','').lower()]
-        if not hasil:
-            return f"🔍 Tidak ada file dengan kata *{keyword}*"
-        rows = ""
-        for x in hasil[:5]:
-            nom = f"Rp {x['total']:,}".replace(",", ".")
-            rows += f"• `{x['nama_file']}` → {nom}\n"
-        return f"🔍 *Hasil cari '{keyword}'* ({len(hasil)} ditemukan)\n\n{rows}"
-
-    # ── /CARI (alias) ──
-    if text.startswith("/cari ") or text.startswith("cari "):
+    if text_lower.startswith("/cari ") or text_lower.startswith("cari "):
         keyword = text.split(" ", 1)[1].strip().lower()
         hasil = [x for x in log_data if keyword in x.get('nama_file','').lower()
                  or keyword in x.get('waktu','').lower()
@@ -408,33 +458,25 @@ def handle_bot_command(text: str, log_data: list) -> str:
             rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP · {nom}\n\n"
         return f"🔍 *Hasil cari '{keyword}'* ({len(hasil)} ditemukan)\n\n{rows}"
 
-    # ── /HELP ──
-    if text in ["/help", "help", "bantuan"]:
+    if text_lower in ["/help", "help", "bantuan"]:
         return (
-            "🤖 *FPK Bot — Asisten Konversi FPK*\n\n"
-            "Assalamualaikum kak! Gua siap bantu konversi data FPK. 😊\n\n"
-            "📌 *Perintah yang tersedia:*\n"
-            "`/rekap`     → Ringkasan semua konversi\n"
-            "`/riwayat`   → 10 konversi terakhir\n"
-            "`/total`     → Total nominal & SEP\n"
-            "`/pending`   → File yang belum diambil\n"
-            "`/top`       → Top 5 konversi terbesar\n"
-            "`/search <kata>` → Cari file\n"
-            "`/cari <kata>`   → Cari file (alias)\n"
-            "`/quote`     → Kutipan inspiratif\n"
-            "`/joke`      → Candaan santai\n"
-            "`/help`      → Tampilkan ini\n\n"
-            "💬 *Kakak juga bisa ngobrol santai sama gua,*\n"
-            "misalnya: *halo, apa kabar, atau doa.*"
+            "🤖 *FPK Bot — Asisten Konversi*\n\n"
+            "📌 *Perintah:*\n"
+            "`/rekap`   → Ringkasan konversi\n"
+            "`/riwayat` → 10 konversi terakhir\n"
+            "`/total`   → Total nominal & SEP\n"
+            "`/pending` → File belum diambil\n"
+            "`/top`     → Top 5 terbesar\n"
+            "`/cari <kata>` → Cari file\n"
+            "`/quote`   → Kutipan islami\n"
+            "`/joke`    → Candaan santai\n\n"
+            "💡 Aktifkan *Mode AI* untuk chat cerdas!"
         )
 
-    # ── FALLBACK ──
-    else:
-        return (
-            "Maaf kak, gua belum paham maksudnya 😅\n"
-            "Coba ketik `/help` buat lihat perintah yang tersedia, "
-            "atau kakak bisa ngobrol santai kayak 'halo', 'apa kabar', 'doa', 'assalamualaikum'."
-        )
+    return (
+        "Maaf kak, belum paham 😅\n"
+        "Ketik `/help` untuk lihat perintah, atau aktifkan **Mode AI** untuk chat bebas!"
+    )
 
 # ── PIN ─────────────────────────────────────────────────────
 MAX_ATTEMPT = 5
@@ -480,9 +522,20 @@ def change_pin(pin_lama, pin_baru, pin_konfirm):
 
 # ── CSS ─────────────────────────────────────────────────────
 def inject_css(dark):
+    # Ambil custom colors dari session
+    c_bg      = st.session_state.get("c_bg", "")
+    c_navbar  = st.session_state.get("c_navbar", "")
+    c_sidebar = st.session_state.get("c_sidebar", "")
+    c_header  = st.session_state.get("c_header", "")
+    c_footer  = st.session_state.get("c_footer", "")
+    c_footer_txt = st.session_state.get("c_footer_txt", "")
+    font_key  = st.session_state.get("font_body", "Inter")
+    font_css  = dict(_FONT_OPTIONS).get(font_key, "'Inter', sans-serif")
+    font_url  = _FONT_IMPORT.get(font_key, _FONT_IMPORT["Inter"])
+
     if dark:
-        bg          = "#0a0a0a"
-        surface     = "#141414"
+        bg          = c_bg      or "#0a0a0a"
+        surface     = c_navbar  or "#141414"
         surface2    = "#1e1e1e"
         border      = "#242424"
         border2     = "#333333"
@@ -497,24 +550,24 @@ def inject_css(dark):
         shadow      = "rgba(0,0,0,0.7)"
         toggle_icon = "☀️"
         toggle_tip  = "Mode Terang"
-        log_bg      = "#141414"
+        log_bg      = c_sidebar or "#141414"
         log_border  = "#242424"
         login_bg    = "#141414"
-        login_border = "#242424"
-        login_shadow = "rgba(0,0,0,0.6)"
-        login_txt   = "#f0f0f0"
-        login_sub   = "#777777"
-        radio_color = "#f0f0f0"
-        radio_bg    = "#141414"
-        radio_border = "#242424"
-        hero_bg     = "#141414"
+        hero_bg     = c_header  or "#141414"
         hero_stat   = "#1e1e1e"
         hero_stat_b = "#282828"
-        bottom_bg   = "#0a0a0a"
+        bottom_bg   = c_footer  or "#0a0a0a"
         bottom_bdr  = "#1e1e1e"
+        ft_txt      = c_footer_txt or "#888888"
+        # Chat bubble
+        bubble_bot_bg  = "#1e1e1e"
+        bubble_bot_bdr = "#2a2a2a"
+        bubble_bot_txt = "#e0e0e0"
+        chat_bg        = "#111111"
+        chat_bdr       = "#242424"
     else:
-        bg          = "#f5f4f2"
-        surface     = "#ffffff"
+        bg          = c_bg      or "#f5f4f2"
+        surface     = c_navbar  or "#ffffff"
         surface2    = "#f0eee9"
         border      = "#e4e2dd"
         border2     = "#d0cec9"
@@ -529,29 +582,29 @@ def inject_css(dark):
         shadow      = "rgba(0,0,0,0.07)"
         toggle_icon = "🌙"
         toggle_tip  = "Mode Gelap"
-        log_bg      = "#ffffff"
+        log_bg      = c_sidebar or "#ffffff"
         log_border  = "#e0ddd8"
         login_bg    = "#ffffff"
-        login_border = "#e0ddd8"
-        login_shadow = "rgba(0,0,0,0.08)"
-        login_txt   = "#1a1a1a"
-        login_sub   = "#666666"
-        radio_color = "#1a1a1a"
-        radio_bg    = "#ffffff"
-        radio_border = "#e0ddd8"
-        hero_bg     = "#ffffff"
+        hero_bg     = c_header  or "#ffffff"
         hero_stat   = "#f5f4f2"
         hero_stat_b = "#e8e6e1"
-        bottom_bg   = "#ffffff"
+        bottom_bg   = c_footer  or "#ffffff"
         bottom_bdr  = "#e4e2dd"
+        ft_txt      = c_footer_txt or "#888888"
+        bubble_bot_bg  = "#f0f0f0"
+        bubble_bot_bdr = "#e0ddd8"
+        bubble_bot_txt = "#1a1a1a"
+        chat_bg        = "#fafaf8"
+        chat_bdr       = "#e4e2dd"
 
     st.session_state._toggle_icon = toggle_icon
     st.session_state._toggle_tip = toggle_tip
 
     st.markdown(f"""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
-    html, body, [class*="css"] {{ font-family: 'Inter', sans-serif !important; }}
+    @import url('{font_url}');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+    html, body, [class*="css"] {{ font-family: {font_css} !important; }}
     #MainMenu {{visibility:hidden;}}
     footer {{visibility:hidden;}}
     header {{visibility:hidden;}}
@@ -566,23 +619,12 @@ def inject_css(dark):
         color: transparent !important;
         caret-color: {PRIMARY_COLOR} !important;
         -webkit-text-security: disc !important;
-        text-shadow: none !important;
         background: {input_bg} !important;
     }}
     .stTextInput button[data-testid="stTextInputHideShowButton"],
     button[aria-label="Show password"],
-    button[aria-label="Hide password"],
-    button[aria-label="Show password text"],
-    button[aria-label="Hide password text"],
-    [data-baseweb="input"] ~ button,
-    [data-baseweb="input"] + div button {{
+    button[aria-label="Hide password"] {{
         display: none !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
-        width: 0 !important;
-        height: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
     }}
     .stRadio > div {{
         display: flex !important;
@@ -591,30 +633,23 @@ def inject_css(dark):
         justify-content: center !important;
     }}
     .stRadio label {{
-        background: {radio_bg} !important;
-        border: 1.5px solid {radio_border} !important;
+        background: {surface} !important;
+        border: 1.5px solid {border} !important;
         border-radius: 50px !important;
         padding: 0.5rem 1.6rem !important;
-        color: {radio_color} !important;
+        color: {text_h} !important;
         font-weight: 700 !important;
         font-size: 0.85rem !important;
         transition: all 0.18s ease !important;
         cursor: pointer !important;
     }}
-    .stRadio label:hover {{
-        border-color: {PRIMARY_COLOR} !important;
-    }}
+    .stRadio label:hover {{ border-color: {PRIMARY_COLOR} !important; }}
     .stRadio div[role="radiogroup"] label[data-selected="true"] {{
         background: {PRIMARY_COLOR} !important;
         border-color: {PRIMARY_COLOR} !important;
         color: #fff !important;
     }}
-    .stRadio div[role="radiogroup"] label[data-selected="true"] [data-testid="stMarkdownContainer"] {{
-        color: #fff !important;
-    }}
-    .stRadio div[role="radiogroup"] label svg {{
-        display: none !important;
-    }}
+    .stRadio div[role="radiogroup"] label svg {{ display: none !important; }}
     .stRadio div[role="radiogroup"] label {{
         padding-left: 1.6rem !important;
         padding-right: 1.6rem !important;
@@ -628,31 +663,15 @@ def inject_css(dark):
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         margin-bottom: 1rem;
     }}
-    .bento:hover {{
-        transform: translateY(-3px);
-        box-shadow: 0 8px 32px {shadow};
-    }}
+    .bento:hover {{ transform: translateY(-3px); box-shadow: 0 8px 32px {shadow}; }}
     .bento .label {{
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        color: {text_muted};
-        margin-bottom: 0.3rem;
-        font-weight: 700;
+        font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px;
+        color: {text_muted}; margin-bottom: 0.3rem; font-weight: 700;
     }}
-    .bento .value {{
-        font-size: 2rem;
-        font-weight: 800;
-        color: {text_h};
-        line-height: 1.2;
-    }}
+    .bento .value {{ font-size: 2rem; font-weight: 800; color: {text_h}; line-height: 1.2; }}
     .bento .value.accent {{ color: {PRIMARY_COLOR}; }}
     .bento .value.green  {{ color: {SECONDARY}; }}
-    .bento .sub {{
-        font-size: 0.72rem;
-        color: {text_muted};
-        margin-top: 0.25rem;
-    }}
+    .bento .sub {{ font-size: 0.72rem; color: {text_muted}; margin-top: 0.25rem; }}
     .hero-card {{
         background: {hero_bg};
         border: 1px solid {border};
@@ -662,417 +681,214 @@ def inject_css(dark):
         position: relative;
         overflow: hidden;
     }}
-    .hero-card::before {{
-        content: '';
-        position: absolute;
-        top: -50px; right: -50px;
-        width: 160px; height: 160px;
-        background: rgba(255,107,53,0.06);
-        border-radius: 50%;
-        pointer-events: none;
-    }}
     .hero-label {{
-        font-size: 0.6rem;
-        font-weight: 800;
-        letter-spacing: 2.5px;
-        color: {text_muted};
-        text-transform: uppercase;
-        margin-bottom: 0.25rem;
+        font-size: 0.6rem; font-weight: 800; letter-spacing: 2.5px;
+        color: {text_muted}; text-transform: uppercase; margin-bottom: 0.25rem;
     }}
     .hero-title {{
-        font-size: 1.75rem;
-        font-weight: 900;
-        color: {text_h};
-        letter-spacing: -1px;
-        margin-bottom: 0.15rem;
-        line-height: 1.1;
+        font-size: 1.75rem; font-weight: 900; color: {text_h};
+        letter-spacing: -1px; margin-bottom: 0.15rem; line-height: 1.1;
     }}
     .hero-title span {{ color: {PRIMARY_COLOR}; }}
-    .hero-sub {{
-        font-size: 0.78rem;
-        color: {text_muted};
-        margin-bottom: 1.1rem;
-        font-weight: 400;
-    }}
-    .hero-stats {{
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.6rem;
-    }}
+    .hero-sub {{ font-size: 0.78rem; color: {text_muted}; margin-bottom: 1.1rem; }}
+    .hero-stats {{ display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }}
     .hero-stat {{
-        background: {hero_stat};
-        border: 1px solid {hero_stat_b};
-        border-radius: 16px;
-        padding: 0.75rem 0.9rem;
+        background: {hero_stat}; border: 1px solid {hero_stat_b};
+        border-radius: 16px; padding: 0.75rem 0.9rem;
     }}
     .hero-stat-label {{
-        font-size: 0.6rem;
-        font-weight: 700;
-        color: {text_muted};
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        margin-bottom: 0.2rem;
+        font-size: 0.6rem; font-weight: 700; color: {text_muted};
+        text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.2rem;
     }}
-    .hero-stat-value {{
-        font-size: 1.3rem;
-        font-weight: 800;
-        color: {text_h};
-        line-height: 1.1;
-    }}
+    .hero-stat-value {{ font-size: 1.3rem; font-weight: 800; color: {text_h}; line-height: 1.1; }}
     .top-nav {{
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        display: flex; align-items: center; justify-content: space-between;
         padding: 0.75rem 0 1rem;
     }}
     .top-nav-logo {{
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: {PRIMARY_COLOR};
-        border-radius: 40px;
-        padding: 0.3rem 1rem;
+        display: inline-flex; align-items: center; gap: 8px;
+        background: {PRIMARY_COLOR}; border-radius: 40px; padding: 0.3rem 1rem;
     }}
     .top-nav-logo span {{
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.7rem;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: 2px;
-    }}
-    .top-nav-actions {{
-        display: flex;
-        gap: 0.5rem;
+        font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+        font-weight: 800; color: #fff; letter-spacing: 2px;
     }}
     .icon-btn-wrap .stButton > button {{
-        background: {surface} !important;
-        color: {text_muted} !important;
-        border: 1px solid {border} !important;
-        border-radius: 50px !important;
-        padding: 0 !important;
-        width: 36px !important;
-        height: 36px !important;
-        min-width: 36px !important;
-        font-size: 0.85rem !important;
-        font-weight: 600 !important;
-        box-shadow: none !important;
-        transition: all 0.15s ease !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+        background: {surface} !important; color: {text_muted} !important;
+        border: 1px solid {border} !important; border-radius: 50px !important;
+        padding: 0 !important; width: 36px !important; height: 36px !important;
+        min-width: 36px !important; font-size: 0.85rem !important;
+        box-shadow: none !important; transition: all 0.15s ease !important;
     }}
     .icon-btn-wrap .stButton > button:hover {{
-        border-color: {PRIMARY_COLOR} !important;
-        color: {PRIMARY_COLOR} !important;
+        border-color: {PRIMARY_COLOR} !important; color: {PRIMARY_COLOR} !important;
         background: {surface2} !important;
-        transform: none !important;
-        box-shadow: none !important;
     }}
     .stButton > button {{
-        background: {PRIMARY_COLOR} !important;
-        color: #fff !important;
-        border: none !important;
-        border-radius: 50px !important;
-        padding: 0.75rem 2rem !important;
-        font-weight: 700 !important;
-        font-size: 0.9rem !important;
-        box-shadow: 0 4px 18px rgba(255,107,53,0.28) !important;
-        transition: all 0.2s ease !important;
-        width: 100% !important;
-        letter-spacing: 0.3px;
+        background: {PRIMARY_COLOR} !important; color: #fff !important;
+        border: none !important; border-radius: 50px !important;
+        padding: 0.75rem 2rem !important; font-weight: 700 !important;
+        font-size: 0.9rem !important; box-shadow: 0 4px 18px {PRIMARY_COLOR}44 !important;
+        transition: all 0.2s ease !important; width: 100% !important;
     }}
-    .stButton > button:hover {{
-        transform: translateY(-1px) !important;
-        box-shadow: 0 7px 26px rgba(255,107,53,0.38) !important;
-    }}
-    .stButton > button:active {{
-        transform: scale(0.98) !important;
-    }}
+    .stButton > button:hover {{ transform: translateY(-1px) !important; }}
+    .stButton > button:active {{ transform: scale(0.98) !important; }}
     .stDownloadButton > button {{
-        background: {surface} !important;
-        color: {SECONDARY} !important;
-        border: 2px solid {SECONDARY} !important;
-        border-radius: 50px !important;
-        font-weight: 700 !important;
-        box-shadow: none !important;
+        background: {surface} !important; color: {SECONDARY} !important;
+        border: 2px solid {SECONDARY} !important; border-radius: 50px !important;
+        font-weight: 700 !important; box-shadow: none !important;
     }}
     .stDownloadButton > button:hover {{
-        background: {SECONDARY} !important;
-        color: #fff !important;
+        background: {SECONDARY} !important; color: #fff !important;
     }}
     [data-testid="stFileUploader"] section {{
-        background: {surface};
-        border: 2px dashed {border};
-        border-radius: 24px;
-        padding: 2.5rem 1.5rem;
-        transition: border-color 0.2s, background 0.2s;
+        background: {surface}; border: 2px dashed {border};
+        border-radius: 24px; padding: 2.5rem 1.5rem; transition: all 0.2s;
     }}
     [data-testid="stFileUploader"] section:hover {{
-        border-color: {PRIMARY_COLOR};
-        background: {surface2};
+        border-color: {PRIMARY_COLOR}; background: {surface2};
     }}
     [data-testid="stTabs"] [data-testid="stTab"] {{
-        border-radius: 50px !important;
-        padding: 0.4rem 1.4rem !important;
-        background: transparent !important;
-        color: {text_muted} !important;
-        border: 1.5px solid {border} !important;
-        font-weight: 700;
-        font-size: 0.82rem;
-        transition: all 0.15s ease;
+        border-radius: 50px !important; padding: 0.4rem 1.4rem !important;
+        background: transparent !important; color: {text_muted} !important;
+        border: 1.5px solid {border} !important; font-weight: 700; font-size: 0.82rem;
     }}
     [data-testid="stTabs"] [aria-selected="true"] {{
-        background: {PRIMARY_COLOR} !important;
-        color: #fff !important;
+        background: {PRIMARY_COLOR} !important; color: #fff !important;
         border-color: {PRIMARY_COLOR} !important;
     }}
-    [data-testid="stTabContent"] {{
-        padding-top: 1rem !important;
-    }}
-    [data-testid="stDataFrame"] {{
-        border-radius: 18px !important;
-        overflow: hidden !important;
-        border: 1px solid {border} !important;
-    }}
+    [data-testid="stDataFrame"] {{ border-radius: 18px !important; overflow: hidden !important; border: 1px solid {border} !important; }}
     [data-testid="stExpander"] {{
-        border-radius: 18px !important;
-        border: 1px solid {border} !important;
-        background: {surface} !important;
-        overflow: hidden;
-        box-shadow: 0 2px 12px {shadow};
+        border-radius: 18px !important; border: 1px solid {border} !important;
+        background: {surface} !important; overflow: hidden; box-shadow: 0 2px 12px {shadow};
     }}
-    [data-testid="stAlert"] {{
-        border-radius: 14px !important;
-        border-left: 4px solid !important;
+
+    /* ── CHAT BUBBLE (CS Shopee style) ── */
+    .chat-wrapper {{
+        background: {chat_bg};
+        border: 1px solid {chat_bdr};
+        border-radius: 20px;
+        padding: 12px 10px;
+        height: 300px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 10px;
+        scrollbar-width: thin;
+        scrollbar-color: {border2} transparent;
     }}
+    .bubble-row {{
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
+        margin-bottom: 2px;
+    }}
+    .bubble-row.user {{ flex-direction: row-reverse; }}
+    .bubble-avatar {{
+        width: 26px; height: 26px; border-radius: 50%;
+        font-size: 0.85rem; display: flex; align-items: center;
+        justify-content: center; flex-shrink: 0;
+        background: {surface2};
+    }}
+    .bubble-bot {{
+        background: {bubble_bot_bg};
+        border: 1px solid {bubble_bot_bdr};
+        color: {bubble_bot_txt};
+        border-radius: 14px 14px 14px 3px;
+        padding: 7px 11px;
+        font-size: 0.77rem;
+        line-height: 1.5;
+        max-width: 78%;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+    }}
+    .bubble-user {{
+        background: {PRIMARY_COLOR};
+        color: #fff;
+        border-radius: 14px 14px 3px 14px;
+        padding: 7px 11px;
+        font-size: 0.77rem;
+        line-height: 1.5;
+        max-width: 78%;
+        word-wrap: break-word;
+    }}
+    .bubble-time {{
+        font-size: 0.58rem; color: {text_muted}; margin-top: 2px;
+        padding: 0 4px;
+    }}
+
+    /* ── LOG ITEM ── */
     .log-item {{
-        background: {log_bg} !important;
-        border: 1px solid {log_border} !important;
-        border-radius: 20px !important;
-        padding: 1rem 1.25rem !important;
-        margin-bottom: 0.65rem !important;
-        box-shadow: 0 2px 10px {shadow} !important;
+        background: {log_bg} !important; border: 1px solid {log_border} !important;
+        border-radius: 20px !important; padding: 1rem 1.25rem !important;
+        margin-bottom: 0.65rem !important; box-shadow: 0 2px 10px {shadow} !important;
         transition: border-color 0.15s ease, transform 0.15s ease;
     }}
-    .log-item:hover {{
-        border-color: {PRIMARY_COLOR} !important;
-        transform: translateY(-1px);
-    }}
+    .log-item:hover {{ border-color: {PRIMARY_COLOR} !important; transform: translateY(-1px); }}
     .log-item .log-name {{
-        font-weight: 700;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.78rem;
-        color: {text_h};
-        margin-bottom: 0.35rem;
-        word-break: break-all;
+        font-weight: 700; font-family: 'JetBrains Mono', monospace;
+        font-size: 0.78rem; color: {text_h}; margin-bottom: 0.35rem;
     }}
     .log-item .log-meta {{
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.68rem;
-        color: {text_muted};
+        display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+        font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: {text_muted};
     }}
-    .log-item .log-meta .sep {{ color: {text_dim}; }}
-    .log-item .log-meta .total {{ color: {SECONDARY}; font-weight: 700; }}
     .log-badge {{
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 10px;
-        border-radius: 40px;
-        font-size: 0.58rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        font-family: 'JetBrains Mono', monospace;
-        border: 1.5px solid;
-        background: transparent;
+        display: inline-flex; align-items: center; padding: 2px 10px;
+        border-radius: 40px; font-size: 0.58rem; font-weight: 800;
+        letter-spacing: 0.5px; font-family: 'JetBrains Mono', monospace; border: 1.5px solid;
     }}
     .log-badge.ritl {{ border-color: #a78bfa; color: #a78bfa; background: rgba(139,92,246,0.08); }}
     .log-badge.rjtl {{ border-color: #60a5fa; color: #60a5fa; background: rgba(59,130,246,0.08); }}
-    .log-badge.other {{ border-color: #94a3b8; color: #94a3b8; background: rgba(148,163,184,0.08); }}
-    .log-badge-susulan {{
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 10px;
-        border-radius: 40px;
-        font-size: 0.58rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        font-family: 'JetBrains Mono', monospace;
-        border: 1.5px solid #f59e0b;
-        color: #92400e !important;
-        background: #fef3c7 !important;
-    }}
+    .log-badge.other {{ border-color: #94a3b8; color: #94a3b8; }}
     .status-selesai {{
-        background: rgba(0,196,122,0.1);
-        border: 1.5px solid {SECONDARY};
-        color: {SECONDARY};
-        padding: 2px 12px;
-        border-radius: 40px;
-        font-size: 0.62rem;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        font-family: 'JetBrains Mono', monospace;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
+        background: rgba(0,196,122,0.1); border: 1.5px solid {SECONDARY}; color: {SECONDARY};
+        padding: 2px 12px; border-radius: 40px; font-size: 0.62rem; font-weight: 700;
+        font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center; gap: 4px;
     }}
     .status-pending {{
-        background: rgba(180,130,0,0.08);
-        border: 1.5px solid #b45309;
-        color: #b45309;
-        padding: 2px 12px;
-        border-radius: 40px;
-        font-size: 0.62rem;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        font-family: 'JetBrains Mono', monospace;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }}
-    .rekap-card {{
-        background: {surface} !important;
-        border: 1px solid {border} !important;
-        border-radius: 18px !important;
-        padding: 1rem 1.25rem !important;
-        margin-bottom: 0.6rem !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 1rem !important;
-        box-shadow: 0 2px 10px {shadow} !important;
-        transition: border-color 0.15s ease;
-    }}
-    .rekap-card:hover {{ border-color: {PRIMARY_COLOR} !important; }}
-    .rekap-card .period {{
-        font-weight: 800; font-size: 0.88rem; color: {text_h};
-        font-family: 'JetBrains Mono', monospace; margin-bottom: 0.15rem;
-    }}
-    .rekap-card .meta {{ color: {text_muted}; font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; }}
-    .rekap-card .total {{
-        color: {SECONDARY}; font-weight: 800; font-size: 0.82rem;
-        font-family: 'JetBrains Mono', monospace; white-space: nowrap;
+        background: rgba(180,130,0,0.08); border: 1.5px solid #b45309; color: #b45309;
+        padding: 2px 12px; border-radius: 40px; font-size: 0.62rem; font-weight: 700;
+        font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center; gap: 4px;
     }}
     .section-title {{
-        font-size: 0.65rem;
-        font-weight: 800;
-        letter-spacing: 2.5px;
-        text-transform: uppercase;
-        color: {text_muted};
-        margin-bottom: 1rem;
-        border-left: 3px solid {PRIMARY_COLOR};
-        padding-left: 10px;
+        font-size: 0.65rem; font-weight: 800; letter-spacing: 2.5px;
+        text-transform: uppercase; color: {text_muted}; margin-bottom: 1rem;
+        border-left: 3px solid {PRIMARY_COLOR}; padding-left: 10px;
         font-family: 'JetBrains Mono', monospace;
     }}
-    .summary-grid {{
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.6rem;
-        margin-bottom: 1rem;
-    }}
-    .summary-grid .bento {{
-        padding: 0.9rem 1rem !important;
-        margin-bottom: 0 !important;
-        background: {surface} !important;
-        border: 1px solid {border} !important;
-    }}
-    .summary-grid .bento .value {{ font-size: 1.2rem !important; }}
-    .summary-grid .bento .label {{ font-size: 0.58rem !important; }}
     .tingkat-badge {{
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 5px 16px;
-        border-radius: 40px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        font-family: 'JetBrains Mono', monospace;
+        display: inline-flex; align-items: center; gap: 6px; padding: 5px 16px;
+        border-radius: 40px; font-size: 0.72rem; font-weight: 700;
+        letter-spacing: 1px; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;
         border: 1.5px solid;
     }}
     .tingkat-badge.ritl {{ background: rgba(139,92,246,0.10); border-color: #a78bfa; color: #a78bfa; }}
     .tingkat-badge.rjtl {{ background: rgba(59,130,246,0.10); border-color: #60a5fa; color: #60a5fa; }}
     hr {{ border-color: {border} !important; margin: 1.5rem 0 !important; opacity: 0.4; }}
-    [data-testid="stStatusWidget"] {{
-        border-radius: 16px !important;
-        border: 1px solid {border} !important;
-        background: {surface} !important;
-        padding: 0.75rem !important;
-    }}
-    .bottom-nav-bar {{
-        position: fixed;
-        bottom: 0; left: 0; right: 0;
+
+    /* ── FOOTER CUSTOM ── */
+    .fpk-footer {{
         background: {bottom_bg};
         border-top: 1px solid {bottom_bdr};
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        padding: 0.6rem 0 0.9rem;
-        z-index: 999;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        padding: 1.5rem 0 0.5rem;
+        margin-top: 1.5rem;
+        text-align: center;
     }}
-    .bottom-nav-item {{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 3px;
-        cursor: pointer;
-        padding: 0.2rem 1.5rem;
-        border-radius: 14px;
-        transition: background 0.15s ease;
-    }}
-    .bottom-nav-item:hover {{ background: {surface2}; }}
-    .bottom-nav-icon {{
-        font-size: 1.2rem;
-        line-height: 1;
-    }}
-    .bottom-nav-label {{
-        font-size: 0.58rem;
-        font-weight: 700;
-        color: {text_muted};
-        letter-spacing: 0.3px;
-    }}
-    .bottom-nav-label.active {{ color: {PRIMARY_COLOR}; }}
-    .bottom-nav-dot {{
-        width: 4px; height: 4px;
-        border-radius: 50%;
-        background: {PRIMARY_COLOR};
-        margin-top: 1px;
-    }}
-    @media (max-width: 600px) {{
-        .block-container {{ padding: 0 0.75rem 4rem !important; }}
-        .hero-title {{ font-size: 1.5rem !important; }}
-        .bento {{ padding: 1rem 1.1rem !important; }}
-        .login-card {{ padding: 2rem 1.25rem 1.75rem !important; }}
-        .login-card h2 {{ font-size: 1.3rem !important; }}
-        .login-icon-ring {{ width: 60px !important; height: 60px !important; font-size: 1.6rem !important; }}
-    }}
+    .fpk-footer-txt {{ color: {ft_txt}; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; }}
 
     /* ── STREAMLIT CHROME ── */
     [data-testid="stDecoration"] {{
         background: linear-gradient(90deg, {PRIMARY_COLOR}, {SECONDARY}) !important;
         height: 3px !important;
     }}
-    [data-testid="stHeader"] {{ background: {bg} !important; border-bottom: 1px solid {border} !important; }}
-    [data-testid="stToolbar"] {{ background: {bg} !important; }}
-    [data-testid="stToolbar"] button {{ color: {text_muted} !important; border-radius: 8px !important; }}
-    [data-testid="stToolbar"] button:hover {{ background: {surface2} !important; color: {PRIMARY_COLOR} !important; }}
+    [data-testid="stHeader"] {{ background: {hero_bg} !important; border-bottom: 1px solid {border} !important; }}
+    [data-testid="stSidebar"] {{ background: {log_bg} !important; border-right: 1px solid {border} !important; }}
+    [data-testid="stSidebar"] * {{ color: {text_body} !important; }}
     #MainMenu {{ visibility: hidden; }}
     footer {{ visibility: hidden; display: none !important; }}
     [data-testid="stAppDeployButton"] {{ display: none !important; }}
-    [data-testid="stStatusWidget"] {{
-        background: {surface} !important; border: 1px solid {border} !important;
-        border-radius: 16px !important; padding: 0.5rem 0.75rem !important;
-    }}
-    [data-testid="stStatusWidget"] span,
-    [data-testid="stStatusWidget"] p {{ color: {text_muted} !important; font-size: 0.75rem !important; }}
-    [data-testid="stSidebar"] {{ background: {surface} !important; border-right: 1px solid {border} !important; }}
-    [data-testid="stSidebar"] * {{ color: {text_body} !important; }}
     [data-testid="stToast"] {{
         background: {surface2} !important; border: 1px solid {border} !important;
         border-radius: 14px !important; color: {text_h} !important;
@@ -1081,31 +897,21 @@ def inject_css(dark):
     ::-webkit-scrollbar-track {{ background: {bg}; }}
     ::-webkit-scrollbar-thumb {{ background: {border2}; border-radius: 99px; }}
     ::-webkit-scrollbar-thumb:hover {{ background: {PRIMARY_COLOR}; }}
-
-    /* ── NATIVE TEXT OVERRIDES (light mode fix) ── */
     .stApp, .stApp p, .stApp span, .stApp div {{ color: {text_body} !important; }}
-    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6 {{ color: {text_h} !important; }}
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4 {{ color: {text_h} !important; }}
     [data-testid="stMarkdownContainer"] p,
     [data-testid="stMarkdownContainer"] li,
     [data-testid="stMarkdownContainer"] span {{ color: {text_body} !important; }}
-    [data-testid="stCaptionContainer"], .stCaption, small {{ color: {text_muted} !important; }}
-    [data-baseweb="input"] input, [data-baseweb="textarea"] textarea, .stTextInput input {{
+    [data-baseweb="input"] input, .stTextInput input {{
         background: {input_bg} !important; color: {input_col} !important; border-color: {input_bdr} !important;
     }}
-    [data-baseweb="input"], [data-baseweb="base-input"] {{ background: {input_bg} !important; }}
-    .stTextInput label, .stSelectbox label, .stRadio label p, .stFileUploader label {{ color: {label_col} !important; }}
+    .stTextInput label, .stSelectbox label {{ color: {label_col} !important; }}
     [data-testid="stFileUploader"] span,
     [data-testid="stFileUploader"] p {{ color: {text_muted} !important; }}
-    [data-testid="stExpander"] summary,
-    [data-testid="stExpander"] summary span {{ color: {text_h} !important; }}
-    [data-testid="stExpander"] [data-testid="stExpanderDetails"] p,
-    [data-testid="stExpander"] [data-testid="stExpanderDetails"] span {{ color: {text_body} !important; }}
-    [data-testid="stTabs"] button[data-baseweb="tab"] {{ color: {text_muted} !important; }}
     [data-baseweb="select"] div, [data-baseweb="select"] span {{
         background: {input_bg} !important; color: {input_col} !important;
     }}
-    code, pre, .stCode {{ background: {surface2} !important; color: {text_h} !important; border: 1px solid {border} !important; }}
-    .vega-embed text {{ fill: {text_muted} !important; }}
+    code, pre {{ background: {surface2} !important; color: {text_h} !important; border: 1px solid {border} !important; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -1128,13 +934,11 @@ if not st.session_state.logged_in:
             st.session_state.dark_mode = not st.session_state.dark_mode
             st.rerun()
     st.markdown("""
-    <div class="login-wrapper">
-        <div class="login-card">
-            <div class="login-app-badge"><span>FPK CONVERTER</span></div>
-            <div class="login-icon-ring">🔐</div>
-            <h2>Selamat Datang</h2>
-            <p class="sub">Masukkan PIN untuk melanjutkan</p>
-        </div>
+    <div style="text-align:center;padding:2rem 0 1rem;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:3px;opacity:0.4;margin-bottom:1rem;">FPK CONVERTER</div>
+        <div style="font-size:2.5rem;margin-bottom:0.5rem;">🔐</div>
+        <h2 style="margin:0 0 0.25rem;">Selamat Datang</h2>
+        <p style="opacity:0.5;font-size:0.85rem;">Masukkan PIN untuk melanjutkan</p>
     </div>
     """, unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -1156,8 +960,7 @@ def panggil_api_proses(uf, timeout=60):
     endpoint = f"{API_URL}/api/proses"
     files = {"file": (uf.name, uf.getvalue(), "application/pdf")}
     request_meta = {
-        "method": "POST",
-        "url": endpoint,
+        "method": "POST", "url": endpoint,
         "headers": {"Content-Type": "multipart/form-data"},
         "body": {"file": uf.name, "size_kb": round(len(uf.getvalue()) / 1024, 1)},
     }
@@ -1186,7 +989,7 @@ def panggil_api_proses(uf, timeout=60):
         "total": payload.get("total"),
         "duplikat": payload.get("duplikat"),
         "processing_time_ms": payload.get("processing_time_ms"),
-        "data": f"[{len(payload.get('data', []))} baris — lihat tab Preview Data]",
+        "data": f"[{len(payload.get('data', []))} baris]",
     }
     df_res = pd.DataFrame(payload["data"])
     return payload, df_res, request_meta, response_meta
@@ -1198,98 +1001,52 @@ def render_result(res, idx=0):
                else "🏃 Rawat Jalan (RJTL)" if tingkat == "RJTL" else tingkat)
     total_rp = f"Rp {res['total']:,.0f}".replace(",", ".")
     jenis = res.get('jenis', 'Reguler')
-    jenis_badge = '<span class="log-badge-susulan">📌 Susulan</span>' if jenis == "Susulan" else ""
-
-    _dark   = st.session_state.get('dark_mode', True)
-    surf    = "#1a1a1a" if _dark else "#ffffff"
-    bdr     = "#2a2a2a" if _dark else "#e0ddd8"
-    txt_h   = "#f0f0f0" if _dark else "#1a1a1a"
-    txt_m   = "#777777" if _dark else "#888888"
-    shadow  = "rgba(0,0,0,0.5)" if _dark else "rgba(0,0,0,0.06)"
+    jenis_badge = '<span style="background:#fef3c7;border:1.5px solid #f59e0b;color:#92400e;padding:2px 10px;border-radius:40px;font-size:0.58rem;font-weight:800;">📌 Susulan</span>' if jenis == "Susulan" else ""
+    _dark = st.session_state.get('dark_mode', True)
+    surf = "#1a1a1a" if _dark else "#ffffff"
+    bdr  = "#2a2a2a" if _dark else "#e0ddd8"
+    shadow = "rgba(0,0,0,0.5)" if _dark else "rgba(0,0,0,0.06)"
 
     st.markdown(
         f'<div style="display:inline-flex;align-items:center;gap:8px;background:{surf};border:1px solid {bdr};border-radius:40px;padding:6px 18px;font-size:0.8rem;font-weight:600;font-family:JetBrains Mono,monospace;box-shadow:0 2px 12px {shadow};">📄 {res["filename"]} {jenis_badge}</div>',
         unsafe_allow_html=True
     )
-
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown(
-            f'<div class="bento"><div class="label">Jumlah Data</div><div class="value">{res["count"]}</div><div class="sub">SEP records</div></div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f'<div class="bento"><div class="label">Jumlah Data</div><div class="value">{res["count"]}</div><div class="sub">SEP records</div></div>', unsafe_allow_html=True)
     with col2:
-        st.markdown(
-            f'<div class="bento"><div class="label">Total Nominal</div><div class="value green">{total_rp}</div><div class="sub">total disetujui</div></div>',
-            unsafe_allow_html=True
-        )
-
-    st.markdown(
-        f'<div class="bento"><div class="label">Tingkat Pelayanan</div><div class="tingkat-badge {t_lower}">{t_label}</div><div class="sub" style="margin-top:0.5rem;">terdeteksi otomatis dari PDF</div></div>',
-        unsafe_allow_html=True
-    )
-
+        st.markdown(f'<div class="bento"><div class="label">Total Nominal</div><div class="value green">{total_rp}</div><div class="sub">total disetujui</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="bento"><div class="label">Tingkat Pelayanan</div><div class="tingkat-badge {t_lower}">{t_label}</div><div class="sub" style="margin-top:0.5rem;">terdeteksi otomatis dari PDF</div></div>', unsafe_allow_html=True)
     st.divider()
-
-    api_log = res.get('api_log')
-    if api_log:
-        req = api_log['request']
-        resp_data = api_log['response']
-        ok = 200 <= resp_data['status_code'] < 300
-        status_color = SECONDARY if ok else "#f87171"
-        with st.expander(f"🔌 API Request/Response — {resp_data['status_code']} · {resp_data['latency_ms']} ms"):
-            st.markdown(f"""
-            <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;margin-bottom:0.8rem;">
-                <span style="color:#00b0ff;font-weight:700;">POST</span>
-                <span style="opacity:0.8;"> {req['url']}</span>
-                &nbsp;→&nbsp;
-                <span style="color:{status_color};font-weight:700;">{resp_data['status_code']}</span>
-                <span style="opacity:0.6;"> ({resp_data['latency_ms']} ms)</span>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown("**Request**")
-            st.code(json.dumps(req, indent=2, ensure_ascii=False), language="json")
-            st.markdown("**Response**")
-            st.code(json.dumps(resp_data, indent=2, ensure_ascii=False), language="json")
 
     tab_preview, tab_json = st.tabs(["📊 Preview Data", "📦 JSON Mentah"])
     with tab_preview:
         df_prev = res['df'].copy()
         df_prev.insert(0, 'No', range(1, 1 + len(df_prev)))
         df_prev = df_prev[['No', 'No.SEP', 'Disetujui']]
-        st.dataframe(
-            df_prev,
-            use_container_width=True,
-            height=280,
-            hide_index=True,
+        st.dataframe(df_prev, use_container_width=True, height=280, hide_index=True,
             column_config={
                 "No": st.column_config.NumberColumn("No", width=60),
                 "No.SEP": st.column_config.TextColumn("No.SEP", width=200),
                 "Disetujui": st.column_config.NumberColumn("Nominal Cair", format="Rp %d", width=150),
-            }
-        )
+            })
     with tab_json:
-        if api_log and 'body' in resp_data:
-            st.json(resp_data['body'])
+        api_log = res.get('api_log')
+        if api_log:
+            st.json(api_log['response'].get('body', {}))
         else:
             st.info("Tidak ada JSON response.")
 
     dup = res['df'][res['df']['No.SEP'].duplicated(keep=False)]
     if not dup.empty:
-        dup_list = ', '.join(dup['No.SEP'].unique().tolist())
-        st.warning(f"⚠️ **{len(dup['No.SEP'].unique())} No.SEP duplikat ditemukan:** {dup_list}")
+        st.warning(f"⚠️ **{len(dup['No.SEP'].unique())} No.SEP duplikat ditemukan**")
 
     st.divider()
     col1, col2 = st.columns([3, 1])
     with col1:
         csv = res['df'].to_csv(index=False).encode('utf-8')
-        downloaded = st.download_button(
-            label="⬇ Download CSV",
-            data=csv,
-            file_name=res['filename'],
-            mime="text/csv",
-            key=f"dl_{idx}"
-        )
+        downloaded = st.download_button(label="⬇ Download CSV", data=csv,
+            file_name=res['filename'], mime="text/csv", key=f"dl_{idx}")
         if downloaded:
             update_log_status(res['filename'], 'Selesai')
             st.rerun()
@@ -1299,25 +1056,21 @@ def render_result(res, idx=0):
             st.rerun()
 
 def animasi_terminal_proses(uf, dark: bool):
-    acc     = PRIMARY_COLOR
-    grn     = SECONDARY
-    yel     = ACCENT
-    blu     = _PAL["primary_glow"]
-    dim     = _PAL["primary_bg"] if dark else _PAL["primary_bg_l"]
-    pur     = _PAL["purple"]
-    surf    = "#080808" if dark else "#fafaf8"
+    acc  = PRIMARY_COLOR
+    grn  = SECONDARY
+    yel  = ACCENT
+    dim  = _PAL["primary_bg"] if dark else _PAL["primary_bg_l"]
+    pur  = _PAL["purple"]
+    surf = "#080808" if dark else "#fafaf8"
     bdr_pnl = PRIMARY_COLOR + "44"
-    txt     = "#e0e0e0" if dark else "#1a1a1a"
-    bar_bg  = "#1a1a1a" if dark else "#e0e0e0"
+    txt  = "#e0e0e0" if dark else "#1a1a1a"
+    bar_bg = "#1a1a1a" if dark else "#e0e0e0"
 
     term = st.empty()
 
     def render(lines, done=False):
         visible = lines[-60:]
-        inner = "".join(
-            f'<div style="margin:0 0 1px 0;line-height:1.6;">{l}</div>'
-            for l in visible
-        )
+        inner = "".join(f'<div style="margin:0 0 1px 0;line-height:1.6;">{l}</div>' for l in visible)
         dot = f'<span style="color:{grn};">●</span>' if not done else f'<span style="color:{acc};">✓</span>'
         label = "LIVE" if not done else "DONE"
         label_col = grn if not done else acc
@@ -1331,8 +1084,7 @@ def animasi_terminal_proses(uf, dark: bool):
                 {dot}&nbsp;API RESPONSE
                 <span style="color:{label_col};margin-left:4px;">· {label}</span>
             </div>
-            <div style="overflow-y:auto;height:280px;scrollbar-width:thin;
-                        scrollbar-color:{bdr_pnl} transparent;" id="term-out">
+            <div style="overflow-y:auto;height:280px;scrollbar-width:thin;" id="term-out">
                 {inner}
             </div>
         </div>
@@ -1348,7 +1100,6 @@ def animasi_terminal_proses(uf, dark: bool):
         col = color or txt
         return f'<span style="color:{col};">{text}</span>'
 
-    # ── Fase 1: header request ──
     lines = []
     lines.append(ln(f'$ POST /api/proses', acc))
     lines.append(ln(f'  file   : {uf.name}', dim))
@@ -1368,12 +1119,11 @@ def animasi_terminal_proses(uf, dark: bool):
     sep_list = df_res[["No.SEP", "Disetujui"]].to_dict(orient="records")
     row_count = max(1, jumlah)
 
-    # ── Fase 2: response header ──
     lines[-1] = ln(f'  status : 200 OK · {lat_ms}ms', grn)
     lines.append(ln(f'  tingkat: {tingkat}', pur))
     lines.append(ln(f'  jumlah : {jumlah} SEP', grn))
     lines.append(ln(f'  proc   : {proc_ms}ms', acc))
-    lines.append(ln(''))
+    lines.append(ln('', txt))
     lines.append(ln('{', txt))
     lines.append(ln(f'  "file"    : "{filename}",', yel))
     lines.append(ln(f'  "tingkat" : "{tingkat}",', pur))
@@ -1382,12 +1132,10 @@ def animasi_terminal_proses(uf, dark: bool):
     render(lines)
     time.sleep(0.2)
 
-    # ── Fase 3: stream SEP — pre-build semua baris, render throttle by time ──
     WINDOW_SIZE  = 20
-    RENDER_EVERY = 0.08   # detik — render ke UI max ~12x/detik, browser bisa ikutin
-    TARGET_SEC   = max(4.0, row_count * 0.003)  # minimal 4 detik, ~3ms/baris
+    RENDER_EVERY = 0.08
+    TARGET_SEC   = max(4.0, row_count * 0.003)
 
-    # Pre-build semua baris HTML dulu (pure Python, cepat)
     all_lines = []
     for i, row in enumerate(sep_list):
         no_urut = i + 1
@@ -1403,21 +1151,17 @@ def animasi_terminal_proses(uf, dark: bool):
             f'</div>'
         ))
 
-    prog         = st.empty()
-    sep_window   = []
-    last_render  = time.time()
-    # Hitung delay antar baris supaya total animasi = TARGET_SEC
+    prog = st.empty()
+    sep_window = []
+    last_render = time.time()
     per_row_sleep = TARGET_SEC / max(1, row_count)
 
     for i, (no_urut, html_line) in enumerate(all_lines):
         is_last = (i == row_count - 1)
-
         sep_window.append(html_line)
         if len(sep_window) > WINDOW_SIZE:
             sep_window.pop(0)
-
         now = time.time()
-        # Render ke UI hanya kalau sudah lewat RENDER_EVERY detik ATAU baris terakhir
         if (now - last_render >= RENDER_EVERY) or is_last:
             last_render = now
             pct = 100 if is_last else int((no_urut / row_count) * 100)
@@ -1435,14 +1179,11 @@ def animasi_terminal_proses(uf, dark: bool):
                 f'{pct}%</span></div>',
                 unsafe_allow_html=True
             )
-
         time.sleep(per_row_sleep)
 
-    # Tahan sebentar biar 100% kelihatan
     time.sleep(0.5)
     prog.empty()
 
-    # ── Fase 4: footer ──
     total_fmt = f"Rp {total:,}".replace(",", ".")
     footer_lines = list(sep_window)
     footer_lines.append(ln('  ],', txt))
@@ -1490,25 +1231,23 @@ def build_chart(log_data):
 
 log_data_for_hero = load_log()
 _total_konversi = len(log_data_for_hero)
-_total_selesai = sum(1 for x in log_data_for_hero if x.get('status') == 'Selesai')
-_total_pending = _total_konversi - _total_selesai
-_total_nominal = sum(x['total'] for x in log_data_for_hero)
-
-_nominal_str = f"Rp {_total_nominal:,.0f}".replace(",", ".")
-
-# ── TOP NAV ──
-st.markdown("""
-<div class="top-nav">
-    <div class="top-nav-logo"><span>FPK CONVERTER</span></div>
-    <div class="top-nav-actions" id="top-nav-right"></div>
-</div>
-""", unsafe_allow_html=True)
+_total_selesai  = sum(1 for x in log_data_for_hero if x.get('status') == 'Selesai')
+_total_pending  = _total_konversi - _total_selesai
+_total_nominal  = sum(x['total'] for x in log_data_for_hero)
+_nominal_str    = f"Rp {_total_nominal:,.0f}".replace(",", ".")
 
 _PAL          = build_palette()
 PRIMARY_COLOR = _PAL["primary"]
 SECONDARY     = _PAL["secondary"]
 ACCENT        = _PAL["accent"]
 inject_css(st.session_state.dark_mode)
+
+# ── TOP NAV ──
+st.markdown("""
+<div class="top-nav">
+    <div class="top-nav-logo"><span>FPK CONVERTER</span></div>
+</div>
+""", unsafe_allow_html=True)
 
 col_sp_nav, col_theme_nav, col_paint_nav, col_pin_nav, col_logout_nav = st.columns([4, 1, 1, 1, 1])
 with col_theme_nav:
@@ -1520,7 +1259,7 @@ with col_theme_nav:
     st.markdown('</div>', unsafe_allow_html=True)
 with col_paint_nav:
     st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
-    if st.button("🎨", help="Kustomisasi warna", key="open_theme"):
+    if st.button("🎨", help="Kustomisasi tampilan", key="open_theme"):
         st.session_state.show_theme_panel = not st.session_state.get("show_theme_panel", False)
         st.session_state.show_pin_form = False
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1538,130 +1277,131 @@ with col_logout_nav:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ── PANEL WARNA ──
+# ── PANEL TEMA ──
 if st.session_state.get("show_theme_panel"):
     _dark_p = st.session_state.dark_mode
-    _surf_p = "#1a1a1a" if _dark_p else "#ffffff"
     _bdr_p  = "#2a2a2a" if _dark_p else "#e4e2dd"
     _txt_p  = "#f0f0f0" if _dark_p else "#1a1a1a"
     _mut_p  = "#666"    if _dark_p else "#888"
 
-    _COLOR_INFO = [
-        ("c_primary",   PRIMARY_COLOR,       "Primary",
-         "Tombol utama · logo pill · hero title · border aktif · tab aktif · scrollbar · terminal prompt",
-         [("bg", "Proses →", "#fff"), ("bg", "FPK", "#fff")]),
-        ("c_secondary", SECONDARY,           "Secondary",
-         "Badge Selesai · nominal total · tombol download · stat Selesai · progress bar",
-         [("border", "✓ Selesai", None), ("text", "Rp 4.200.000", None), ("border", "⬇ Download", None)]),
-        ("c_accent",    ACCENT,              "Accent",
-         "Badge Pending · stat pending · warning · progress bar kanan",
-         [("border_amber", "⏳ Pending", None), ("text", "3 file", None)]),
-        ("c_purple",    _PAL["purple"],      "Purple",
-         "Total nominal hero card · badge RITL/RJTL · stat ke-4 · tingkat di terminal",
-         [("text", "Rp 2.3M", None), ("border", "RITL", None), ("border", "RJTL", None)]),
-    ]
+    # ── Tab kustom ──
+    tab_warna, tab_section, tab_font = st.tabs(["🎨 Warna", "🖼 Section", "🔤 Font"])
 
-    for key, col, name, desc, examples in _COLOR_INFO:
-        ex_html = ""
-        for style, label, fg in examples:
-            if style == "bg":
-                ex_html += f'<span style="background:{col};color:{fg};font-size:0.6rem;padding:2px 9px;border-radius:99px;font-weight:700;margin-right:4px;">{label}</span>'
-            elif style == "border":
-                ex_html += f'<span style="border:1.5px solid {col};color:{col};font-size:0.6rem;padding:2px 9px;border-radius:99px;font-weight:700;margin-right:4px;">{label}</span>'
-            elif style == "border_amber":
-                ex_html += f'<span style="border:1.5px solid #b45309;color:#b45309;font-size:0.6rem;padding:2px 9px;border-radius:99px;font-weight:700;margin-right:4px;">{label}</span>'
-            elif style == "text":
-                ex_html += f'<span style="color:{col};font-size:0.6rem;font-weight:800;margin-right:4px;">{label}</span>'
-
-        st.markdown(f"""
-        <div style="display:flex;align-items:flex-start;gap:12px;
-                    background:{_bdr_p};border-radius:16px;padding:10px 14px;margin-bottom:8px;">
-            <div style="width:40px;height:40px;border-radius:12px;flex-shrink:0;
-                        background:{col};box-shadow:0 0 14px {col}66;margin-top:2px;"></div>
-            <div style="flex:1;min-width:0;">
-                <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-                    <span style="font-size:0.75rem;font-weight:800;color:{_txt_p};">{name}</span>
-                    <span style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:{_mut_p};">{col}</span>
+    with tab_warna:
+        st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.5rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Preset Palette</div>', unsafe_allow_html=True)
+        pcols = st.columns(4)
+        for idx, (label, p, s, a, pu) in enumerate(_PRESETS_PALETTE):
+            with pcols[idx % 4]:
+                st.markdown(f"""
+                <div style="display:flex;gap:2px;margin-bottom:4px;justify-content:center;">
+                    <div style="width:10px;height:10px;border-radius:50%;background:{p};"></div>
+                    <div style="width:10px;height:10px;border-radius:50%;background:{s};"></div>
+                    <div style="width:10px;height:10px;border-radius:50%;background:{a};"></div>
+                    <div style="width:10px;height:10px;border-radius:50%;background:{pu};"></div>
                 </div>
-                <div style="font-size:0.63rem;color:{_mut_p};margin-bottom:6px;line-height:1.5;">{desc}</div>
-                <div style="display:flex;flex-wrap:wrap;gap:4px;">{ex_html}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+                safe_key = "".join(x for x in label if x.isalnum() or x == "_")
+                if st.button(label, key=f"preset_{safe_key}", use_container_width=True):
+                    st.session_state.c_primary   = p
+                    st.session_state.c_secondary = s
+                    st.session_state.c_accent    = a
+                    st.session_state.c_purple    = pu
+                    st.rerun()
 
-    st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.75rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Preset Palette</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.75rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Custom 4 Warna Utama</div>', unsafe_allow_html=True)
+        cp1, cp2, cp3, cp4 = st.columns(4)
+        with cp1:
+            st.caption("Primary")
+            new_p = st.color_picker("", st.session_state.c_primary, key="pick_p", label_visibility="collapsed")
+        with cp2:
+            st.caption("Secondary")
+            new_s = st.color_picker("", st.session_state.c_secondary, key="pick_s", label_visibility="collapsed")
+        with cp3:
+            st.caption("Accent")
+            new_a = st.color_picker("", st.session_state.c_accent, key="pick_a", label_visibility="collapsed")
+        with cp4:
+            st.caption("Purple")
+            new_pu = st.color_picker("", st.session_state.c_purple, key="pick_pu", label_visibility="collapsed")
 
-    pcols = st.columns(4)
-    for idx, (label, p, s, a, pu) in enumerate(_PRESETS_PALETTE):
-        with pcols[idx % 4]:
-            st.markdown(f"""
-            <div style="display:flex;gap:3px;margin-bottom:4px;justify-content:center;">
-                <div style="width:11px;height:11px;border-radius:50%;background:{p};"></div>
-                <div style="width:11px;height:11px;border-radius:50%;background:{s};"></div>
-                <div style="width:11px;height:11px;border-radius:50%;background:{a};"></div>
-                <div style="width:11px;height:11px;border-radius:50%;background:{pu};"></div>
-            </div>
-            """, unsafe_allow_html=True)
-            safe_key = "".join(x for x in label if x.isalnum() or x == "_")
-            if st.button(label, key=f"preset_{safe_key}", use_container_width=True):
-                st.session_state.c_primary   = p
-                st.session_state.c_secondary = s
-                st.session_state.c_accent    = a
-                st.session_state.c_purple    = pu
+        ba, bb = st.columns([3, 1])
+        with ba:
+            if st.button("✅ Terapkan Warna", key="apply_color", use_container_width=True):
+                st.session_state.c_primary   = new_p
+                st.session_state.c_secondary = new_s
+                st.session_state.c_accent    = new_a
+                st.session_state.c_purple    = new_pu
+                st.rerun()
+        with bb:
+            if st.button("↺ Reset", key="reset_color", use_container_width=True):
+                st.session_state.c_primary   = "#ff6b35"
+                st.session_state.c_secondary = "#00c47a"
+                st.session_state.c_accent    = "#ffd700"
+                st.session_state.c_purple    = "#a78bfa"
                 st.rerun()
 
-    st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.75rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Custom — Pilih Bebas</div>', unsafe_allow_html=True)
+    with tab_section:
+        st.caption("Kosongkan untuk ikut tema dark/light otomatis")
+        sc1, sc2 = st.columns(2)
+        with sc1:
+            st.caption("🖼 Background")
+            new_bg = st.color_picker("", st.session_state.c_bg or "#0a0a0a", key="pick_bg", label_visibility="collapsed")
+            use_bg = st.checkbox("Aktifkan", value=bool(st.session_state.c_bg), key="use_bg")
 
-    cp1, cp2, cp3, cp4 = st.columns(4)
-    with cp1:
-        st.markdown(f'<div style="font-size:0.62rem;font-weight:700;color:{PRIMARY_COLOR};text-align:center;margin-bottom:2px;">Primary</div>', unsafe_allow_html=True)
-        new_p = st.color_picker("", st.session_state.c_primary,   key="pick_p", label_visibility="collapsed")
-    with cp2:
-        st.markdown(f'<div style="font-size:0.62rem;font-weight:700;color:{SECONDARY};text-align:center;margin-bottom:2px;">Secondary</div>', unsafe_allow_html=True)
-        new_s = st.color_picker("", st.session_state.c_secondary, key="pick_s", label_visibility="collapsed")
-    with cp3:
-        st.markdown(f'<div style="font-size:0.62rem;font-weight:700;color:{ACCENT};text-align:center;margin-bottom:2px;">Accent</div>', unsafe_allow_html=True)
-        new_a = st.color_picker("", st.session_state.c_accent,    key="pick_a", label_visibility="collapsed")
-    with cp4:
-        st.markdown(f'<div style="font-size:0.62rem;font-weight:700;color:{_PAL["purple"]};text-align:center;margin-bottom:2px;">Purple</div>', unsafe_allow_html=True)
-        new_pu = st.color_picker("", st.session_state.c_purple,   key="pick_pu", label_visibility="collapsed")
+            st.caption("🔝 Navbar/Surface")
+            new_nb = st.color_picker("", st.session_state.c_navbar or "#141414", key="pick_nb", label_visibility="collapsed")
+            use_nb = st.checkbox("Aktifkan", value=bool(st.session_state.c_navbar), key="use_nb")
 
-    st.markdown(f"""
-    <div style="display:flex;gap:6px;align-items:center;margin:0.6rem 0;flex-wrap:wrap;">
-        <span style="font-size:0.6rem;color:{_mut_p};font-family:monospace;">preview →</span>
-        <span style="background:{new_p};color:#fff;font-size:0.62rem;padding:3px 11px;border-radius:99px;font-weight:700;">Proses</span>
-        <span style="border:1.5px solid {new_s};color:{new_s};font-size:0.62rem;padding:3px 11px;border-radius:99px;font-weight:700;">✓ Selesai</span>
-        <span style="border:1.5px solid #b45309;color:#b45309;font-size:0.62rem;padding:3px 11px;border-radius:99px;font-weight:700;">⏳ Pending</span>
-        <span style="border:1.5px solid {new_pu};color:{new_pu};font-size:0.62rem;padding:3px 11px;border-radius:99px;font-weight:700;">RITL</span>
-        <span style="color:{new_s};font-size:0.62rem;font-weight:800;">Rp 2.3M</span>
-    </div>
-    """, unsafe_allow_html=True)
+            st.caption("📋 Sidebar/Log")
+            new_sb = st.color_picker("", st.session_state.c_sidebar or "#141414", key="pick_sb", label_visibility="collapsed")
+            use_sb = st.checkbox("Aktifkan", value=bool(st.session_state.c_sidebar), key="use_sb")
 
-    ba, bb = st.columns([3, 1])
-    with ba:
-        if st.button("✅ Terapkan", key="apply_color", use_container_width=True):
-            st.session_state.c_primary   = new_p
-            st.session_state.c_secondary = new_s
-            st.session_state.c_accent    = new_a
-            st.session_state.c_purple    = new_pu
-            st.rerun()
-    with bb:
-        if st.button("↺ Reset", key="reset_color", use_container_width=True):
-            st.session_state.c_primary   = "#ff6b35"
-            st.session_state.c_secondary = "#00c47a"
-            st.session_state.c_accent    = "#ffd700"
-            st.session_state.c_purple    = "#a78bfa"
-            st.rerun()
+        with sc2:
+            st.caption("🦸 Header/Hero")
+            new_hd = st.color_picker("", st.session_state.c_header or "#141414", key="pick_hd", label_visibility="collapsed")
+            use_hd = st.checkbox("Aktifkan", value=bool(st.session_state.c_header), key="use_hd")
 
+            st.caption("👣 Footer BG")
+            new_ft = st.color_picker("", st.session_state.c_footer or "#0a0a0a", key="pick_ft", label_visibility="collapsed")
+            use_ft = st.checkbox("Aktifkan", value=bool(st.session_state.c_footer), key="use_ft")
+
+            st.caption("👣 Footer Text")
+            new_ft_txt = st.color_picker("", st.session_state.c_footer_txt or "#888888", key="pick_ft_txt", label_visibility="collapsed")
+            use_ft_txt = st.checkbox("Aktifkan", value=bool(st.session_state.c_footer_txt), key="use_ft_txt")
+
+        sc_a, sc_b = st.columns([3, 1])
+        with sc_a:
+            if st.button("✅ Terapkan Section", key="apply_section", use_container_width=True):
+                st.session_state.c_bg        = new_bg  if use_bg  else ""
+                st.session_state.c_navbar    = new_nb  if use_nb  else ""
+                st.session_state.c_sidebar   = new_sb  if use_sb  else ""
+                st.session_state.c_header    = new_hd  if use_hd  else ""
+                st.session_state.c_footer    = new_ft  if use_ft  else ""
+                st.session_state.c_footer_txt= new_ft_txt if use_ft_txt else ""
+                st.rerun()
+        with sc_b:
+            if st.button("↺ Reset", key="reset_section", use_container_width=True):
+                for k in ["c_bg","c_navbar","c_sidebar","c_header","c_footer","c_footer_txt"]:
+                    st.session_state[k] = ""
+                st.rerun()
+
+    with tab_font:
+        st.caption("Pilih font untuk seluruh aplikasi")
+        font_names = [f[0] for f in _FONT_OPTIONS]
+        curr_idx   = font_names.index(st.session_state.font_body) if st.session_state.font_body in font_names else 0
+        cols_font  = st.columns(4)
+        for i, (fname, fcss) in enumerate(_FONT_OPTIONS):
+            with cols_font[i % 4]:
+                is_active = (fname == st.session_state.font_body)
+                btn_style = f"background:{PRIMARY_COLOR};color:#fff;" if is_active else ""
+                st.markdown(f'<div style="text-align:center;font-family:{fcss};font-size:0.75rem;margin-bottom:2px;font-weight:600;">{fname}</div>', unsafe_allow_html=True)
+                if st.button(fname, key=f"font_{fname}", use_container_width=True):
+                    st.session_state.font_body = fname
+                    st.rerun()
+
+# ── PANEL PIN ──
 if st.session_state.get("show_pin_form"):
     with st.expander("🔑 Ganti PIN", expanded=True):
-        st.info("💡 Untuk ganti PIN, ubah nilai **PIN** di **Streamlit Cloud → Settings → Secrets**, lalu klik **Reboot app**.")
-        p_lama = st.text_input("PIN Lama", type="password", placeholder="", key="p_lama")
-        p_baru = st.text_input("PIN Baru", type="password", placeholder="", key="p_baru")
-        p_konfirm = st.text_input("Konfirmasi PIN Baru", type="password", placeholder="", key="p_konfirm")
-        if st.button("Simpan PIN Baru", key="save_pin_btn"):
-            ok, msg = change_pin(p_lama, p_baru, p_konfirm)
-            st.warning(msg) if not ok else st.success(msg)
+        st.info("💡 Ubah nilai **PIN** di **Streamlit Cloud → Settings → Secrets**, lalu klik **Reboot app**.")
 
 # ── HERO CARD ──
 st.markdown(f"""
@@ -1699,7 +1439,7 @@ with tab_pdf:
         st.caption(f"🟢 Backend API aktif di `{API_URL}`")
 
     _dark_demo = st.session_state.get('dark_mode', True)
-    _demo_bg = "#1a1410" if _dark_demo else "#fff8ec"
+    _demo_bg  = "#1a1410" if _dark_demo else "#fff8ec"
     _demo_bdr = "#3a2a14" if _dark_demo else "#f0d9a8"
     _demo_txt = "#f0c674" if _dark_demo else "#7a5a10"
 
@@ -1710,34 +1450,24 @@ with tab_pdf:
             key="toggle_demo_mode", label_visibility="collapsed"
         )
     with col_demo_label:
-        st.markdown(
-            f'<div style="font-size:0.85rem;font-weight:700;padding-top:2px;">'
-            f'🎭 Mode Demo {"— AKTIF" if st.session_state.demo_mode else ""}'
-            f'</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f'<div style="font-size:0.85rem;font-weight:700;padding-top:2px;">🎭 Mode Demo {"— AKTIF" if st.session_state.demo_mode else ""}</div>', unsafe_allow_html=True)
 
     if st.session_state.demo_mode:
         st.markdown(
             f'<div style="background:{_demo_bg};border:1px solid {_demo_bdr};border-radius:14px;'
             f'padding:0.9rem 1.1rem;margin:0.5rem 0 1rem;font-size:0.8rem;color:{_demo_txt};">'
-            f'⚠️ <b>Mode Demo aktif.</b> Generate PDF berisi data <b>fiktif/acak</b> '
-            f'(bukan data pasien asli) untuk keperluan simulasi/rekaman video. '
-            f'Nonaktifkan toggle ini untuk kembali memproses PDF asli.'
-            f'</div>',
+            f'⚠️ <b>Mode Demo aktif.</b> Data fiktif/acak untuk simulasi.</div>',
             unsafe_allow_html=True
         )
-
         with st.expander("⚙️ Generator PDF Dummy", expanded=(st.session_state.demo_pdf_bytes is None)):
             colg1, colg2, colg3 = st.columns(3)
             with colg1:
-                gen_bulan = st.selectbox("Bulan Pelayanan", ["(acak)"] + BULAN_LIST, index=0, key="gen_bulan")
+                gen_bulan = st.selectbox("Bulan", ["(acak)"] + BULAN_LIST, index=0, key="gen_bulan")
             with colg2:
                 gen_tahun = st.selectbox("Tahun", ["(acak)", 2025, 2026], index=0, key="gen_tahun")
             with colg3:
-                gen_tingkat = st.selectbox("Tingkat Pelayanan", ["(acak)"] + TINGKAT_LIST, index=0, key="gen_tingkat")
+                gen_tingkat = st.selectbox("Tingkat", ["(acak)"] + TINGKAT_LIST, index=0, key="gen_tingkat")
             gen_jumlah = st.slider("Jumlah baris SEP", min_value=2, max_value=30, value=8, key="gen_jumlah")
-
             if st.button("🎲 Generate PDF Dummy", use_container_width=True, key="btn_gen_dummy"):
                 tmp_out = "/tmp/_demo_fpk_dummy.pdf"
                 info = build_dummy_fpk_pdf(
@@ -1751,92 +1481,55 @@ with tab_pdf:
                     st.session_state.demo_pdf_bytes = f.read()
                 st.session_state.demo_pdf_info = info
                 st.rerun()
-
             if st.session_state.demo_pdf_bytes:
                 info = st.session_state.demo_pdf_info
                 total_fmt = f"Rp {info['total_disetujui']:,}".replace(",", ".")
-                st.success(
-                    f"✅ PDF dummy siap — **{info['nama_rs']}** · {info['tingkat']} · "
-                    f"{info['bulan'].capitalize()} {info['tahun']} · {info['jumlah_baris']} SEP · {total_fmt}"
-                )
+                st.success(f"✅ PDF dummy siap — {info['tingkat']} · {info['bulan'].capitalize()} {info['tahun']} · {info['jumlah_baris']} SEP")
                 fname_demo = f"DUMMY_FPK_{info['tingkat']}_{info['bulan'].upper()}_{info['tahun']}.pdf"
-                st.download_button(
-                    "⬇ Download PDF Dummy",
-                    data=st.session_state.demo_pdf_bytes,
-                    file_name=fname_demo,
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key="dl_demo_pdf"
-                )
-                st.caption("💡 Download lalu upload file ini ke kolom upload di bawah untuk simulasi proses konversi.")
-
+                st.download_button("⬇ Download PDF Dummy", data=st.session_state.demo_pdf_bytes,
+                    file_name=fname_demo, mime="application/pdf",
+                    use_container_width=True, key="dl_demo_pdf")
         st.divider()
 
     uploaded_files = st.file_uploader(
-        "Upload PDF FPK (bisa lebih dari satu)",
-        type=['pdf'],
-        accept_multiple_files=True,
-        label_visibility="collapsed"
+        "Upload PDF FPK (bisa lebih dari satu)", type=['pdf'],
+        accept_multiple_files=True, label_visibility="collapsed"
     )
 
     if uploaded_files:
-        jenis_data = st.radio(
-            "Jenis Data",
-            ["Reguler", "Susulan"],
-            index=0,
-            horizontal=True,
-            help="Pilih 'Susulan' jika file berasal dari folder SUSULAN"
-        )
+        jenis_data = st.radio("Jenis Data", ["Reguler", "Susulan"], index=0, horizontal=True)
         is_susulan = (jenis_data == "Susulan")
-
         if st.button("Proses Sekarang", use_container_width=True):
             results = []
             errors = []
             total_f = len(uploaded_files)
             _dark = st.session_state.get('dark_mode', True)
-
             for i, uf in enumerate(uploaded_files):
                 if total_f > 1:
-                    st.markdown(
-                        f'<div style="font-family:JetBrains Mono,monospace;font-size:0.75rem;color:#888;margin-bottom:4px;">FILE {i+1}/{total_f} — {uf.name}</div>',
-                        unsafe_allow_html=True
-                    )
+                    st.markdown(f'<div style="font-family:JetBrains Mono,monospace;font-size:0.75rem;color:#888;margin-bottom:4px;">FILE {i+1}/{total_f} — {uf.name}</div>', unsafe_allow_html=True)
                 try:
                     payload, df_res, req_meta, resp_meta = animasi_terminal_proses(uf, dark=_dark)
                     filename = payload['filename']
-                    
                     if is_susulan:
                         base, ext = os.path.splitext(filename)
                         filename = f"{base}_SUSULAN{ext}"
-
-                    existing_names = (
-                        {x['nama_file'] for x in load_log()} |
-                        {r['filename'] for r in results}
-                    )
+                    existing_names = ({x['nama_file'] for x in load_log()} | {r['filename'] for r in results})
                     filename = unique_filename(filename, existing_names)
-
                     tingkat = payload['tingkat']
-                    total = payload['total']
-                    jumlah = payload['jumlah']
-                    
+                    total   = payload['total']
+                    jumlah  = payload['jumlah']
                     results.append({
-                        'filename': filename,
-                        'df': df_res,
-                        'total': total,
-                        'count': jumlah,
-                        'tingkat': tingkat,
+                        'filename': filename, 'df': df_res, 'total': total,
+                        'count': jumlah, 'tingkat': tingkat,
                         'jenis': 'Susulan' if is_susulan else 'Reguler',
                         'api_log': {'request': req_meta, 'response': resp_meta},
                     })
                     entry = {
                         'waktu': now_wib().strftime("%d %b %Y, %H:%M") + " WIB",
-                        'nama_file': filename,
-                        'tingkat': tingkat,
-                        'jumlah': jumlah,
-                        'total': total,
+                        'nama_file': filename, 'tingkat': tingkat,
+                        'jumlah': jumlah, 'total': total,
                         'jenis': 'Susulan' if is_susulan else 'Reguler',
-                        'status': 'Belum Diambil',
-                        'waktu_selesai': None,
+                        'status': 'Belum Diambil', 'waktu_selesai': None,
                     }
                     save_log(entry)
                     if tele_configured():
@@ -1846,23 +1539,21 @@ with tab_pdf:
                     errors.append(f"❌ {uf.name}: {msg}")
                 except Exception as e:
                     errors.append(f"❌ {uf.name}: {e}")
-
             st.session_state.results = results
-            st.session_state.errors = errors
+            st.session_state.errors  = errors
             st.session_state.show_done = True
             st.rerun()
 
     if st.session_state.get('show_done'):
-        errors = st.session_state.pop('errors', [])
+        errors  = st.session_state.pop('errors', [])
         results = st.session_state.get('results', [])
         st.session_state.show_done = False
-        if errors:
-            for err in errors:
-                st.error(err)
+        for err in errors:
+            st.error(err)
         if results:
             total_sep = sum(r['count'] for r in results)
             total_nom = sum(r['total'] for r in results)
-            nom_fmt = f"Rp {total_nom:,}".replace(",", ".")
+            nom_fmt   = f"Rp {total_nom:,}".replace(",", ".")
             st.success(f"✅ {len(results)} file berhasil diproses — {total_sep} SEP — {nom_fmt}")
 
     if st.session_state.get('results'):
@@ -1876,139 +1567,69 @@ with tab_pdf:
                 with tab_h:
                     render_result(res, idx=i)
 
-# ── TAB KALKULATOR CSV ──
 with tab_csv:
     _dark_c = st.session_state.get('dark_mode', True)
     _surf_c = "#1a1a1a" if _dark_c else "#ffffff"
-    _bdr_c = "#2a2a2a" if _dark_c else "#e0ddd8"
-    _txt_c = "#f0f0f0" if _dark_c else "#1a1a1a"
-    _mut_c = "#777777" if _dark_c else "#888888"
-    _grn = SECONDARY
-    _acc = PRIMARY_COLOR
-
-    st.markdown(f"""
-    <style>
-    .csv-file-row {{
-        background: {_surf_c};
-        border: 1px solid {_bdr_c};
-        border-radius: 16px;
-        padding: 0.75rem 1.2rem;
-        margin-bottom: 0.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-        font-family: 'JetBrains Mono', monospace;
-    }}
-    .csv-grand {{
-        background: {_acc};
-        border: none;
-        border-radius: 20px;
-        padding: 1.25rem 1.8rem;
-        margin-top: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 8px 30px rgba(255,107,53,0.25);
-        font-family: 'JetBrains Mono', monospace;
-    }}
-    .csv-grand-label {{
-        color: #fff; font-size: 0.8rem; font-weight: 700;
-        letter-spacing: 1.5px; text-transform: uppercase;
-    }}
-    .csv-grand-value {{
-        color: #fff; font-size: 1.3rem; font-weight: 800;
-    }}
-    .csv-stat-grid {{
-        display: grid; grid-template-columns: 1fr 1fr 1fr;
-        gap: 0.75rem; margin: 1rem 0;
-    }}
-    .csv-stat {{
-        background: {_surf_c}; border: 1px solid {_bdr_c};
-        border-radius: 16px; padding: 1rem;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-        font-family: 'JetBrains Mono', monospace;
-    }}
-    .csv-stat-label {{
-        color: {_mut_c}; font-size: 0.65rem; font-weight: 700;
-        letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 0.3rem;
-    }}
-    .csv-stat-val {{
-        color: {_txt_c}; font-size: 1.2rem; font-weight: 800;
-    }}
-    .csv-empty-box {{
-        border: 2px dashed {_bdr_c};
-        background: {_surf_c};
-        border-radius: 20px;
-        padding: 2.5rem;
-        text-align: center;
-        margin-top: 0.5rem;
-        font-family: 'Inter', sans-serif;
-    }}
-    </style>
-    """, unsafe_allow_html=True)
+    _bdr_c  = "#2a2a2a" if _dark_c else "#e0ddd8"
+    _txt_c  = "#f0f0f0" if _dark_c else "#1a1a1a"
+    _mut_c  = "#777777" if _dark_c else "#888888"
 
     csv_files = st.file_uploader(
-        "Upload CSV hasil konversi (No.SEP + Disetujui)",
-        type=["csv"],
-        accept_multiple_files=True,
-        key="csv_uploader",
-        label_visibility="collapsed"
+        "Upload CSV hasil konversi", type=["csv"],
+        accept_multiple_files=True, key="csv_uploader", label_visibility="collapsed"
     )
-
     if csv_files:
         rows_per_file = []
-        total_grand = 0
-        total_sep = 0
-        errors_csv = []
+        total_grand   = 0
+        total_sep_csv = 0
         for cf in csv_files:
             try:
                 df_c = pd.read_csv(cf)
-                col_disetujui = next((c for c in df_c.columns if 'disetujui' in c.lower()), None)
-                if col_disetujui is None:
-                    errors_csv.append(f"⚠️ {cf.name}: kolom 'Disetujui' tidak ditemukan.")
+                col_d = next((c for c in df_c.columns if 'disetujui' in c.lower()), None)
+                if col_d is None:
+                    st.warning(f"⚠️ {cf.name}: kolom 'Disetujui' tidak ditemukan.")
                     continue
-                df_c[col_disetujui] = pd.to_numeric(
-                    df_c[col_disetujui].astype(str).str.replace(r'[^0-9]', '', regex=True),
-                    errors='coerce'
-                ).fillna(0)
-                subtotal = int(df_c[col_disetujui].sum())
-                count_sep = len(df_c)
-                rows_per_file.append({'nama': cf.name, 'sep': count_sep, 'subtotal': subtotal})
-                total_grand += subtotal
-                total_sep += count_sep
+                df_c[col_d] = pd.to_numeric(df_c[col_d].astype(str).str.replace(r'[^0-9]', '', regex=True), errors='coerce').fillna(0)
+                subtotal = int(df_c[col_d].sum())
+                rows_per_file.append({'nama': cf.name, 'sep': len(df_c), 'subtotal': subtotal})
+                total_grand   += subtotal
+                total_sep_csv += len(df_c)
             except Exception as e:
-                errors_csv.append(f"❌ {cf.name}: {e}")
-        for err in errors_csv:
-            st.warning(err)
+                st.error(f"❌ {cf.name}: {e}")
         if rows_per_file:
             grand_fmt = f"Rp {total_grand:,.0f}".replace(",", ".")
-            sep_fmt = f"{total_sep:,}".replace(",", ".")
             st.markdown(f"""
-            <div class="csv-stat-grid">
-                <div class="csv-stat"><div class="csv-stat-label">Total File</div><div class="csv-stat-val">{len(rows_per_file)}</div></div>
-                <div class="csv-stat"><div class="csv-stat-label">Total SEP</div><div class="csv-stat-val">{sep_fmt}</div></div>
-                <div class="csv-stat"><div class="csv-stat-label">Grand Total</div><div class="csv-stat-val" style="color:{_grn};">{grand_fmt}</div></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin:1rem 0;">
+                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:1rem;font-family:'JetBrains Mono',monospace;">
+                    <div style="color:{_mut_c};font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.3rem;">Total File</div>
+                    <div style="color:{_txt_c};font-size:1.2rem;font-weight:800;">{len(rows_per_file)}</div>
+                </div>
+                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:1rem;font-family:'JetBrains Mono',monospace;">
+                    <div style="color:{_mut_c};font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.3rem;">Total SEP</div>
+                    <div style="color:{_txt_c};font-size:1.2rem;font-weight:800;">{total_sep_csv:,}</div>
+                </div>
+                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:1rem;font-family:'JetBrains Mono',monospace;">
+                    <div style="color:{_mut_c};font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.3rem;">Grand Total</div>
+                    <div style="color:{SECONDARY};font-size:1.2rem;font-weight:800;">{grand_fmt}</div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
             for r in rows_per_file:
-                subtotal_fmt = f"Rp {r['subtotal']:,.0f}".replace(",", ".")
-                sep_r_fmt = f"{r['sep']:,}".replace(",", ".")
                 st.markdown(f"""
-                <div class="csv-file-row">
-                    <div><div style="font-weight:700;">📄 {r['nama']}</div><div style="color:{_mut_c};font-size:0.7rem;margin-top:2px;">{sep_r_fmt} SEP</div></div>
-                    <div style="color:{_grn};font-weight:800;">{subtotal_fmt}</div>
+                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:0.75rem 1.2rem;margin-bottom:0.5rem;display:flex;align-items:center;justify-content:space-between;font-family:'JetBrains Mono',monospace;">
+                    <div><div style="font-weight:700;color:{_txt_c};">📄 {r['nama']}</div><div style="color:{_mut_c};font-size:0.7rem;margin-top:2px;">{r['sep']:,} SEP</div></div>
+                    <div style="color:{SECONDARY};font-weight:800;">Rp {r['subtotal']:,}</div>
                 </div>
-                """, unsafe_allow_html=True)
+                """.replace(",", "."), unsafe_allow_html=True)
             st.markdown(f"""
-            <div class="csv-grand">
-                <div class="csv-grand-label">Grand Total Disetujui</div>
-                <div class="csv-grand-value">{grand_fmt}</div>
+            <div style="background:{PRIMARY_COLOR};border-radius:20px;padding:1.25rem 1.8rem;margin-top:1rem;display:flex;align-items:center;justify-content:space-between;font-family:'JetBrains Mono',monospace;">
+                <div style="color:#fff;font-size:0.8rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Grand Total Disetujui</div>
+                <div style="color:#fff;font-size:1.3rem;font-weight:800;">{grand_fmt}</div>
             </div>
             """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <div class="csv-empty-box">
+        <div style="border:2px dashed {("#2a2a2a" if _dark_c else "#e0ddd8")};background:{_surf_c};border-radius:20px;padding:2.5rem;text-align:center;margin-top:0.5rem;">
             <div style="font-size:2rem;margin-bottom:0.5rem;">📊</div>
             <div style="font-weight:700;font-size:1rem;margin-bottom:0.3rem;color:{_txt_c};">Upload file CSV di atas</div>
             <div style="color:{_mut_c};font-size:0.85rem;">Bisa multiple file — format: No.SEP, Disetujui</div>
@@ -2017,7 +1638,7 @@ with tab_csv:
 
 
 # ══════════════════════════════════════════════════════════════
-# TELEGRAM BOT — UI RAPI & SCROLLABLE
+# TELEGRAM BOT + AI CHAT
 # ══════════════════════════════════════════════════════════════
 st.divider()
 
@@ -2026,153 +1647,150 @@ _surf_tele = "#141414" if _dark_tele else "#ffffff"
 _bdr_tele  = "#242424" if _dark_tele else "#e4e2dd"
 _txt_tele  = "#f0f0f0" if _dark_tele else "#1a1a1a"
 _mut_tele  = "#666"    if _dark_tele else "#888"
+_chat_bg   = "#111111" if _dark_tele else "#fafaf8"
+_chat_bdr  = "#242424" if _dark_tele else "#e4e2dd"
+_bbg       = "#1e1e1e" if _dark_tele else "#f0f0f0"
+_bbd       = "#2a2a2a" if _dark_tele else "#e0ddd8"
+_bbt       = "#e0e0e0" if _dark_tele else "#1a1a1a"
 
-_tele_ok = tele_configured()
+_tele_ok  = tele_configured()
+_ai_ok    = claude_configured()
+_ai_mode  = st.session_state.get("bot_ai_mode", False)
 
+# Header bot
 st.markdown(f"""
-<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.5rem;">
-    <div style="font-size:0.7rem; font-weight:800; letter-spacing:2px; color:{_mut_tele};
-                text-transform:uppercase; border-left:3px solid {PRIMARY_COLOR};
-                padding-left:10px; font-family:'JetBrains Mono',monospace;">
-        🤖 Telegram Bot
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+    <div style="font-size:0.7rem;font-weight:800;letter-spacing:2px;color:{_mut_tele};
+                text-transform:uppercase;border-left:3px solid {PRIMARY_COLOR};
+                padding-left:10px;font-family:'JetBrains Mono',monospace;">
+        🤖 {"FPK AI Bot" if _ai_mode else "FPK Bot"}
     </div>
-    <div style="font-size:0.65rem; font-family:'JetBrains Mono',monospace;
-                color:{'#00c47a' if _tele_ok else '#f87171'};">
-        {'● Terhubung' if _tele_ok else '○ Belum dikonfigurasi'}
+    <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
+              color:{'#00c47a' if _tele_ok else '#f87171'};">
+            {'● Telegram' if _tele_ok else '○ Telegram'}
+        </span>
+        <span style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
+              color:{'#00c47a' if _ai_ok else '#f87171'};">
+            {'● Claude AI' if _ai_ok else '○ Claude AI'}
+        </span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-if not _tele_ok:
-    st.info("🔧 Setup bot: tambahkan `TELEGRAM_TOKEN` dan `TELEGRAM_CHAT_ID` di Secrets.")
-else:
-    _log_for_bot = load_log()
+# Toggle mode AI
+col_ai_toggle, col_ai_label = st.columns([1, 5])
+with col_ai_toggle:
+    new_ai_mode = st.toggle("AI", value=_ai_mode, key="toggle_ai_mode", label_visibility="collapsed")
+    if new_ai_mode != _ai_mode:
+        st.session_state.bot_ai_mode = new_ai_mode
+        st.rerun()
+with col_ai_label:
+    if _ai_mode:
+        st.markdown(f'<div style="font-size:0.78rem;font-weight:700;color:{PRIMARY_COLOR};padding-top:2px;">✨ Mode AI Aktif — Chat cerdas dengan Claude</div>', unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div style="font-size:0.78rem;color:{_mut_tele};padding-top:2px;">Mode AI — Aktifkan untuk chat cerdas</div>', unsafe_allow_html=True)
 
-    if 'bot_history' not in st.session_state:
-        st.session_state.bot_history = [
-            ("bot", "Assalamualaikum kak! 😊\nGua FPK Bot — asisten konversi FPK yang siap bantu.\nKetik /help untuk lihat perintah, atau ngobrol santai aja!")
-        ]
+if not _ai_ok and _ai_mode:
+    st.warning("⚠️ Tambahkan `ANTHROPIC_API_KEY` di Secrets untuk mengaktifkan Mode AI.")
 
-    chat_container = st.container()
-    with chat_container:
-        st.markdown(f"""
-        <div style="background:{_surf_tele}; border:1px solid {_bdr_tele};
-                    border-radius:16px; padding:12px; height:320px; overflow-y:auto;
-                    margin-bottom:8px; display:flex; flex-direction:column; gap:6px;">
-        """, unsafe_allow_html=True)
+# Init bot history
+if not st.session_state.bot_history:
+    st.session_state.bot_history = [
+        ("bot", "Assalamualaikum kak! 😊\nGua FPK Bot — siap bantu.\nKetik /help untuk perintah, atau aktifkan Mode AI untuk chat cerdas!")
+    ]
 
-        for role, msg in st.session_state.bot_history[-12:]:
-            is_bot = (role == "bot")
-            align = "flex-start" if is_bot else "flex-end"
-            bg = _surf_tele if is_bot else PRIMARY_COLOR
-            color = _txt_tele if is_bot else "#fff"
-            avatar = "🤖" if is_bot else "👤"
-            border_radius = "18px 18px 18px 4px" if is_bot else "18px 18px 4px 18px"
-            st.markdown(f"""
-            <div style="display:flex; justify-content:{align}; margin-bottom:4px;">
-                <div style="display:flex; gap:6px; align-items:flex-end; max-width:80%;
-                            flex-direction:{'row' if is_bot else 'row-reverse'};">
-                    <div style="font-size:1.2rem;">{avatar}</div>
-                    <div style="background:{bg}; border:1px solid {_bdr_tele};
-                                border-radius:{border_radius};
-                                padding:8px 12px; font-size:0.78rem; color:{color};
-                                line-height:1.5; word-wrap:break-word;">
-                        {msg.replace('*','').replace('`','')}
-                    </div>
-                </div>
+_log_for_bot = load_log()
+
+# ── RENDER BUBBLE CHAT ──
+now_str = now_wib().strftime("%H:%M")
+bubble_html = ""
+for role, msg in st.session_state.bot_history[-15:]:
+    is_bot = (role == "bot")
+    if is_bot:
+        bubble_html += f"""
+        <div class="bubble-row">
+            <div class="bubble-avatar">🤖</div>
+            <div>
+                <div class="bubble-bot">{msg.replace(chr(10), '<br>').replace('*','').replace('`','')}</div>
+                <div class="bubble-time">{now_str}</div>
             </div>
-            """, unsafe_allow_html=True)
+        </div>"""
+    else:
+        bubble_html += f"""
+        <div class="bubble-row user">
+            <div class="bubble-avatar">👤</div>
+            <div>
+                <div class="bubble-user">{msg}</div>
+                <div class="bubble-time" style="text-align:right;">{now_str}</div>
+            </div>
+        </div>"""
 
-        st.markdown("</div>", unsafe_allow_html=True)
+st.markdown(f"""
+<div class="chat-wrapper" id="chat-box">
+    {bubble_html}
+</div>
+<script>
+    setTimeout(function(){{
+        var el = document.getElementById('chat-box');
+        if(el) el.scrollTop = el.scrollHeight;
+    }}, 50);
+</script>
+""", unsafe_allow_html=True)
 
-    st.markdown("""
-    <style>
-    .quick-reply {
-        background: #1e1e1e;
-        color: #e0e0e0;
-        border: 1px solid #333;
-        border-radius: 30px;
-        padding: 4px 14px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.15s;
-        font-family: 'Inter', sans-serif;
-        width: 100%;
-        text-align: center;
-    }
-    .quick-reply:hover {
-        background: #ff6b35;
-        color: #fff;
-        border-color: #ff6b35;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
+# ── QUICK REPLY ──
+if not _ai_mode:
     col_q1, col_q2, col_q3 = st.columns(3)
-    with col_q1:
-        if st.button("📊 Rekap", key="q_rekap", use_container_width=True):
-            st.session_state.bot_history.append(("user", "/rekap"))
-            reply = handle_bot_command("/rekap", _log_for_bot)
-            st.session_state.bot_history.append(("bot", reply))
-            st.rerun()
-        if st.button("📖 Quote", key="q_quote", use_container_width=True):
-            st.session_state.bot_history.append(("user", "/quote"))
-            reply = handle_bot_command("/quote", _log_for_bot)
-            st.session_state.bot_history.append(("bot", reply))
-            st.rerun()
-    with col_q2:
-        if st.button("💰 Total", key="q_total", use_container_width=True):
-            st.session_state.bot_history.append(("user", "/total"))
-            reply = handle_bot_command("/total", _log_for_bot)
-            st.session_state.bot_history.append(("bot", reply))
-            st.rerun()
-        if st.button("😂 Joke", key="q_joke", use_container_width=True):
-            st.session_state.bot_history.append(("user", "/joke"))
-            reply = handle_bot_command("/joke", _log_for_bot)
-            st.session_state.bot_history.append(("bot", reply))
-            st.rerun()
-    with col_q3:
-        if st.button("⏳ Pending", key="q_pending", use_container_width=True):
-            st.session_state.bot_history.append(("user", "/pending"))
-            reply = handle_bot_command("/pending", _log_for_bot)
-            st.session_state.bot_history.append(("bot", reply))
-            st.rerun()
-        if st.button("❓ Help", key="q_help", use_container_width=True):
-            st.session_state.bot_history.append(("user", "/help"))
-            reply = handle_bot_command("/help", _log_for_bot)
-            st.session_state.bot_history.append(("bot", reply))
-            st.rerun()
-
-    col_inp, col_btn, col_clr = st.columns([4, 1, 1])
-    with col_inp:
-        user_input = st.text_input("", placeholder="Ketik pesan...", key="bot_input", label_visibility="collapsed")
-    with col_btn:
-        if st.button("Kirim", key="bot_send", use_container_width=True):
-            if user_input.strip():
-                st.session_state.bot_history.append(("user", user_input))
-                reply = handle_bot_command(user_input, _log_for_bot)
+    quick_cmds = [
+        ("📊 Rekap", "/rekap", col_q1),
+        ("💰 Total", "/total", col_q2),
+        ("⏳ Pending", "/pending", col_q3),
+        ("📖 Quote", "/quote", col_q1),
+        ("😂 Joke", "/joke", col_q2),
+        ("❓ Help", "/help", col_q3),
+    ]
+    for label, cmd, col in quick_cmds:
+        with col:
+            if st.button(label, key=f"q_{cmd}", use_container_width=True):
+                st.session_state.bot_history.append(("user", cmd))
+                reply = handle_bot_command(cmd, _log_for_bot)
                 st.session_state.bot_history.append(("bot", reply))
                 st.rerun()
-    with col_clr:
-        if st.button("🗑️", key="bot_clear", use_container_width=True, help="Hapus chat"):
-            st.session_state.bot_history = [
-                ("bot", "👋 Chat dikosongkan. Ketik /help untuk mulai lagi.")
-            ]
-            st.rerun()
 
+# ── INPUT CHAT ──
+col_inp, col_btn, col_clr = st.columns([5, 1.2, 0.8])
+with col_inp:
+    placeholder = "Tanya apa aja ke Claude AI..." if _ai_mode else "Ketik pesan atau /help..."
+    user_input = st.text_input("", placeholder=placeholder, key="bot_input", label_visibility="collapsed")
+with col_btn:
+    if st.button("Kirim", key="bot_send", use_container_width=True):
+        if user_input.strip():
+            st.session_state.bot_history.append(("user", user_input))
+            if _ai_mode and _ai_ok:
+                # Kirim ke Claude API
+                history_for_claude = [(r, m) for r, m in st.session_state.bot_history[:-1]]
+                reply = chat_with_claude(history_for_claude, _log_for_bot)
+            else:
+                reply = handle_bot_command(user_input, _log_for_bot)
+            st.session_state.bot_history.append(("bot", reply))
+            st.rerun()
+with col_clr:
+    if st.button("🗑️", key="bot_clear", use_container_width=True, help="Hapus chat"):
+        st.session_state.bot_history = [
+            ("bot", "Chat dikosongkan. Ketik /help untuk mulai lagi!")
+        ]
+        st.rerun()
+
+if _tele_ok:
     if st.button("📤 Kirim Rekap ke Telegram", key="bot_send_rekap", use_container_width=True):
         ok, msg = kirim_rekap_telegram(_log_for_bot)
-        if ok:
-            st.success(msg)
-        else:
-            st.error(msg)
+        st.success(msg) if ok else st.error(msg)
 
 st.divider()
 
+# ── RIWAYAT & REKAP ──
 log_data = load_log()
 
-# ── Rekap Bulanan ──
 if log_data:
     bulan_order = ["JANUARI","FEBRUARI","MARET","APRIL","MEI","JUNI",
                    "JULI","AGUSTUS","SEPTEMBER","OKTOBER","NOVEMBER","DESEMBER"]
@@ -2182,8 +1800,8 @@ if log_data:
         period = f"{m.group(1)} {m.group(2)}" if m else "Lainnya"
         if period not in rekap:
             rekap[period] = {'total': 0, 'count': 0, 'konversi': 0, 'tingkats': set()}
-        rekap[period]['total'] += item['total']
-        rekap[period]['count'] += item['jumlah']
+        rekap[period]['total']    += item['total']
+        rekap[period]['count']    += item['jumlah']
         rekap[period]['konversi'] += 1
         rekap[period]['tingkats'].add(item.get('tingkat', ''))
 
@@ -2196,7 +1814,7 @@ if log_data:
     for p in sorted_periods:
         r = rekap[p]
         total_rp = f"Rp {r['total']:,.0f}".replace(",", ".")
-        tkt_str = " · ".join(sorted(t for t in r['tingkats'] if t))
+        tkt_str  = " · ".join(sorted(t for t in r['tingkats'] if t))
         col1, col2 = st.columns([3, 1])
         with col1:
             st.markdown(f"**{p}**  \n{r['konversi']}x konversi · {r['count']} SEP · {tkt_str}")
@@ -2212,7 +1830,6 @@ if log_data:
                      color=["#e040fb","#00b0ff", SECONDARY, PRIMARY_COLOR][:len(df_chart.columns)])
     st.divider()
 
-# ── Riwayat Konversi ──
 col_title, col_hapus = st.columns([4, 1])
 with col_title:
     st.markdown("### 🕓 Riwayat Konversi")
@@ -2227,13 +1844,12 @@ if not log_data:
     st.info("Belum ada riwayat konversi.")
 else:
     for i, item in enumerate(log_data):
-        nama_file = item['nama_file']
-        tkt = item.get('tingkat', '')
-        jenis = item.get('jenis', 'Reguler')
-        status = item.get('status', 'Belum Diambil')
-        waktu = item['waktu']
-        total_rp = f"Rp {item['total']:,.0f}".replace(",", ".")
-        jumlah_sep = item['jumlah']
+        nama_file    = item['nama_file']
+        tkt          = item.get('tingkat', '')
+        status       = item.get('status', 'Belum Diambil')
+        waktu        = item['waktu']
+        total_rp     = f"Rp {item['total']:,.0f}".replace(",", ".")
+        jumlah_sep   = item['jumlah']
         waktu_selesai = item.get('waktu_selesai', '')
 
         cols = st.columns([3, 1.2, 1.5, 0.8])
@@ -2241,7 +1857,7 @@ else:
             st.markdown(f"**📄 {nama_file}**")
         with cols[1]:
             if tkt:
-                st.markdown(f"`{tkt}`", help="Tingkat Pelayanan")
+                st.markdown(f"`{tkt}`")
         with cols[2]:
             if status == "Selesai":
                 st.success("✅ Selesai")
@@ -2262,16 +1878,19 @@ else:
         st.divider()
 
 # ── FOOTER ──
-_dark_ft = st.session_state.get('dark_mode', True)
-_ft_border = "rgba(255,255,255,0.05)" if _dark_ft else "rgba(0,0,0,0.05)"
-_ft_txt1 = "#888" if _dark_ft else "#555"
-_ft_txt2 = "#666" if _dark_ft else "#999"
+_dark_ft  = st.session_state.get('dark_mode', True)
+_ft_c_bg  = st.session_state.get("c_footer", "")
+_ft_c_txt = st.session_state.get("c_footer_txt", "")
+_ft_bg    = _ft_c_bg  or ("rgba(0,0,0,0)" if not _ft_c_bg else _ft_c_bg)
+_ft_txt1  = _ft_c_txt or ("#888" if _dark_ft else "#555")
+_ft_bdr   = "rgba(255,255,255,0.05)" if _dark_ft else "rgba(0,0,0,0.05)"
+
 st.markdown(f"""
-<div style="text-align:center;padding:1.5rem 0 0.5rem;margin-top:1.5rem;border-top:1px solid {_ft_border};">
-    <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:{_ft_txt1};margin-bottom:0.25rem;">
+<div class="fpk-footer">
+    <div class="fpk-footer-txt">
         Dikembangkan oleh <strong style="color:#6366f1;">Isfan Fajar Anugrah</strong>
     </div>
-    <div style="font-size:0.6rem;color:{_ft_txt2};">Versi 1.0 · 2025 · All Rights Reserved</div>
+    <div style="font-size:0.6rem;color:{_ft_txt1};margin-top:0.25rem;">Versi 1.0 · 2025 · All Rights Reserved</div>
     <div style="display:inline-block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);border-radius:40px;padding:3px 14px;margin-top:0.5rem;">
         <span style="font-size:0.58rem;color:#f87171;">⚠️ Hak Cipta Pribadi — Dilarang digandakan tanpa izin</span>
     </div>
