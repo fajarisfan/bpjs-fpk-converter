@@ -1739,7 +1739,7 @@ overflow-y:auto;height:100%;}}
 ::-webkit-scrollbar-thumb{{background:{_bbd2};border-radius:99px;}}
 </style></head><body id="chat">{bubble_rows}
 <script>document.getElementById('chat').scrollTop=99999;</script>
-</body></html>""", height=300, scrolling=False)
+</body></html>""", height=300, scrolling=True)
 
 # ── QUICK REPLY ──
 col_q1, col_q2, col_q3 = st.columns(3)
@@ -1760,10 +1760,15 @@ for label, cmd, col in quick_cmds:
             st.rerun()
 
 # ── INPUT CHAT ──
+if "bot_input_counter" not in st.session_state:
+    st.session_state.bot_input_counter = 0
+
 col_inp, col_btn, col_clr = st.columns([5, 1.2, 0.8])
 with col_inp:
     placeholder = "Tanya apa aja ke Claude AI..." if _ai_mode else "Ketik pesan atau /help..."
-    user_input = st.text_input("", placeholder=placeholder, key="bot_input", label_visibility="collapsed")
+    user_input = st.text_input("", placeholder=placeholder,
+                               key=f"bot_input_{st.session_state.bot_input_counter}",
+                               label_visibility="collapsed")
 with col_btn:
     if st.button("Kirim", key="bot_send", use_container_width=True):
         if user_input.strip():
@@ -1779,6 +1784,7 @@ with col_btn:
             else:
                 reply = handle_bot_command(user_input, _log_for_bot)
             st.session_state.bot_history.append(("bot", reply))
+            st.session_state.bot_input_counter += 1
             st.rerun()
 with col_clr:
     if st.button("🗑️", key="bot_clear", use_container_width=True, help="Hapus chat"):
