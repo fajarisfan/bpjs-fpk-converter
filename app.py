@@ -1703,59 +1703,61 @@ if not st.session_state.bot_history:
 _log_for_bot = load_log()
 
 # ── RENDER BUBBLE CHAT ──
-now_str = now_wib().strftime("%H:%M")
-bubble_html = ""
-for role, msg in st.session_state.bot_history[-15:]:
-    is_bot = (role == "bot")
-    if is_bot:
-        bubble_html += f"""
-        <div class="bubble-row">
-            <div class="bubble-avatar">🤖</div>
-            <div>
-                <div class="bubble-bot">{msg.replace(chr(10), '<br>').replace('*','').replace('`','')}</div>
-                <div class="bubble-time">{now_str}</div>
-            </div>
-        </div>"""
-    else:
-        bubble_html += f"""
-        <div class="bubble-row user">
-            <div class="bubble-avatar">👤</div>
-            <div>
-                <div class="bubble-user">{msg}</div>
-                <div class="bubble-time" style="text-align:right;">{now_str}</div>
-            </div>
-        </div>"""
+import html as _html
+import streamlit.components.v1 as _components
 
-st.markdown(f"""
-<div class="chat-wrapper" id="chat-box">
-    {bubble_html}
-</div>
-<script>
-    setTimeout(function(){{
-        var el = document.getElementById('chat-box');
-        if(el) el.scrollTop = el.scrollHeight;
-    }}, 50);
-</script>
-""", unsafe_allow_html=True)
+now_str = now_wib().strftime("%H:%M")
+_dark_chat  = st.session_state.get('dark_mode', True)
+_chat_bg2   = "#111111" if _dark_chat else "#fafaf8"
+_chat_bdr2  = "#242424" if _dark_chat else "#e4e2dd"
+_bbg2       = "#1e1e1e" if _dark_chat else "#f0f0f0"
+_bbd2       = "#2a2a2a" if _dark_chat else "#e0ddd8"
+_bbt2       = "#e0e0e0" if _dark_chat else "#1a1a1a"
+_mut2       = "#666"    if _dark_chat else "#888"
+_user_bubble = PRIMARY_COLOR
+
+bubble_rows = ""
+for role, msg in st.session_state.bot_history[-15:]:
+    safe_msg = _html.escape(msg).replace('\n', '<br>')
+    if role == "bot":
+        bubble_rows += f"""<div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:6px;">
+<div style="width:26px;height:26px;border-radius:50%;background:{_bbg2};font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🤖</div>
+<div><div style="background:{_bbg2};border:1px solid {_bbd2};color:{_bbt2};border-radius:14px 14px 14px 3px;padding:7px 11px;font-size:0.77rem;line-height:1.5;max-width:78%;word-wrap:break-word;font-family:sans-serif;">{safe_msg}</div>
+<div style="font-size:0.58rem;color:{_mut2};margin-top:2px;padding:0 4px;">{now_str}</div></div></div>"""
+    else:
+        bubble_rows += f"""<div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:6px;flex-direction:row-reverse;">
+<div style="width:26px;height:26px;border-radius:50%;background:{_bbg2};font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">👤</div>
+<div><div style="background:{_user_bubble};color:#fff;border-radius:14px 14px 3px 14px;padding:7px 11px;font-size:0.77rem;line-height:1.5;max-width:78%;word-wrap:break-word;font-family:sans-serif;">{safe_msg}</div>
+<div style="font-size:0.58rem;color:{_mut2};margin-top:2px;padding:0 4px;text-align:right;">{now_str}</div></div></div>"""
+
+_components.html(f"""<!DOCTYPE html><html><head><style>
+*{{box-sizing:border-box;margin:0;padding:0;}}
+body{{background:{_chat_bg2};border:1px solid {_chat_bdr2};border-radius:16px;
+padding:12px 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+overflow-y:auto;height:100%;}}
+::-webkit-scrollbar{{width:3px;}}
+::-webkit-scrollbar-thumb{{background:{_bbd2};border-radius:99px;}}
+</style></head><body id="chat">{bubble_rows}
+<script>document.getElementById('chat').scrollTop=99999;</script>
+</body></html>""", height=300, scrolling=False)
 
 # ── QUICK REPLY ──
-if not _ai_mode:
-    col_q1, col_q2, col_q3 = st.columns(3)
-    quick_cmds = [
-        ("📊 Rekap", "/rekap", col_q1),
-        ("💰 Total", "/total", col_q2),
-        ("⏳ Pending", "/pending", col_q3),
-        ("📖 Quote", "/quote", col_q1),
-        ("😂 Joke", "/joke", col_q2),
-        ("❓ Help", "/help", col_q3),
-    ]
-    for label, cmd, col in quick_cmds:
-        with col:
-            if st.button(label, key=f"q_{cmd}", use_container_width=True):
-                st.session_state.bot_history.append(("user", cmd))
-                reply = handle_bot_command(cmd, _log_for_bot)
-                st.session_state.bot_history.append(("bot", reply))
-                st.rerun()
+col_q1, col_q2, col_q3 = st.columns(3)
+quick_cmds = [
+    ("📊 Rekap", "/rekap", col_q1),
+    ("💰 Total", "/total", col_q2),
+    ("⏳ Pending", "/pending", col_q3),
+    ("📖 Quote", "/quote", col_q1),
+    ("😂 Joke", "/joke", col_q2),
+    ("❓ Help", "/help", col_q3),
+]
+for label, cmd, col in quick_cmds:
+    with col:
+        if st.button(label, key=f"q_{cmd}", use_container_width=True):
+            st.session_state.bot_history.append(("user", cmd))
+            reply = handle_bot_command(cmd, _log_for_bot)
+            st.session_state.bot_history.append(("bot", reply))
+            st.rerun()
 
 # ── INPUT CHAT ──
 col_inp, col_btn, col_clr = st.columns([5, 1.2, 0.8])
@@ -1766,8 +1768,12 @@ with col_btn:
     if st.button("Kirim", key="bot_send", use_container_width=True):
         if user_input.strip():
             st.session_state.bot_history.append(("user", user_input))
-            if _ai_mode and _ai_ok:
-                # Kirim ke Claude API
+            _cmd_keywords = ["/rekap","/riwayat","/total","/pending","/top","/cari",
+                             "/quote","/joke","/help","rekap","riwayat","total",
+                             "pending","quote","joke","help","bantuan",
+                             "assalamualaikum","halo","hai","hey","kabar"]
+            _is_cmd = any(user_input.strip().lower().startswith(k) for k in _cmd_keywords)
+            if _ai_mode and _ai_ok and not _is_cmd:
                 history_for_claude = [(r, m) for r, m in st.session_state.bot_history[:-1]]
                 reply = chat_with_claude(history_for_claude, _log_for_bot)
             else:
