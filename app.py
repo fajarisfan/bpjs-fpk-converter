@@ -647,7 +647,6 @@ def inject_css(dark):
         background: {input_bg} !important;
     }}
     .stTextInput button[data-testid="stTextInputHideShowButton"],
-    .stTextInput button[data-testid="InputInstructions"],
     button[aria-label="Show password text"],
     button[aria-label="Hide password text"],
     button[aria-label="Show password"],
@@ -983,11 +982,12 @@ if not st.session_state.logged_in:
     </div>
     """, unsafe_allow_html=True)
 
-    _lbg  = "#0a0a0a" if dark_mode else "#f5f5f5"
-    _lbdr = "#2a2a2a" if dark_mode else "#d0d0d0"
-    _ltxt = "#e0e0e0" if dark_mode else "#1a1a1a"
-    _lmut = "#555"    if dark_mode else "#999"
-    _lbtn = PRIMARY_COLOR
+    _dm    = st.session_state.get('dark_mode', True)
+    _lbg   = "#0a0a0a" if _dm else "#f5f5f5"
+    _lbdr  = "#2a2a2a" if _dm else "#d0d0d0"
+    _ltxt  = "#e0e0e0" if _dm else "#1a1a1a"
+    _lmut  = "#555"    if _dm else "#999"
+    _lbtn  = PRIMARY_COLOR
 
     import streamlit.components.v1 as _lcmp
     _lcmp.html(f"""<!DOCTYPE html><html><head>
@@ -995,7 +995,7 @@ if not st.session_state.logged_in:
 <style>
 *{{box-sizing:border-box;margin:0;padding:0;}}
 body{{background:transparent;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;gap:10px;padding:4px 0;}}
-.pin-wrap{{position:relative;width:220px;}}
+.pin-wrap{{width:220px;}}
 .pin-wrap input{{
   width:100%;background:{_lbg};border:1.5px solid {_lbdr};
   color:{_ltxt};border-radius:10px;padding:12px 16px;
@@ -1008,8 +1008,7 @@ body{{background:transparent;font-family:'JetBrains Mono',monospace;display:flex
 .btn-masuk{{
   width:220px;background:{_lbtn};border:none;color:#fff;
   border-radius:10px;padding:11px;font-size:0.9rem;
-  cursor:pointer;font-family:'JetBrains Mono',monospace;
-  letter-spacing:1px;
+  cursor:pointer;font-family:'JetBrains Mono',monospace;letter-spacing:1px;
 }}
 .btn-masuk:hover{{opacity:0.88;}}
 .btn-bio{{
@@ -1025,71 +1024,58 @@ body{{background:transparent;font-family:'JetBrains Mono',monospace;display:flex
   <input id="pin" type="password" placeholder="● ● ● ●" autocomplete="current-password" inputmode="numeric" maxlength="20"/>
 </div>
 <button class="btn-masuk" onclick="doLogin()">Masuk →</button>
-<button class="btn-bio" id="btn-bio" onclick="doBio()">
-  <span>☝️</span><span>Sidik Jari / Face ID</span>
-</button>
+<button class="btn-bio" onclick="doBio()">☝️ Sidik Jari / Face ID</button>
 <div class="msg" id="msg"></div>
 <script>
 function doLogin(){{
   var v=document.getElementById('pin').value.trim();
-  if(!v){{setMsg('PIN tidak boleh kosong');return;}}
+  if(!v){{document.getElementById('msg').textContent='PIN tidak boleh kosong';return;}}
   window.parent.postMessage({{type:'streamlit:setComponentValue',value:'PIN:'+v}},'*');
 }}
-function setMsg(t){{document.getElementById('msg').textContent=t;}}
-
 document.getElementById('pin').onkeydown=function(e){{
   if(e.key==='Enter')doLogin();
 }};
-
-// WebAuthn biometric
 async function doBio(){{
-  if(!window.PublicKeyCredential){{setMsg('Browser tidak support biometrik');return;}}
+  var msg=document.getElementById('msg');
+  if(!window.PublicKeyCredential){{msg.textContent='Browser tidak support biometrik';return;}}
   try{{
     var avail=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    if(!avail){{setMsg('Perangkat tidak punya sensor biometrik');return;}}
-    // Cek apakah sudah pernah register
+    if(!avail){{msg.textContent='Perangkat tidak punya sensor biometrik';return;}}
     var credId=localStorage.getItem('fpk_cred_id');
     if(!credId){{
-      // Register dulu
-      setMsg('Daftarkan sidik jari...');
+      msg.textContent='Daftarkan sidik jari...';
       var chal=new Uint8Array(32);crypto.getRandomValues(chal);
       var reg=await navigator.credentials.create({{publicKey:{{
-        challenge:chal,
-        rp:{{name:"FPK Converter"}},
+        challenge:chal,rp:{{name:"FPK Converter"}},
         user:{{id:new TextEncoder().encode("isfan"),name:"isfan",displayName:"Isfan"}},
         pubKeyCredParams:[{{type:"public-key",alg:-7}},{{type:"public-key",alg:-257}}],
         authenticatorSelection:{{authenticatorAttachment:"platform",userVerification:"required"}},
         timeout:60000
       }}}});
       localStorage.setItem('fpk_cred_id',btoa(String.fromCharCode(...new Uint8Array(reg.rawId))));
-      setMsg('Sidik jari terdaftar! Coba lagi.');
-    }} else {{
-      // Auth
-      setMsg('Verifikasi sidik jari...');
+      msg.style.color='#4ade80';msg.textContent='Terdaftar! Klik lagi untuk login.';
+    }}else{{
+      msg.textContent='Verifikasi sidik jari...';
       var chal2=new Uint8Array(32);crypto.getRandomValues(chal2);
       var rawId=Uint8Array.from(atob(credId),c=>c.charCodeAt(0));
       await navigator.credentials.get({{publicKey:{{
         challenge:chal2,
         allowCredentials:[{{type:"public-key",id:rawId}}],
-        userVerification:"required",
-        timeout:60000
+        userVerification:"required",timeout:60000
       }}}});
       window.parent.postMessage({{type:'streamlit:setComponentValue',value:'BIO_OK'}},'*');
     }}
   }}catch(e){{
-    if(e.name==='NotAllowedError')setMsg('Verifikasi dibatalkan');
-    else setMsg('Error: '+e.message);
+    msg.textContent=e.name==='NotAllowedError'?'Dibatalkan':'Error: '+e.message;
   }}
 }}
 </script>
-</body></html>""", height=195, key="login_component")
+</body></html>""", height=200, key="login_component")
 
-    # Handle login dari komponen
     _lc = st.session_state.get("login_component")
     if _lc and isinstance(_lc, str):
         if _lc.startswith("PIN:"):
-            _pin_val = _lc[4:]
-            ok, msg = check_pin(_pin_val)
+            ok, msg = check_pin(_lc[4:])
             st.session_state["login_component"] = None
             if ok:
                 st.session_state.logged_in = True
