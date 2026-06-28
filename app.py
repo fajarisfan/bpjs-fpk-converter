@@ -281,98 +281,99 @@ def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
     except Exception as e:
         return False, f"❌ Error: {e}"
 
-# ── AI CHAT (Claude API) ───────────────────────────────────────
-def get_claude_api_key() -> str:
+# ── AI CHAT (Groq — gratis) ────────────────────────────────────
+def get_groq_api_key() -> str:
     try:
-        return str(st.secrets.get("ANTHROPIC_API_KEY", ""))
+        return str(st.secrets.get("GROQ_API_KEY", ""))
     except Exception:
         return ""
 
 def claude_configured() -> bool:
-    return bool(get_claude_api_key())
+    return bool(get_groq_api_key())
 
 def chat_with_claude(history: list, log_data: list) -> str:
-    api_key = get_claude_api_key()
+    api_key = get_groq_api_key()
     if not api_key:
-        return "❌ API key Claude belum dikonfigurasi. Tambahkan `ANTHROPIC_API_KEY` di Secrets."
+        return "❌ GROQ_API_KEY belum dikonfigurasi. Daftar gratis di console.groq.com lalu tambahkan di Secrets."
 
     # Ringkas log data untuk context
     log_summary = ""
     if log_data:
         total_nom = sum(x['total'] for x in log_data)
         total_sep = sum(x['jumlah'] for x in log_data)
-        selesai = sum(1 for x in log_data if x.get('status') == 'Selesai')
-        nom_fmt = f"Rp {total_nom:,}".replace(",", ".")
+        selesai   = sum(1 for x in log_data if x.get('status') == 'Selesai')
+        nom_fmt   = f"Rp {total_nom:,}".replace(",", ".")
+        recent    = log_data[:5]
+        detail    = "\n".join(
+            f"  - {x['nama_file']} | {x['jumlah']} SEP | Rp {x['total']:,} | {x.get('status','?')}"
+            for x in recent
+        )
         log_summary = (
-            f"\n\nData konversi FPK saat ini:\n"
-            f"- Total file: {len(log_data)}\n"
-            f"- Selesai: {selesai}, Pending: {len(log_data)-selesai}\n"
+            f"\n\nData konversi FPK saat ini (realtime):\n"
+            f"- Total file dikonversi: {len(log_data)}\n"
+            f"- Selesai: {selesai} | Pending: {len(log_data)-selesai}\n"
             f"- Total SEP: {total_sep:,}\n"
             f"- Total Nominal: {nom_fmt}\n"
-            f"- File terbaru: {log_data[0]['nama_file'] if log_data else '-'}"
+            f"- 5 File terbaru:\n{detail}"
         )
 
     system_prompt = (
         "Kamu adalah FPK Bot, asisten cerdas untuk aplikasi FPK Converter milik Isfan Fajar Anugrah. "
-        "Aplikasi ini digunakan di rumah sakit RSUD Cilegon untuk mengkonversi data klaim BPJS Kesehatan dari PDF ke CSV. "
-        "Kamu bisa membantu pertanyaan umum, ngobrol santai, memberikan motivasi Islami, "
-        "dan menjawab pertanyaan seputar data konversi FPK. "
-        "Jawab dengan bahasa Indonesia yang ramah, santai, dan sesekali gunakan kata-kata Islami seperti Alhamdulillah, Insya Allah, dll. "
-        "Jawaban singkat dan padat, maksimal 3-4 kalimat kecuali kalau ditanya detail."
+        "Aplikasi ini dipakai di RSUD Cilegon untuk konversi data klaim BPJS Kesehatan dari PDF ke CSV. "
+        "Alur kerja: petugas upload PDF FPK → sistem ekstrak No.SEP dan nominal Disetujui → output CSV. "
+        "Tingkat klaim: RITL (rawat inap tingkat lanjut) dan RJTL (rawat jalan tingkat lanjut). "
+        "Jenis: Reguler (klaim normal) dan Susulan (klaim tambahan/perbaikan). "
+        "Kamu paham konteks data konversi dan bisa menjawab pertanyaan tentang rekap, nominal, jumlah SEP, status pending. "
+        "Kamu juga bisa diajak ngobrol santai, kasih motivasi Islami, atau bantu hal umum lainnya. "
+        "Jawab pakai bahasa Indonesia yang ramah dan santai. "
+        "Sesekali pakai kata Islami seperti Alhamdulillah, Insya Allah, Masya Allah. "
+        "Jawaban singkat dan padat — maksimal 3-4 kalimat kecuali ditanya detail spesifik."
         + log_summary
     )
 
-    # Konversi history ke format Claude — pastiin alternating user/assistant
-    raw_messages = []
+    # Bangun messages dengan system sebagai pesan pertama (Groq pakai format OpenAI)
+    messages = [{"role": "system", "content": system_prompt}]
     for role, msg in history[-20:]:
-        api_role = "user" if role == "user" else "assistant"
         if not msg.strip():
             continue
-        raw_messages.append({"role": api_role, "content": msg.strip()})
-
-    # Dedupe: Claude API butuh alternating roles, tidak boleh 2x role sama berturut
-    messages = []
-    for m in raw_messages:
-        if messages and messages[-1]["role"] == m["role"]:
-            messages[-1]["content"] += "\n" + m["content"]
+        api_role = "user" if role == "user" else "assistant"
+        # Hindari 2x role sama berturut
+        if messages and messages[-1]["role"] == api_role:
+            messages[-1]["content"] += "\n" + msg.strip()
         else:
-            messages.append(m)
+            messages.append({"role": api_role, "content": msg.strip()})
 
-    # Harus diawali user
-    while messages and messages[0]["role"] != "user":
-        messages.pop(0)
-    # Harus diakhiri user
-    while messages and messages[-1]["role"] != "user":
+    # Pastikan diakhiri user
+    while len(messages) > 1 and messages[-1]["role"] != "user":
         messages.pop()
 
-    if not messages:
+    if len(messages) <= 1:
         return "Maaf, pesan tidak valid. Coba kirim ulang ya kak!"
 
     try:
         resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
+            "https://api.groq.com/openai/v1/chat/completions",
             headers={
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
             },
             json={
-                "model": "claude-haiku-4-5-20251001",
-                "max_tokens": 512,
-                "system": system_prompt,
+                "model": "llama-3.1-8b-instant",
                 "messages": messages,
+                "max_tokens": 512,
+                "temperature": 0.7,
             },
             timeout=20,
         )
         if resp.ok:
-            return resp.json()["content"][0]["text"]
+            return resp.json()["choices"][0]["message"]["content"].strip()
         try:
             err_detail = resp.json().get("error", {}).get("message", resp.text)
         except Exception:
             err_detail = resp.text
-        return f"❌ Claude API error {resp.status_code}: {err_detail}"
+        return f"❌ Groq API error {resp.status_code}: {err_detail}"
     except Exception as e:
-        return f"❌ Gagal menghubungi Claude: {e}"
+        return f"❌ Gagal menghubungi Groq: {e}"
 
 # ── BOT COMMAND HANDLER ────────────────────────────────────────
 _QUOTES = [
@@ -1312,27 +1313,7 @@ if st.session_state.get("show_theme_panel"):
     tab_warna, tab_section, tab_font = st.tabs(["🎨 Warna", "🖼 Section", "🔤 Font"])
 
     with tab_warna:
-        st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.5rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Preset Palette</div>', unsafe_allow_html=True)
-        pcols = st.columns(4)
-        for idx, (label, p, s, a, pu) in enumerate(_PRESETS_PALETTE):
-            with pcols[idx % 4]:
-                st.markdown(f"""
-                <div style="display:flex;gap:2px;margin-bottom:4px;justify-content:center;">
-                    <div style="width:10px;height:10px;border-radius:50%;background:{p};"></div>
-                    <div style="width:10px;height:10px;border-radius:50%;background:{s};"></div>
-                    <div style="width:10px;height:10px;border-radius:50%;background:{a};"></div>
-                    <div style="width:10px;height:10px;border-radius:50%;background:{pu};"></div>
-                </div>
-                """, unsafe_allow_html=True)
-                safe_key = "".join(x for x in label if x.isalnum() or x == "_")
-                if st.button(label, key=f"preset_{safe_key}", use_container_width=True):
-                    st.session_state.c_primary   = p
-                    st.session_state.c_secondary = s
-                    st.session_state.c_accent    = a
-                    st.session_state.c_purple    = pu
-                    st.rerun()
-
-        st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.75rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Custom 4 Warna Utama</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.5rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Custom 4 Warna Utama</div>', unsafe_allow_html=True)
         cp1, cp2, cp3, cp4 = st.columns(4)
         with cp1:
             st.caption("Primary")
@@ -1711,12 +1692,12 @@ with col_ai_toggle:
         st.rerun()
 with col_ai_label:
     if _ai_mode:
-        st.markdown(f'<div style="font-size:0.78rem;font-weight:700;color:{PRIMARY_COLOR};padding-top:2px;">✨ Mode AI Aktif — Chat cerdas dengan Claude</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:0.78rem;font-weight:700;color:{PRIMARY_COLOR};padding-top:2px;">✨ Mode AI Aktif — Chat cerdas dengan Groq</div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div style="font-size:0.78rem;color:{_mut_tele};padding-top:2px;">Mode AI — Aktifkan untuk chat cerdas</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:0.78rem;color:{_mut_tele};padding-top:2px;">Mode AI — Aktifkan untuk chat cerdas (Groq)</div>', unsafe_allow_html=True)
 
 if not _ai_ok and _ai_mode:
-    st.warning("⚠️ Tambahkan `ANTHROPIC_API_KEY` di Secrets untuk mengaktifkan Mode AI.")
+    st.warning("⚠️ Tambahkan `GROQ_API_KEY` di Secrets untuk mengaktifkan Mode AI.")
 
 # Init bot history
 if not st.session_state.bot_history:
@@ -1789,7 +1770,7 @@ if "bot_input_counter" not in st.session_state:
 
 col_inp, col_btn, col_clr = st.columns([5, 1.2, 0.8])
 with col_inp:
-    placeholder = "Tanya apa aja ke Claude AI..." if _ai_mode else "Ketik pesan atau /help..."
+    placeholder = "Tanya apa aja ke Groq AI..." if _ai_mode else "Ketik pesan atau /help..."
     user_input = st.text_input("", placeholder=placeholder,
                                key=f"bot_input_{st.session_state.bot_input_counter}",
                                label_visibility="collapsed")
@@ -1817,10 +1798,20 @@ with col_clr:
         ]
         st.rerun()
 
+# Tombol rekap telegram — result disimpan ke session state dulu, render di luar
 if _tele_ok:
     if st.button("📤 Kirim Rekap ke Telegram", key="bot_send_rekap", use_container_width=True):
-        ok, msg = kirim_rekap_telegram(_log_for_bot)
-        st.success(msg) if ok else st.error(msg)
+        _ok_tele, _msg_tele = kirim_rekap_telegram(_log_for_bot)
+        st.session_state["_tele_notif"] = (_ok_tele, _msg_tele)
+        st.rerun()
+
+_tele_notif = st.session_state.pop("_tele_notif", None)
+if _tele_notif:
+    _ok_tele, _msg_tele = _tele_notif
+    if _ok_tele:
+        st.success(_msg_tele)
+    else:
+        st.error(_msg_tele)
 
 st.divider()
 
