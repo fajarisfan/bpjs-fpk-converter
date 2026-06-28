@@ -1830,11 +1830,11 @@ st.markdown(f"""
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
-              color:{'#00c47a' if _tele_ok else '#f87171}';">
+              color:{'#00c47a' if _tele_ok else '#f87171'};">
             {'● Telegram' if _tele_ok else '○ Telegram'}
         </span>
         <span style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
-              color:{'#00c47a' if _ai_ok else '#f87171}';">
+              color:{'#00c47a' if _ai_ok else '#f87171'};">
             {'● Claude AI' if _ai_ok else '○ Claude AI'}
         </span>
     </div>
