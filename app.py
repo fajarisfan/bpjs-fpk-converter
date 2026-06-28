@@ -966,10 +966,12 @@ if not st.session_state.logged_in:
         <p style="opacity:0.5;font-size:0.85rem;">Masukkan PIN untuk melanjutkan</p>
     </div>
     """, unsafe_allow_html=True)
-    _lbg  = "#0a0a0a" if dark_mode else "#f5f5f5"
-    _lbdr = "#2a2a2a" if dark_mode else "#d0d0d0"
-    _ltxt = "#e0e0e0" if dark_mode else "#1a1a1a"
-    _lmut = "#555"    if dark_mode else "#999"
+
+    # PERBAIKAN: semua dark_mode di sini diubah menjadi st.session_state.dark_mode
+    _lbg  = "#0a0a0a" if st.session_state.dark_mode else "#f5f5f5"
+    _lbdr = "#2a2a2a" if st.session_state.dark_mode else "#d0d0d0"
+    _ltxt = "#e0e0e0" if st.session_state.dark_mode else "#1a1a1a"
+    _lmut = "#555"    if st.session_state.dark_mode else "#999"
     _lbtn = PRIMARY_COLOR
 
     # CSS agresif sembunyikan SEMUA tombol mata di semua versi Streamlit
@@ -1828,11 +1830,11 @@ st.markdown(f"""
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
-              color:{'#00c47a' if _tele_ok else '#f87171'};">
+              color:{'#00c47a' if _tele_ok else '#f87171}';">
             {'● Telegram' if _tele_ok else '○ Telegram'}
         </span>
         <span style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
-              color:{'#00c47a' if _ai_ok else '#f87171'};">
+              color:{'#00c47a' if _ai_ok else '#f87171}';">
             {'● Claude AI' if _ai_ok else '○ Claude AI'}
         </span>
     </div>
