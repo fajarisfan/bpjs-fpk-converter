@@ -152,8 +152,7 @@ def start_api_backend():
 _api_status = start_api_backend()
 
 def now_wib():
-    """Waktu WIB (UTC+7). Pakai datetime.utcnow() explicit biar ga kena local server tz."""
-    return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7)))
+    return datetime.now(timezone.utc) + timedelta(hours=7)
 
 def load_log():
     if os.path.exists(LOG_FILE):
@@ -262,14 +261,12 @@ def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
         rows += f"{i}. `{x['nama_file']}`\n   {st_icon} {x['jumlah']:,} SEP · {nom} · {x['waktu']}\n"
     if len(log_data) > 20:
         rows += f"\n_...dan {len(log_data)-20} lainnya_\n"
-    kirim_jam = now_wib().strftime("%d %b %Y, %H:%M") + " WIB"
     msg = (
-        f"\U0001f4ca *Rekap FPK Converter*\n"
-        f"\U0001f550 _{kirim_jam}_\n\n"
-        f"\U0001f4c1 Total file: *{len(log_data)}*\n"
-        f"\u2705 Selesai: *{selesai}* \u00b7 \u23f3 Pending: *{len(log_data)-selesai}*\n"
-        f"\U0001f522 Total SEP: *{total_sep:,}*\n"
-        f"\U0001f4b0 Total Nominal: *{nom_fmt}*\n\n"
+        f"📊 *Rekap FPK Converter*\n\n"
+        f"📁 Total file: *{len(log_data)}*\n"
+        f"✅ Selesai: *{selesai}* · ⏳ Pending: *{len(log_data)-selesai}*\n"
+        f"🔢 Total SEP: *{total_sep:,}*\n"
+        f"💰 Total Nominal: *{nom_fmt}*\n\n"
         f"*Riwayat:*\n{rows}"
     )
     try:
@@ -650,9 +647,17 @@ def inject_css(dark):
         background: {input_bg} !important;
     }}
     .stTextInput button[data-testid="stTextInputHideShowButton"],
+    .stTextInput button[data-testid="InputInstructions"],
+    button[aria-label="Show password text"],
+    button[aria-label="Hide password text"],
     button[aria-label="Show password"],
-    button[aria-label="Hide password"] {{
+    button[aria-label="Hide password"],
+    .stTextInput [data-testid="stTextInputHideShowButton"],
+    .stTextInput svg[data-testid="EyeIcon"],
+    .stTextInput svg[data-testid="EyeOffIcon"] {{
         display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
     }}
     .stRadio > div {{
         display: flex !important;
@@ -969,17 +974,134 @@ if not st.session_state.logged_in:
         <p style="opacity:0.5;font-size:0.85rem;">Masukkan PIN untuk melanjutkan</p>
     </div>
     """, unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        pin_input = st.text_input("", type="password", placeholder="", key="pin_login", label_visibility="collapsed", autocomplete="off")
-        if st.button("Masuk →", key="btn_masuk", use_container_width=True):
-            ok, msg = check_pin(pin_input)
+    st.markdown("""
+    <div style="text-align:center;padding:2rem 0 1rem;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:3px;opacity:0.4;margin-bottom:1rem;">FPK CONVERTER</div>
+        <div style="font-size:2.5rem;margin-bottom:0.5rem;">🔐</div>
+        <h2 style="margin:0 0 0.25rem;">Selamat Datang</h2>
+        <p style="opacity:0.5;font-size:0.85rem;">Masukkan PIN untuk melanjutkan</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    _lbg  = "#0a0a0a" if dark_mode else "#f5f5f5"
+    _lbdr = "#2a2a2a" if dark_mode else "#d0d0d0"
+    _ltxt = "#e0e0e0" if dark_mode else "#1a1a1a"
+    _lmut = "#555"    if dark_mode else "#999"
+    _lbtn = PRIMARY_COLOR
+
+    import streamlit.components.v1 as _lcmp
+    _lcmp.html(f"""<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0;}}
+body{{background:transparent;font-family:'JetBrains Mono',monospace;display:flex;flex-direction:column;align-items:center;gap:10px;padding:4px 0;}}
+.pin-wrap{{position:relative;width:220px;}}
+.pin-wrap input{{
+  width:100%;background:{_lbg};border:1.5px solid {_lbdr};
+  color:{_ltxt};border-radius:10px;padding:12px 16px;
+  font-size:1.1rem;letter-spacing:6px;outline:none;
+  font-family:'JetBrains Mono',monospace;text-align:center;
+  -webkit-text-security:disc;
+}}
+.pin-wrap input:focus{{border-color:{_lbtn};}}
+.pin-wrap input::placeholder{{letter-spacing:2px;font-size:0.75rem;color:{_lmut};}}
+.btn-masuk{{
+  width:220px;background:{_lbtn};border:none;color:#fff;
+  border-radius:10px;padding:11px;font-size:0.9rem;
+  cursor:pointer;font-family:'JetBrains Mono',monospace;
+  letter-spacing:1px;
+}}
+.btn-masuk:hover{{opacity:0.88;}}
+.btn-bio{{
+  width:220px;background:transparent;border:1.5px solid {_lbdr};
+  color:{_ltxt};border-radius:10px;padding:10px;font-size:0.82rem;
+  cursor:pointer;font-family:'JetBrains Mono',monospace;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}}
+.btn-bio:hover{{border-color:{_lbtn};color:{_lbtn};}}
+.msg{{font-size:0.7rem;color:#f87171;min-height:16px;text-align:center;font-family:sans-serif;}}
+</style></head><body>
+<div class="pin-wrap">
+  <input id="pin" type="password" placeholder="● ● ● ●" autocomplete="current-password" inputmode="numeric" maxlength="20"/>
+</div>
+<button class="btn-masuk" onclick="doLogin()">Masuk →</button>
+<button class="btn-bio" id="btn-bio" onclick="doBio()">
+  <span>☝️</span><span>Sidik Jari / Face ID</span>
+</button>
+<div class="msg" id="msg"></div>
+<script>
+function doLogin(){{
+  var v=document.getElementById('pin').value.trim();
+  if(!v){{setMsg('PIN tidak boleh kosong');return;}}
+  window.parent.postMessage({{type:'streamlit:setComponentValue',value:'PIN:'+v}},'*');
+}}
+function setMsg(t){{document.getElementById('msg').textContent=t;}}
+
+document.getElementById('pin').onkeydown=function(e){{
+  if(e.key==='Enter')doLogin();
+}};
+
+// WebAuthn biometric
+async function doBio(){{
+  if(!window.PublicKeyCredential){{setMsg('Browser tidak support biometrik');return;}}
+  try{{
+    var avail=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    if(!avail){{setMsg('Perangkat tidak punya sensor biometrik');return;}}
+    // Cek apakah sudah pernah register
+    var credId=localStorage.getItem('fpk_cred_id');
+    if(!credId){{
+      // Register dulu
+      setMsg('Daftarkan sidik jari...');
+      var chal=new Uint8Array(32);crypto.getRandomValues(chal);
+      var reg=await navigator.credentials.create({{publicKey:{{
+        challenge:chal,
+        rp:{{name:"FPK Converter"}},
+        user:{{id:new TextEncoder().encode("isfan"),name:"isfan",displayName:"Isfan"}},
+        pubKeyCredParams:[{{type:"public-key",alg:-7}},{{type:"public-key",alg:-257}}],
+        authenticatorSelection:{{authenticatorAttachment:"platform",userVerification:"required"}},
+        timeout:60000
+      }}}});
+      localStorage.setItem('fpk_cred_id',btoa(String.fromCharCode(...new Uint8Array(reg.rawId))));
+      setMsg('Sidik jari terdaftar! Coba lagi.');
+    }} else {{
+      // Auth
+      setMsg('Verifikasi sidik jari...');
+      var chal2=new Uint8Array(32);crypto.getRandomValues(chal2);
+      var rawId=Uint8Array.from(atob(credId),c=>c.charCodeAt(0));
+      await navigator.credentials.get({{publicKey:{{
+        challenge:chal2,
+        allowCredentials:[{{type:"public-key",id:rawId}}],
+        userVerification:"required",
+        timeout:60000
+      }}}});
+      window.parent.postMessage({{type:'streamlit:setComponentValue',value:'BIO_OK'}},'*');
+    }}
+  }}catch(e){{
+    if(e.name==='NotAllowedError')setMsg('Verifikasi dibatalkan');
+    else setMsg('Error: '+e.message);
+  }}
+}}
+</script>
+</body></html>""", height=195, key="login_component")
+
+    # Handle login dari komponen
+    _lc = st.session_state.get("login_component")
+    if _lc and isinstance(_lc, str):
+        if _lc.startswith("PIN:"):
+            _pin_val = _lc[4:]
+            ok, msg = check_pin(_pin_val)
+            st.session_state["login_component"] = None
             if ok:
                 st.session_state.logged_in = True
                 st.session_state.login_time = now_wib().isoformat()
                 st.rerun()
             else:
                 st.error(msg)
+        elif _lc == "BIO_OK":
+            st.session_state["login_component"] = None
+            st.session_state.logged_in = True
+            st.session_state.login_time = now_wib().isoformat()
+            st.rerun()
     st.markdown('<div style="text-align:center;margin-top:0.5rem;"><span style="font-family:JetBrains Mono,monospace;font-size:0.62rem;opacity:0.35;">v1.0 · privasi terlindungi</span></div>', unsafe_allow_html=True)
     st.stop()
 
@@ -1728,15 +1850,29 @@ bubble_rows = ""
 for role, msg in st.session_state.bot_history[-15:]:
     safe_msg = _html.escape(msg).replace('\n', '<br>')
     if role == "bot":
-        bubble_rows += f"""<div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:6px;">
-<div style="width:26px;height:26px;border-radius:50%;background:{_bbg2};font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">🤖</div>
-<div><div style="background:{_bbg2};border:1px solid {_bbd2};color:{_bbt2};border-radius:14px 14px 14px 3px;padding:7px 11px;font-size:0.77rem;line-height:1.5;max-width:78%;word-wrap:break-word;font-family:sans-serif;">{safe_msg}</div>
-<div style="font-size:0.58rem;color:{_mut2};margin-top:2px;padding:0 4px;">{now_str}</div></div></div>"""
+        bubble_rows += (
+            f'<div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:8px;">'
+            f'<div style="width:26px;height:26px;border-radius:50%;background:{_bbg2};font-size:0.85rem;'
+            f'display:flex;align-items:center;justify-content:center;flex-shrink:0;">🤖</div>'
+            f'<div style="max-width:82%;">'
+            f'<div style="background:{_bbg2};border:1px solid {_bbd2};color:{_bbt2};'
+            f'border-radius:14px 14px 14px 3px;padding:8px 12px;font-size:0.8rem;line-height:1.55;'
+            f'word-break:break-word;overflow-wrap:anywhere;font-family:sans-serif;">{safe_msg}</div>'
+            f'<div style="font-size:0.6rem;color:{_mut2};margin-top:2px;padding:0 4px;">{now_str}</div>'
+            f'</div></div>'
+        )
     else:
-        bubble_rows += f"""<div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:6px;flex-direction:row-reverse;">
-<div style="width:26px;height:26px;border-radius:50%;background:{_bbg2};font-size:0.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">👤</div>
-<div><div style="background:{_user_bubble};color:#fff;border-radius:14px 14px 3px 14px;padding:7px 11px;font-size:0.77rem;line-height:1.5;max-width:78%;word-wrap:break-word;font-family:sans-serif;">{safe_msg}</div>
-<div style="font-size:0.58rem;color:{_mut2};margin-top:2px;padding:0 4px;text-align:right;">{now_str}</div></div></div>"""
+        bubble_rows += (
+            f'<div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:8px;flex-direction:row-reverse;">'
+            f'<div style="width:26px;height:26px;border-radius:50%;background:{_bbg2};font-size:0.85rem;'
+            f'display:flex;align-items:center;justify-content:center;flex-shrink:0;">👤</div>'
+            f'<div style="max-width:82%;">'
+            f'<div style="background:{_user_bubble};color:#fff;'
+            f'border-radius:14px 14px 3px 14px;padding:8px 12px;font-size:0.8rem;line-height:1.55;'
+            f'word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap;font-family:sans-serif;">{safe_msg}</div>'
+            f'<div style="font-size:0.6rem;color:{_mut2};margin-top:2px;padding:0 4px;text-align:right;">{now_str}</div>'
+            f'</div></div>'
+        )
 
 _components.html(f"""<!DOCTYPE html><html><head><style>
 *{{box-sizing:border-box;margin:0;padding:0;}}
@@ -1749,56 +1885,95 @@ overflow-y:auto;height:100%;}}
 <script>document.getElementById('chat').scrollTop=99999;</script>
 </body></html>""", height=300, scrolling=True)
 
-# ── QUICK REPLY ──
-col_q1, col_q2, col_q3 = st.columns(3)
-quick_cmds = [
-    ("📊 Rekap", "/rekap", col_q1),
-    ("💰 Total", "/total", col_q2),
-    ("⏳ Pending", "/pending", col_q3),
-    ("📖 Quote", "/quote", col_q1),
-    ("😂 Joke", "/joke", col_q2),
-    ("❓ Help", "/help", col_q3),
-]
-for label, cmd, col in quick_cmds:
-    with col:
-        if st.button(label, key=f"q_{cmd}", use_container_width=True):
-            st.session_state.bot_history.append(("user", cmd))
-            reply = handle_bot_command(cmd, _log_for_bot)
-            st.session_state.bot_history.append(("bot", reply))
-            st.rerun()
-
-# ── INPUT CHAT ──
+# ── QUICK REPLY + INPUT — semua HTML inline, ga ada st.columns ──
 if "bot_input_counter" not in st.session_state:
     st.session_state.bot_input_counter = 0
 
-col_inp, col_btn, col_clr = st.columns([5, 1.2, 0.8])
-with col_inp:
-    placeholder = "Tanya apa aja ke Groq AI..." if _ai_mode else "Ketik pesan atau /help..."
-    user_input = st.text_input("", placeholder=placeholder,
-                               key=f"bot_input_{st.session_state.bot_input_counter}",
-                               label_visibility="collapsed")
-with col_btn:
-    if st.button("Kirim", key="bot_send", use_container_width=True):
-        if user_input.strip():
-            st.session_state.bot_history.append(("user", user_input))
-            _cmd_keywords = ["/rekap","/riwayat","/total","/pending","/top","/cari",
-                             "/quote","/joke","/help","rekap","riwayat","total",
-                             "pending","quote","joke","help","bantuan",
-                             "assalamualaikum","halo","hai","hey","kabar"]
-            _is_cmd = any(user_input.strip().lower().startswith(k) for k in _cmd_keywords)
-            if _ai_mode and _ai_ok and not _is_cmd:
-                history_for_claude = [(r, m) for r, m in st.session_state.bot_history[:-1]]
-                reply = chat_with_claude(history_for_claude, _log_for_bot)
-            else:
-                reply = handle_bot_command(user_input, _log_for_bot)
-            st.session_state.bot_history.append(("bot", reply))
-            st.session_state.bot_input_counter += 1
-            st.rerun()
-with col_clr:
-    if st.button("🗑️", key="bot_clear", use_container_width=True, help="Hapus chat"):
-        st.session_state.bot_history = [
-            ("bot", "Chat dikosongkan. Ketik /help untuk mulai lagi!")
-        ]
+_dark_ci  = st.session_state.get('dark_mode', True)
+_ci_bg    = "#1a1a1a" if _dark_ci else "#f5f5f5"
+_ci_bdr   = "#2a2a2a" if _dark_ci else "#d0d0d0"
+_ci_txt   = "#e0e0e0" if _dark_ci else "#1a1a1a"
+_ci_ph    = "#555"    if _dark_ci else "#aaa"
+_ci_chip  = "#1e1e1e" if _dark_ci else "#efefef"
+_ph_str   = "Tanya Groq AI..." if _ai_mode else "Ketik pesan atau /help..."
+
+_components.html(f"""<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0;}}
+body{{background:transparent;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}}
+.chips{{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}}
+.chip{{
+  background:{_ci_chip};border:1px solid {_ci_bdr};color:{_ci_txt};
+  border-radius:16px;padding:5px 11px;font-size:0.72rem;cursor:pointer;
+  white-space:nowrap;
+}}
+.chip:hover{{border-color:{PRIMARY_COLOR};color:{PRIMARY_COLOR};}}
+.row{{display:flex;gap:6px;align-items:center;}}
+.row input{{
+  flex:1;min-width:0;background:{_ci_bg};border:1px solid {_ci_bdr};
+  color:{_ci_txt};border-radius:20px;padding:8px 14px;font-size:0.82rem;outline:none;
+}}
+.row input::placeholder{{color:{_ci_ph};}}
+.row input:focus{{border-color:{PRIMARY_COLOR};}}
+.btn-s{{
+  background:{PRIMARY_COLOR};border:none;border-radius:50%;
+  width:36px;height:36px;cursor:pointer;flex-shrink:0;
+  font-size:1rem;color:#fff;display:flex;align-items:center;justify-content:center;
+}}
+.btn-c{{
+  background:{_ci_bg};border:1px solid {_ci_bdr};border-radius:50%;
+  width:36px;height:36px;cursor:pointer;flex-shrink:0;
+  font-size:0.85rem;color:{_ci_txt};display:flex;align-items:center;justify-content:center;
+}}
+</style></head><body>
+<div class="chips">
+  <button class="chip" onclick="send('/rekap')">📊 Rekap</button>
+  <button class="chip" onclick="send('/total')">💰 Total</button>
+  <button class="chip" onclick="send('/pending')">⏳ Pending</button>
+  <button class="chip" onclick="send('/quote')">📖 Quote</button>
+  <button class="chip" onclick="send('/joke')">😂 Joke</button>
+  <button class="chip" onclick="send('/help')">❓ Help</button>
+</div>
+<div class="row">
+  <input id="inp" type="text" placeholder="{_ph_str}" autocomplete="off"/>
+  <button class="btn-s" onclick="send(document.getElementById('inp').value);document.getElementById('inp').value=''">➤</button>
+  <button class="btn-c" onclick="send('__CLEAR__')" title="Hapus chat">🗑</button>
+</div>
+<script>
+function send(v){{
+  v=(v||'').trim();
+  if(!v)return;
+  window.parent.postMessage({{type:'streamlit:setComponentValue',value:v}},'*');
+}}
+document.getElementById('inp').onkeydown=function(e){{
+  if(e.key==='Enter'){{send(this.value);this.value='';}}
+}};
+</script>
+</body></html>""", height=90, key="chat_ui")
+
+# Handle pesan dari chat_ui
+_cv = st.session_state.get("chat_ui")
+if _cv and isinstance(_cv, str):
+    if _cv == "__CLEAR__":
+        st.session_state.bot_history = [("bot", "Chat dikosongkan. Ketik /help untuk mulai lagi!")]
+        st.session_state["chat_ui"] = None
+        st.rerun()
+    elif _cv.strip():
+        _msg = _cv.strip()
+        st.session_state.bot_history.append(("user", _msg))
+        _cmd_keywords = ["/rekap","/riwayat","/total","/pending","/top","/cari",
+                         "/quote","/joke","/help","rekap","riwayat","total",
+                         "pending","quote","joke","help","bantuan",
+                         "assalamualaikum","halo","hai","hey","kabar"]
+        _is_cmd = any(_msg.lower().startswith(k) for k in _cmd_keywords)
+        if _ai_mode and _ai_ok and not _is_cmd:
+            _hist = [(r, m) for r, m in st.session_state.bot_history[:-1]]
+            _reply = chat_with_claude(_hist, _log_for_bot)
+        else:
+            _reply = handle_bot_command(_msg, _log_for_bot)
+        st.session_state.bot_history.append(("bot", _reply))
+        st.session_state["chat_ui"] = None
         st.rerun()
 
 # Tombol rekap telegram — result disimpan ke session state dulu, render di luar
