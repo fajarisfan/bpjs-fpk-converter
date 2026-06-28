@@ -152,7 +152,8 @@ def start_api_backend():
 _api_status = start_api_backend()
 
 def now_wib():
-    return datetime.now(timezone.utc) + timedelta(hours=7)
+    """Waktu WIB (UTC+7). Pakai datetime.utcnow() explicit biar ga kena local server tz."""
+    return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7)))
 
 def load_log():
     if os.path.exists(LOG_FILE):
@@ -261,12 +262,14 @@ def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
         rows += f"{i}. `{x['nama_file']}`\n   {st_icon} {x['jumlah']:,} SEP · {nom} · {x['waktu']}\n"
     if len(log_data) > 20:
         rows += f"\n_...dan {len(log_data)-20} lainnya_\n"
+    kirim_jam = now_wib().strftime("%d %b %Y, %H:%M") + " WIB"
     msg = (
-        f"📊 *Rekap FPK Converter*\n\n"
-        f"📁 Total file: *{len(log_data)}*\n"
-        f"✅ Selesai: *{selesai}* · ⏳ Pending: *{len(log_data)-selesai}*\n"
-        f"🔢 Total SEP: *{total_sep:,}*\n"
-        f"💰 Total Nominal: *{nom_fmt}*\n\n"
+        f"\U0001f4ca *Rekap FPK Converter*\n"
+        f"\U0001f550 _{kirim_jam}_\n\n"
+        f"\U0001f4c1 Total file: *{len(log_data)}*\n"
+        f"\u2705 Selesai: *{selesai}* \u00b7 \u23f3 Pending: *{len(log_data)-selesai}*\n"
+        f"\U0001f522 Total SEP: *{total_sep:,}*\n"
+        f"\U0001f4b0 Total Nominal: *{nom_fmt}*\n\n"
         f"*Riwayat:*\n{rows}"
     )
     try:
