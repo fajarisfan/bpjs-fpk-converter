@@ -974,7 +974,7 @@ if not st.session_state.logged_in:
     _lmut = "#555"    if st.session_state.dark_mode else "#999"
     _lbtn = PRIMARY_COLOR
 
-    # CSS agresif sembunyikan SEMUA tombol mata di semua versi Streamlit
+    # CSS agresif untuk menyembunyikan tombol Streamlit dan Manage app
     st.markdown(f"""<style>
     button[data-testid="stTextInputHideShowButton"],
     button[data-testid="InputInstructions"],
@@ -986,8 +986,12 @@ if not st.session_state.logged_in:
         display:none!important;visibility:hidden!important;
         width:0!important;height:0!important;pointer-events:none!important;
     }}
-    /* Sembunyikan tombol Masuk Streamlit — hanya tersisa tombol HTML */
-    div[data-testid="stButton"]:has(button[kind="primary"]) {{
+    /* Sembunyikan tombol Streamlit Masuk */
+    div[data-testid="stButton"] {{
+        display: none !important;
+    }}
+    /* Sembunyikan Manage app */
+    [data-testid="stAppDeployButton"] {{
         display: none !important;
     }}
     /* Sembunyikan hidden bridge input */
@@ -1124,9 +1128,10 @@ async function doBio(){{
 </body></html>""", height=200)
 
     # ── Streamlit button (tersembunyi, hanya untuk logika) ──
+    # Kita gunakan st.button dengan key dan container yang disembunyikan
     with st.container():
-        st.markdown('<div style="display:none;">', unsafe_allow_html=True)
-        if st.button("Masuk →", key="btn_masuk", use_container_width=True):
+        # Kita tetap buat tombol Streamlit agar logika jalan, tapi kita sembunyikan dengan CSS
+        if st.button("Masuk →", key="btn_masuk_hidden", use_container_width=True):
             _pval = st.session_state.get("pin_bridge_input", "")
             if _pval == "__BIO_OK__":
                 st.session_state.logged_in = True
@@ -1140,7 +1145,15 @@ async function doBio(){{
                     st.rerun()
                 else:
                     st.error(msg)
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Tambahkan CSS untuk menyembunyikan container tombol ini
+        st.markdown("""
+        <style>
+        /* Sembunyikan tombol Streamlit yang kita buat di atas */
+        div[data-testid="stButton"]:has(button[kind="primary"]) {
+            display: none !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
     st.markdown('<div style="text-align:center;margin-top:0.5rem;"><span style="font-family:JetBrains Mono,monospace;font-size:0.62rem;opacity:0.35;">v1.0 · privasi terlindungi</span></div>', unsafe_allow_html=True)
     st.stop()
