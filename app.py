@@ -35,7 +35,6 @@ def derive_variants(hex_color: str) -> dict:
 
 # Preset palette — nama netral, warna enak dilihat
 _PRESETS_PALETTE = [
-    # (nama,         primary,    secondary,  accent,     purple)
     ("🍊 Oranye",   "#ff6b35",  "#00c47a",  "#ffd700",  "#a78bfa"),
     ("🟢 Hijau",    "#19f05a",  "#a121d4",  "#3eb8da",  "#f0a519"),
     ("💜 Ungu",     "#a855f7",  "#22d3ee",  "#fb923c",  "#34d399"),
@@ -77,21 +76,17 @@ for _k, _v in {
     "show_pin_form": False, "show_theme_panel": False,
     "results": [], "errors": [], "show_done": False,
     "demo_mode": False, "demo_pdf_bytes": None, "demo_pdf_info": None,
-    # Warna independen
     "c_primary":   "#ff6b35",
     "c_secondary": "#00c47a",
     "c_accent":    "#ffd700",
     "c_purple":    "#a78bfa",
-    # Warna section kustom
-    "c_bg":        "",       # kosong = ikut dark/light mode
+    "c_bg":        "",
     "c_navbar":    "",
     "c_sidebar":   "",
     "c_header":    "",
     "c_footer":    "",
     "c_footer_txt":"",
-    # Font
     "font_body":   "Inter",
-    # Bot history
     "bot_history": [],
     "bot_ai_mode": False,
 }.items():
@@ -281,7 +276,7 @@ def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
     except Exception as e:
         return False, f"❌ Error: {e}"
 
-# ── AI CHAT (Groq — gratis) ────────────────────────────────────
+# ── AI CHAT (Groq) ──────────────────────────────────────────────
 def get_groq_api_key() -> str:
     try:
         return str(st.secrets.get("GROQ_API_KEY", ""))
@@ -296,7 +291,6 @@ def chat_with_claude(history: list, log_data: list) -> str:
     if not api_key:
         return "❌ GROQ_API_KEY belum dikonfigurasi. Daftar gratis di console.groq.com lalu tambahkan di Secrets."
 
-    # Ringkas log data untuk context
     log_summary = ""
     if log_data:
         total_nom = sum(x['total'] for x in log_data)
@@ -331,19 +325,16 @@ def chat_with_claude(history: list, log_data: list) -> str:
         + log_summary
     )
 
-    # Bangun messages dengan system sebagai pesan pertama (Groq pakai format OpenAI)
     messages = [{"role": "system", "content": system_prompt}]
     for role, msg in history[-20:]:
         if not msg.strip():
             continue
         api_role = "user" if role == "user" else "assistant"
-        # Hindari 2x role sama berturut
         if messages and messages[-1]["role"] == api_role:
             messages[-1]["content"] += "\n" + msg.strip()
         else:
             messages.append({"role": api_role, "content": msg.strip()})
 
-    # Pastikan diakhiri user
     while len(messages) > 1 and messages[-1]["role"] != "user":
         messages.pop()
 
@@ -547,7 +538,6 @@ def change_pin(pin_lama, pin_baru, pin_konfirm):
 
 # ── CSS ─────────────────────────────────────────────────────
 def inject_css(dark):
-    # Ambil custom colors dari session
     c_bg      = st.session_state.get("c_bg", "")
     c_navbar  = st.session_state.get("c_navbar", "")
     c_sidebar = st.session_state.get("c_sidebar", "")
@@ -584,7 +574,6 @@ def inject_css(dark):
         bottom_bg   = c_footer  or "#0a0a0a"
         bottom_bdr  = "#1e1e1e"
         ft_txt      = c_footer_txt or "#888888"
-        # Chat bubble
         bubble_bot_bg  = "#1e1e1e"
         bubble_bot_bdr = "#2a2a2a"
         bubble_bot_txt = "#e0e0e0"
@@ -787,8 +776,6 @@ def inject_css(dark):
         border-radius: 18px !important; border: 1px solid {border} !important;
         background: {surface} !important; overflow: hidden; box-shadow: 0 2px 12px {shadow};
     }}
-
-    /* ── CHAT BUBBLE (CS Shopee style) ── */
     .chat-wrapper {{
         background: {chat_bg};
         border: 1px solid {chat_bdr};
@@ -842,8 +829,6 @@ def inject_css(dark):
         font-size: 0.58rem; color: {text_muted}; margin-top: 2px;
         padding: 0 4px;
     }}
-
-    /* ── LOG ITEM ── */
     .log-item {{
         background: {log_bg} !important; border: 1px solid {log_border} !important;
         border-radius: 20px !important; padding: 1rem 1.25rem !important;
@@ -892,8 +877,6 @@ def inject_css(dark):
     .tingkat-badge.ritl {{ background: rgba(139,92,246,0.10); border-color: #a78bfa; color: #a78bfa; }}
     .tingkat-badge.rjtl {{ background: rgba(59,130,246,0.10); border-color: #60a5fa; color: #60a5fa; }}
     hr {{ border-color: {border} !important; margin: 1.5rem 0 !important; opacity: 0.4; }}
-
-    /* ── FOOTER CUSTOM ── */
     .fpk-footer {{
         background: {bottom_bg};
         border-top: 1px solid {bottom_bdr};
@@ -902,8 +885,6 @@ def inject_css(dark):
         text-align: center;
     }}
     .fpk-footer-txt {{ color: {ft_txt}; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; }}
-
-    /* ── STREAMLIT CHROME ── */
     [data-testid="stDecoration"] {{
         background: linear-gradient(90deg, {PRIMARY_COLOR}, {SECONDARY}) !important;
         height: 3px !important;
@@ -973,34 +954,64 @@ if not st.session_state.logged_in:
     _lmut = "#555"    if st.session_state.dark_mode else "#999"
     _lbtn = PRIMARY_COLOR
 
-    # CSS untuk menyembunyikan elemen Streamlit yang tidak perlu
+    # CSS untuk menyembunyikan elemen Streamlit
     st.markdown(f"""<style>
+    /* Sembunyikan tombol Streamlit */
     div[data-testid="stButton"] {{
         display: none !important;
     }}
+    /* Sembunyikan Manage app */
     [data-testid="stAppDeployButton"] {{
         display: none !important;
     }}
+    /* Sembunyikan header dan footer default */
     header, footer, #MainMenu {{
         visibility: hidden !important;
     }}
+    /* Sembunyikan input PIN Streamlit sepenuhnya */
+    div[data-testid="stTextInput"] {{
+        position: absolute !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        width: 0 !important;
+    }}
     </style>""", unsafe_allow_html=True)
 
-    import streamlit.components.v1 as _comp
+    # Input PIN Streamlit (tersembunyi)
+    pin_hidden = st.text_input("", key="pin_hidden", type="password", label_visibility="collapsed", placeholder="", autocomplete="off")
 
+    # Tombol submit Streamlit (tersembunyi)
+    if st.button("Masuk", key="login_submit", use_container_width=True):
+        if pin_hidden == "__BIO_OK__":
+            st.session_state.logged_in = True
+            st.session_state.login_time = now_wib().isoformat()
+            st.rerun()
+        else:
+            ok, msg = check_pin(pin_hidden)
+            if ok:
+                st.session_state.logged_in = True
+                st.session_state.login_time = now_wib().isoformat()
+                st.rerun()
+            else:
+                st.error(msg)
+
+    # Komponen HTML untuk input PIN dan tombol yang terlihat
+    import streamlit.components.v1 as _comp
     pin_html = f"""
     <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0;">
-        <input id="pin_input" type="password" placeholder="● ● ● ●" 
+        <input id="pin_visible" type="password" placeholder="● ● ● ●" 
                style="width:220px;background:{_lbg};border:1.5px solid {_lbdr};color:{_ltxt};
                       border-radius:10px;padding:12px 16px;font-size:1.2rem;letter-spacing:8px;
                       outline:none;text-align:center;font-family:monospace;"
                autocomplete="current-password" inputmode="numeric" maxlength="20"/>
-        <button id="login_btn" style="width:220px;background:{_lbtn};border:none;color:#fff;
+        <button id="login_btn_visible" style="width:220px;background:{_lbtn};border:none;color:#fff;
                 border-radius:10px;padding:11px;font-size:0.9rem;cursor:pointer;
                 font-family:monospace;letter-spacing:1px;transition:opacity 0.15s;">
             Masuk →
         </button>
-        <button id="bio_btn" style="width:220px;background:transparent;border:1.5px solid {_lbdr};
+        <button id="bio_btn_visible" style="width:220px;background:transparent;border:1.5px solid {_lbdr};
                 color:{_ltxt};border-radius:10px;padding:9px;font-size:0.8rem;cursor:pointer;
                 font-family:monospace;display:flex;align-items:center;justify-content:center;gap:8px;
                 transition:border-color 0.15s;">
@@ -1009,29 +1020,63 @@ if not st.session_state.logged_in:
         <div id="msg" style="font-size:0.68rem;color:#f87171;min-height:14px;text-align:center;"></div>
     </div>
     <script>
-    const pinInput = document.getElementById('pin_input');
-    const loginBtn = document.getElementById('login_btn');
-    const bioBtn = document.getElementById('bio_btn');
+    const pinVisible = document.getElementById('pin_visible');
+    const loginBtnVisible = document.getElementById('login_btn_visible');
+    const bioBtnVisible = document.getElementById('bio_btn_visible');
     const msgEl = document.getElementById('msg');
 
     function setMsg(t) {{ msgEl.textContent = t; }}
 
-    function sendPin(value) {{
-        window.parent.postMessage({{
-            type: 'streamlit:setComponentValue',
-            value: value
-        }}, '*');
+    function submitPin(value) {{
+        // Cari input Streamlit tersembunyi dengan key 'pin_hidden'
+        const inputs = window.parent.document.querySelectorAll('input[type="password"]');
+        let targetInput = null;
+        for (let inp of inputs) {{
+            if (inp.id && inp.id.includes('pin_hidden')) {{
+                targetInput = inp;
+                break;
+            }}
+        }}
+        if (!targetInput) {{
+            // Fallback: cari input dengan placeholder kosong
+            for (let inp of inputs) {{
+                if (inp.placeholder === '' && inp.style.display !== 'none') {{
+                    targetInput = inp;
+                    break;
+                }}
+            }}
+        }}
+        if (targetInput) {{
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, 'value').set;
+            nativeInputValueSetter.call(targetInput, value);
+            targetInput.dispatchEvent(new window.parent.Event('input', {{ bubbles: true }}));
+        }}
+
+        // Cari tombol submit Streamlit dengan key 'login_submit' dan klik
+        const btns = window.parent.document.querySelectorAll('button');
+        let targetBtn = null;
+        for (let btn of btns) {{
+            if (btn.id && btn.id.includes('login_submit')) {{
+                targetBtn = btn;
+                break;
+            }}
+        }}
+        if (targetBtn) {{
+            targetBtn.click();
+        }} else {{
+            setMsg('Error: tombol submit tidak ditemukan');
+        }}
     }}
 
-    loginBtn.addEventListener('click', function() {{
-        const v = pinInput.value.trim();
+    loginBtnVisible.addEventListener('click', function() {{
+        const v = pinVisible.value.trim();
         if (!v) {{ setMsg('PIN tidak boleh kosong'); return; }}
-        sendPin(v);
+        submitPin(v);
     }});
 
-    pinInput.addEventListener('keydown', function(e) {{
+    pinVisible.addEventListener('keydown', function(e) {{
         if (e.key === 'Enter') {{
-            loginBtn.click();
+            loginBtnVisible.click();
         }}
     }});
 
@@ -1082,7 +1127,8 @@ if not st.session_state.logged_in:
                         timeout: 60000
                     }}
                 }});
-                sendPin('__BIO_OK__');
+                // Kirim sentinel untuk login via biometrik
+                submitPin('__BIO_OK__');
             }}
         }} catch (e) {{
             if (e.name === 'NotAllowedError') setMsg('Dibatalkan');
@@ -1090,27 +1136,10 @@ if not st.session_state.logged_in:
         }}
     }}
 
-    bioBtn.addEventListener('click', doBio);
+    bioBtnVisible.addEventListener('click', doBio);
     </script>
     """
-    _comp.html(pin_html, height=250, key="pin_component")
-
-    pin_value = st.session_state.get("pin_component", "")
-    if pin_value:
-        if pin_value == "__BIO_OK__":
-            st.session_state.logged_in = True
-            st.session_state.login_time = now_wib().isoformat()
-            st.rerun()
-        else:
-            ok, msg = check_pin(pin_value)
-            if ok:
-                st.session_state.logged_in = True
-                st.session_state.login_time = now_wib().isoformat()
-                st.rerun()
-            else:
-                st.error(msg)
-                st.session_state.pin_component = None
-                st.rerun()
+    _comp.html(pin_html, height=250)
 
     st.markdown('<div style="text-align:center;margin-top:0.5rem;"><span style="font-family:JetBrains Mono,monospace;font-size:0.62rem;opacity:0.35;">v1.0 · privasi terlindungi</span></div>', unsafe_allow_html=True)
     st.stop()
@@ -1384,7 +1413,6 @@ def build_chart(log_data):
         rows.append(row)
     return pd.DataFrame(rows).set_index('Periode')
 
-
 # ══════════════════════════════════════════════════════════════
 # HALAMAN UTAMA
 # ══════════════════════════════════════════════════════════════
@@ -1444,7 +1472,6 @@ if st.session_state.get("show_theme_panel"):
     _txt_p  = "#f0f0f0" if _dark_p else "#1a1a1a"
     _mut_p  = "#666"    if _dark_p else "#888"
 
-    # ── Tab kustom ──
     tab_warna, tab_section, tab_font = st.tabs(["🎨 Warna", "🖼 Section", "🔤 Font"])
 
     with tab_warna:
@@ -1527,12 +1554,10 @@ if st.session_state.get("show_theme_panel"):
     with tab_font:
         st.caption("Pilih font untuk seluruh aplikasi")
         font_names = [f[0] for f in _FONT_OPTIONS]
-        curr_idx   = font_names.index(st.session_state.font_body) if st.session_state.font_body in font_names else 0
         cols_font  = st.columns(4)
         for i, (fname, fcss) in enumerate(_FONT_OPTIONS):
             with cols_font[i % 4]:
                 is_active = (fname == st.session_state.font_body)
-                btn_style = f"background:{PRIMARY_COLOR};color:#fff;" if is_active else ""
                 st.markdown(f'<div style="text-align:center;font-family:{fcss};font-size:0.75rem;margin-bottom:2px;font-weight:600;">{fname}</div>', unsafe_allow_html=True)
                 if st.button(fname, key=f"font_{fname}", use_container_width=True):
                     st.session_state.font_body = fname
@@ -1570,7 +1595,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── 3 TABS: Konversi, Kalkulator, Pengaturan ──
+# ── 3 TABS ──
 tab_pdf, tab_csv, tab_pengaturan = st.tabs(["📄 Konversi PDF → CSV", "🧮 Kalkulator CSV", "🔐 Pengaturan"])
 
 with tab_pdf:
@@ -1777,8 +1802,7 @@ with tab_csv:
         </div>
         """, unsafe_allow_html=True)
 
-
-# ── TAB PENGATURAN: BIOMETRIC MANAGEMENT ──
+# ── TAB PENGATURAN ──
 with tab_pengaturan:
     st.markdown("### 🔐 Pengelolaan Sidik Jari / Face ID")
     st.caption("Kelola autentikasi biometrik untuk login cepat tanpa PIN.")
@@ -1886,7 +1910,6 @@ with tab_pengaturan:
     - Gunakan **Hapus Sidik Jari** untuk menghapus data biometrik yang tersimpan.
     """)
 
-
 # ══════════════════════════════════════════════════════════════
 # TELEGRAM BOT + AI CHAT
 # ══════════════════════════════════════════════════════════════
@@ -1907,7 +1930,6 @@ _tele_ok  = tele_configured()
 _ai_ok    = claude_configured()
 _ai_mode  = st.session_state.get("bot_ai_mode", False)
 
-# Header bot
 st.markdown(f"""
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
     <div style="font-size:0.7rem;font-weight:800;letter-spacing:2px;color:{_mut_tele};
@@ -1928,7 +1950,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Toggle mode AI
 col_ai_toggle, col_ai_label = st.columns([1, 5])
 with col_ai_toggle:
     new_ai_mode = st.toggle("AI", value=_ai_mode, key="toggle_ai_mode", label_visibility="collapsed")
@@ -1944,7 +1965,6 @@ with col_ai_label:
 if not _ai_ok and _ai_mode:
     st.warning("⚠️ Tambahkan `GROQ_API_KEY` di Secrets untuk mengaktifkan Mode AI.")
 
-# Init bot history
 if not st.session_state.bot_history:
     st.session_state.bot_history = [
         ("bot", "Assalamualaikum kak! 😊\nGua FPK Bot — siap bantu.\nKetik /help untuk perintah, atau aktifkan Mode AI untuk chat cerdas!")
@@ -2005,7 +2025,6 @@ overflow-y:auto;height:100%;}}
 <script>document.getElementById('chat').scrollTop=99999;</script>
 </body></html>""", height=300, scrolling=True)
 
-# ── QUICK REPLY + INPUT ──
 if "bot_input_counter" not in st.session_state:
     st.session_state.bot_input_counter = 0
 
@@ -2072,7 +2091,6 @@ document.getElementById('inp').onkeydown=function(e){{
 </script>
 </body></html>""", height=90, key="chat_ui")
 
-# Handle pesan dari chat_ui
 _cv = st.session_state.get("chat_ui")
 if _cv and isinstance(_cv, str):
     if _cv == "__CLEAR__":
@@ -2096,7 +2114,6 @@ if _cv and isinstance(_cv, str):
         st.session_state["chat_ui"] = None
         st.rerun()
 
-# Tombol rekap telegram
 if _tele_ok:
     if st.button("📤 Kirim Rekap ke Telegram", key="bot_send_rekap", use_container_width=True):
         _ok_tele, _msg_tele = kirim_rekap_telegram(_log_for_bot)
@@ -2206,9 +2223,7 @@ else:
 _dark_ft  = st.session_state.get('dark_mode', True)
 _ft_c_bg  = st.session_state.get("c_footer", "")
 _ft_c_txt = st.session_state.get("c_footer_txt", "")
-_ft_bg    = _ft_c_bg  or ("rgba(0,0,0,0)" if not _ft_c_bg else _ft_c_bg)
 _ft_txt1  = _ft_c_txt or ("#888" if _dark_ft else "#555")
-_ft_bdr   = "rgba(255,255,255,0.05)" if _dark_ft else "rgba(0,0,0,0.05)"
 
 st.markdown(f"""
 <div class="fpk-footer">
