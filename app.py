@@ -1593,7 +1593,8 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-tab_pdf, tab_csv = st.tabs(["📄 Konversi PDF → CSV", "🧮 Kalkulator CSV"])
+# ── 3 TABS: Konversi, Kalkulator, Pengaturan ──
+tab_pdf, tab_csv, tab_pengaturan = st.tabs(["📄 Konversi PDF → CSV", "🧮 Kalkulator CSV", "🔐 Pengaturan"])
 
 with tab_pdf:
     if _api_status == "timeout":
@@ -1800,8 +1801,119 @@ with tab_csv:
         """, unsafe_allow_html=True)
 
 
+# ── TAB PENGATURAN: BIOMETRIC MANAGEMENT ──
+with tab_pengaturan:
+    st.markdown("### 🔐 Pengelolaan Sidik Jari / Face ID")
+    st.caption("Kelola autentikasi biometrik untuk login cepat tanpa PIN.")
+
+    # Komponen untuk menampilkan status biometrik
+    import streamlit.components.v1 as _bio_comp
+
+    status_html = """
+    <div id="bio_status_container" style="margin: 0.5rem 0; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid #333;">
+        <span id="bio_status_text">🔍 Memeriksa status...</span>
+    </div>
+    <script>
+    function updateBioStatus() {
+        var el = document.getElementById('bio_status_text');
+        var cred = localStorage.getItem('fpk_cred_id');
+        if (cred) {
+            el.innerHTML = '✅ Sidik jari/Face ID sudah terdaftar.';
+            el.style.color = '#4ade80';
+        } else {
+            el.innerHTML = '❌ Belum ada data biometrik terdaftar.';
+            el.style.color = '#f87171';
+        }
+    }
+    updateBioStatus();
+    </script>
+    """
+    _bio_comp.html(status_html, height=60)
+
+    col_reg, col_del = st.columns(2)
+    with col_reg:
+        if st.button("📌 Daftarkan Sidik Jari", use_container_width=True, key="bio_register"):
+            # Trigger registrasi WebAuthn melalui komponen HTML
+            reg_script = """
+            <script>
+            async function registerBio() {
+                if (!window.PublicKeyCredential) {
+                    alert('Browser tidak mendukung WebAuthn');
+                    return;
+                }
+                try {
+                    var avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                    if (!avail) {
+                        alert('Perangkat tidak memiliki sensor biometrik');
+                        return;
+                    }
+                    var credId = localStorage.getItem('fpk_cred_id');
+                    if (credId) {
+                        if (!confirm('Sidik jari sudah terdaftar. Ingin mendaftar ulang?')) return;
+                        localStorage.removeItem('fpk_cred_id');
+                    }
+                    var chal = new Uint8Array(32);
+                    crypto.getRandomValues(chal);
+                    var reg = await navigator.credentials.create({
+                        publicKey: {
+                            challenge: chal,
+                            rp: { name: "FPK Converter", id: location.hostname },
+                            user: {
+                                id: new TextEncoder().encode("isfan"),
+                                name: "isfan",
+                                displayName: "Isfan"
+                            },
+                            pubKeyCredParams: [
+                                { type: "public-key", alg: -7 },
+                                { type: "public-key", alg: -257 }
+                            ],
+                            authenticatorSelection: {
+                                authenticatorAttachment: "platform",
+                                userVerification: "required"
+                            },
+                            timeout: 60000
+                        }
+                    });
+                    localStorage.setItem('fpk_cred_id', btoa(String.fromCharCode(...new Uint8Array(reg.rawId))));
+                    alert('✅ Sidik jari berhasil didaftarkan!');
+                    location.reload();
+                } catch (e) {
+                    if (e.name === 'NotAllowedError') alert('Dibatalkan oleh user');
+                    else alert('Error: ' + e.message);
+                }
+            }
+            registerBio();
+            </script>
+            """
+            _bio_comp.html(reg_script, height=0)
+            st.success("Proses registrasi dimulai. Ikuti instruksi dari browser.")
+    with col_del:
+        if st.button("🗑️ Hapus Sidik Jari", use_container_width=True, key="bio_delete"):
+            del_script = """
+            <script>
+            if (localStorage.getItem('fpk_cred_id')) {
+                localStorage.removeItem('fpk_cred_id');
+                alert('✅ Data biometrik telah dihapus.');
+            } else {
+                alert('Belum ada data biometrik.');
+            }
+            location.reload();
+            </script>
+            """
+            _bio_comp.html(del_script, height=0)
+            st.info("Data biometrik dihapus. Refresh halaman untuk melihat perubahan.")
+
+    st.markdown("---")
+    st.markdown("""
+    **ℹ️ Cara Penggunaan:**
+    - Klik **Daftarkan Sidik Jari** untuk mengaktifkan login biometrik.
+    - Setelah terdaftar, pada halaman login cukup klik tombol **Sidik Jari / Face ID** dan verifikasi.
+    - Gunakan **Hapus Sidik Jari** untuk menghapus data biometrik yang tersimpan.
+    """)
+
+
 # ══════════════════════════════════════════════════════════════
-# TELEGRAM BOT + AI CHAT
+# TELEGRAM BOT + AI CHAT (tetap ada di bawah)
 # ══════════════════════════════════════════════════════════════
 st.divider()
 
@@ -1918,7 +2030,7 @@ overflow-y:auto;height:100%;}}
 <script>document.getElementById('chat').scrollTop=99999;</script>
 </body></html>""", height=300, scrolling=True)
 
-# ── QUICK REPLY + INPUT — semua HTML inline, ga ada st.columns ──
+# ── QUICK REPLY + INPUT ──
 if "bot_input_counter" not in st.session_state:
     st.session_state.bot_input_counter = 0
 
@@ -2009,7 +2121,7 @@ if _cv and isinstance(_cv, str):
         st.session_state["chat_ui"] = None
         st.rerun()
 
-# Tombol rekap telegram — result disimpan ke session state dulu, render di luar
+# Tombol rekap telegram
 if _tele_ok:
     if st.button("📤 Kirim Rekap ke Telegram", key="bot_send_rekap", use_container_width=True):
         _ok_tele, _msg_tele = kirim_rekap_telegram(_log_for_bot)
