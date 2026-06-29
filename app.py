@@ -89,7 +89,7 @@ for _k, _v in {
     "font_body":   "Inter",
     "bot_history": [],
     "bot_ai_mode": False,
-    "chat_input": "",  # untuk mengosongkan input chat
+    "chat_input": "",
 }.items():
     if _k not in st.session_state:
         st.session_state[_k] = _v
@@ -1136,7 +1136,6 @@ def render_result(res, idx=0):
                 "Disetujui": st.column_config.NumberColumn("Nominal Cair", format="Rp %d", width=150),
             })
     with tab_json:
-        # Format data sesuai permintaan: {"type": "data", "No.SEP": "...", "Disetujui": ...}
         data_list = []
         for _, row in res['df'].iterrows():
             data_list.append({
@@ -1746,34 +1745,48 @@ with tab_pengaturan:
         }
     }
     updateBioStatus();
+    // Tampilkan pesan dari sessionStorage jika ada
+    var msg = sessionStorage.getItem('bio_msg');
+    if (msg) {
+        var msgEl = document.createElement('div');
+        msgEl.style.cssText = 'margin-top: 0.5rem; padding: 0.5rem; border-radius: 8px; background: #1e1e1e; color: #e0e0e0; text-align:center;';
+        msgEl.textContent = msg;
+        var container = document.getElementById('bio_status_container');
+        container.parentNode.insertBefore(msgEl, container.nextSibling);
+        sessionStorage.removeItem('bio_msg');
+    }
     </script>
     """
-    _bio_comp.html(status_html, height=60)
+    _bio_comp.html(status_html, height=100)
 
     col_reg, col_del = st.columns(2)
     with col_reg:
         if st.button("📌 Daftarkan Sidik Jari", use_container_width=True, key="bio_register"):
             reg_script = """
             <script>
-            async function registerBio() {
+            (async function() {
                 if (!window.PublicKeyCredential) {
-                    alert('Browser tidak mendukung WebAuthn');
+                    sessionStorage.setItem('bio_msg', '❌ Browser tidak mendukung WebAuthn');
+                    location.reload();
                     return;
                 }
                 try {
-                    var avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                    const avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
                     if (!avail) {
-                        alert('Perangkat tidak memiliki sensor biometrik');
+                        sessionStorage.setItem('bio_msg', '❌ Perangkat tidak memiliki sensor biometrik');
+                        location.reload();
                         return;
                     }
-                    var credId = localStorage.getItem('fpk_cred_id');
+                    let credId = localStorage.getItem('fpk_cred_id');
                     if (credId) {
-                        if (!confirm('Sidik jari sudah terdaftar. Ingin mendaftar ulang?')) return;
+                        if (!confirm('Sidik jari sudah terdaftar. Ingin mendaftar ulang?')) {
+                            return;
+                        }
                         localStorage.removeItem('fpk_cred_id');
                     }
-                    var chal = new Uint8Array(32);
+                    const chal = new Uint8Array(32);
                     crypto.getRandomValues(chal);
-                    var reg = await navigator.credentials.create({
+                    const reg = await navigator.credentials.create({
                         publicKey: {
                             challenge: chal,
                             rp: { name: "FPK Converter", id: location.hostname },
@@ -1794,33 +1807,37 @@ with tab_pengaturan:
                         }
                     });
                     localStorage.setItem('fpk_cred_id', btoa(String.fromCharCode(...new Uint8Array(reg.rawId))));
-                    alert('✅ Sidik jari berhasil didaftarkan!');
+                    sessionStorage.setItem('bio_msg', '✅ Sidik jari berhasil didaftarkan!');
                     location.reload();
                 } catch (e) {
-                    if (e.name === 'NotAllowedError') alert('Dibatalkan oleh user');
-                    else alert('Error: ' + e.message);
+                    let msg = '❌ Gagal: ';
+                    if (e.name === 'NotAllowedError') msg += 'Dibatalkan oleh user';
+                    else if (e.name === 'InvalidStateError') msg += 'Credential sudah ada, coba hapus dulu';
+                    else msg += e.message;
+                    sessionStorage.setItem('bio_msg', msg);
+                    location.reload();
                 }
-            }
-            registerBio();
+            })();
             </script>
             """
             _bio_comp.html(reg_script, height=0)
-            st.success("Proses registrasi dimulai. Ikuti instruksi dari browser.")
+            st.info("Proses registrasi dimulai. Ikuti instruksi dari browser.")
+
     with col_del:
         if st.button("🗑️ Hapus Sidik Jari", use_container_width=True, key="bio_delete"):
             del_script = """
             <script>
             if (localStorage.getItem('fpk_cred_id')) {
                 localStorage.removeItem('fpk_cred_id');
-                alert('✅ Data biometrik telah dihapus.');
+                sessionStorage.setItem('bio_msg', '✅ Data biometrik telah dihapus.');
             } else {
-                alert('Belum ada data biometrik.');
+                sessionStorage.setItem('bio_msg', 'ℹ️ Belum ada data biometrik.');
             }
             location.reload();
             </script>
             """
             _bio_comp.html(del_script, height=0)
-            st.info("Data biometrik dihapus. Refresh halaman untuk melihat perubahan.")
+            st.info("Menghapus data biometrik...")
 
     st.markdown("---")
     st.markdown("""
@@ -1865,7 +1882,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Toggle AI
 col_ai_toggle, col_ai_label = st.columns([1, 5])
 with col_ai_toggle:
     new_ai_mode = st.toggle("AI", value=_ai_mode, key="toggle_ai_mode", label_visibility="collapsed")
@@ -1881,7 +1897,6 @@ with col_ai_label:
 if not _ai_ok and _ai_mode:
     st.warning("⚠️ Tambahkan `GROQ_API_KEY` di Secrets untuk mengaktifkan Mode AI.")
 
-# Init bot history
 if not st.session_state.bot_history:
     st.session_state.bot_history = [
         ("bot", "Assalamualaikum kak! 😊\nGua FPK Bot — siap bantu.\nKetik /help untuk perintah, atau aktifkan Mode AI untuk chat cerdas!")
@@ -1946,11 +1961,9 @@ if send_btn and user_input:
         else:
             _reply = handle_bot_command(_msg, _log_for_bot)
         st.session_state.bot_history.append(("bot", _reply))
-        # Kosongkan input setelah kirim
         st.session_state.chat_input = ""
         st.rerun()
 
-# ── TOMBOL REKAP TELEGRAM ──
 if _tele_ok:
     if st.button("📤 Kirim Rekap ke Telegram", key="bot_send_rekap", use_container_width=True):
         _ok_tele, _msg_tele = kirim_rekap_telegram(_log_for_bot)
