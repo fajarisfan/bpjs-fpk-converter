@@ -604,108 +604,6 @@ def inject_css(dark):
     st.session_state._toggle_icon = toggle_icon
     st.session_state._toggle_tip = toggle_tip
 
-    # CSS untuk menyembunyikan elemen Streamlit yang tidak diinginkan
-    hide_css = """
-    /* Sembunyikan tombol Streamlit */
-    div[data-testid="stButton"] {
-        display: none !important;
-    }
-    /* Sembunyikan Manage app */
-    [data-testid="stAppDeployButton"] {
-        display: none !important;
-    }
-    /* Sembunyikan header dan footer default */
-    header, footer, #MainMenu {
-        visibility: hidden !important;
-    }
-    """
-    if not st.session_state.get("logged_in", False):
-        # Saat login, kita tampilkan tombol dan input tertentu
-        # Kita akan override dengan menampilkan elemen yang kita inginkan
-        hide_css += """
-        /* Sembunyikan semua tombol Streamlit, kecuali yang kita beri class khusus */
-        div[data-testid="stButton"] {
-            display: none !important;
-        }
-        /* Tampilkan tombol login dan bio yang kita buat dengan class */
-        .login-btn, .bio-btn {
-            display: block !important;
-        }
-        """
-        # Kita tidak bisa memberi class pada st.button, jadi kita akan styling ulang melalui CSS
-        # Kita akan target tombol berdasarkan text atau posisi
-        # Pendekatan: kita sembunyikan semua tombol, lalu kita buat tombol kita sendiri dengan HTML? 
-        # Lebih baik kita tetap gunakan st.button tapi kita styling ulang agar terlihat seperti yang kita inginkan
-        # Kita akan gunakan st.button dengan key tertentu dan kita styling melalui CSS
-        # Tidak perlu sembunyikan semua, kita bisa atur display: block untuk semua tombol, 
-        # tapi kita atur ukuran dan warna sesuai keinginan.
-        # Lebih mudah: kita gunakan st.button biasa, dan kita styling dengan CSS global.
-        # Di sini kita tidak menyembunyikan tombol, kita biarkan tapi kita styling.
-        # Jadi kita hapus display:none di atas untuk tombol.
-        hide_css = """
-        /* Sembunyikan Manage app */
-        [data-testid="stAppDeployButton"] {
-            display: none !important;
-        }
-        /* Sembunyikan header dan footer default */
-        header, footer, #MainMenu {
-            visibility: hidden !important;
-        }
-        /* Styling input password */
-        .stTextInput input[type="password"] {
-            background: """+input_bg+""";
-            border: 1.5px solid """+input_bdr+""";
-            color: """+input_col+""";
-            border-radius: 10px;
-            padding: 12px 16px;
-            font-size: 1.2rem;
-            letter-spacing: 8px;
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            width: 220px;
-            margin: 0 auto;
-            caret-color: """+PRIMARY_COLOR+""";
-        }
-        /* Styling tombol */
-        .stButton > button {
-            background: """+PRIMARY_COLOR+""" !important;
-            color: #fff !important;
-            border: none !important;
-            border-radius: 10px !important;
-            padding: 11px !important;
-            font-size: 0.9rem !important;
-            font-weight: 700 !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            letter-spacing: 1px !important;
-            width: 220px !important;
-            margin: 0 auto !important;
-            transition: opacity 0.15s !important;
-        }
-        .stButton > button:hover {
-            opacity: 0.85 !important;
-        }
-        /* Tombol bio */
-        .stButton > button[kind="secondary"] {
-            background: transparent !important;
-            border: 1.5px solid """+input_bdr+""" !important;
-            color: """+input_col+""" !important;
-            padding: 9px !important;
-            font-size: 0.8rem !important;
-        }
-        .stButton > button[kind="secondary"]:hover {
-            border-color: """+PRIMARY_COLOR+""" !important;
-            color: """+PRIMARY_COLOR+""" !important;
-        }
-        /* Sembunyikan label input */
-        .stTextInput label {
-            display: none !important;
-        }
-        /* Pusatkan elemen */
-        .stTextInput, .stButton {
-            display: flex !important;
-            justify-content: center !important;
-        }
-        """
     st.markdown(f"""
     <style>
     @import url('{font_url}');
@@ -1055,12 +953,9 @@ if not st.session_state.logged_in:
     </div>
     """, unsafe_allow_html=True)
 
-    # --- INPUT PIN ---
-    # kita buat container dan atur styling CSS agar terpusat
     with st.container():
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
         pin = st.text_input("", type="password", key="login_pin", placeholder="● ● ● ●", label_visibility="collapsed")
-        # Tombol Masuk
         if st.button("Masuk →", key="login_btn", use_container_width=True):
             if pin:
                 ok, msg = check_pin(pin)
@@ -1074,12 +969,8 @@ if not st.session_state.logged_in:
                 st.error("PIN tidak boleh kosong")
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # Tombol biometrik (di luar container agar bisa disusun)
-    # Kita gunakan button biasa tanpa container agar bisa di styling terpisah
-    # Kita akan buat tombol ini dengan CSS khusus
+    # Tombol biometrik
     if st.button("☝️ Sidik Jari / Face ID", key="bio_login", use_container_width=True):
-        # Fungsi biometrik akan dijalankan via JavaScript, jadi kita perlu komponen HTML untuk itu
-        # Kita tetap butuh JavaScript untuk biometrik, jadi kita gunakan components.html untuk itu
         import streamlit.components.v1 as _comp
         bio_js = """
         <script>
@@ -1111,7 +1002,6 @@ if not st.session_state.logged_in:
                     }
                 });
                 // Login berhasil, kita set PIN ke input dan submit
-                // Cari input PIN Streamlit dan isi dengan sentinel
                 const inputs = window.parent.document.querySelectorAll('input[type="password"]');
                 let targetInput = null;
                 for (let inp of inputs) {
@@ -1125,7 +1015,6 @@ if not st.session_state.logged_in:
                     nativeInputValueSetter.call(targetInput, '__BIO_OK__');
                     targetInput.dispatchEvent(new window.parent.Event('input', { bubbles: true }));
                 }
-                // Cari tombol login dan klik
                 const btns = window.parent.document.querySelectorAll('button');
                 let targetBtn = null;
                 for (let btn of btns) {
@@ -1609,7 +1498,7 @@ with tab_pdf:
     if _api_status == "timeout":
         st.error("⚠️ Backend API gagal start. Coba refresh halaman.")
     elif _api_status in ("started", "already_running"):
-        st.caption(f"🟢 API aktif dan siap pakai `{API_URL}`")
+        st.caption(f"🟢 Backend API aktif di `{API_URL}`")
 
     _dark_demo = st.session_state.get('dark_mode', True)
     _demo_bg  = "#1a1410" if _dark_demo else "#fff8ec"
@@ -1918,7 +1807,7 @@ with tab_pengaturan:
     """)
 
 # ══════════════════════════════════════════════════════════════
-# TELEGRAM BOT + AI CHAT
+# TELEGRAM BOT + AI CHAT (versi sederhana tanpa components.html key)
 # ══════════════════════════════════════════════════════════════
 st.divider()
 
@@ -1942,7 +1831,7 @@ st.markdown(f"""
     <div style="font-size:0.7rem;font-weight:800;letter-spacing:2px;color:{_mut_tele};
                 text-transform:uppercase;border-left:3px solid {PRIMARY_COLOR};
                 padding-left:10px;font-family:'JetBrains Mono',monospace;">
-        🤖 {"FPK AI" if _ai_mode else "FPK AI"}
+        🤖 {"FPK AI Bot" if _ai_mode else "FPK Bot"}
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
@@ -1957,6 +1846,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# Toggle AI
 col_ai_toggle, col_ai_label = st.columns([1, 5])
 with col_ai_toggle:
     new_ai_mode = st.toggle("AI", value=_ai_mode, key="toggle_ai_mode", label_visibility="collapsed")
@@ -1972,6 +1862,7 @@ with col_ai_label:
 if not _ai_ok and _ai_mode:
     st.warning("⚠️ Tambahkan `GROQ_API_KEY` di Secrets untuk mengaktifkan Mode AI.")
 
+# Init bot history
 if not st.session_state.bot_history:
     st.session_state.bot_history = [
         ("bot", "Assalamualaikum kak! 😊\nGua FPK Bot — siap bantu.\nKetik /help untuk perintah, atau aktifkan Mode AI untuk chat cerdas!")
@@ -1979,133 +1870,54 @@ if not st.session_state.bot_history:
 
 _log_for_bot = load_log()
 
-# ── RENDER BUBBLE CHAT ──
-import html as _html
-import streamlit.components.v1 as _components
+# ── RENDER BUBBLE CHAT (menggunakan markdown dengan styling) ──
+# Kita buat tampilan bubble menggunakan st.markdown, bukan components.html
+chat_container = st.container()
+with chat_container:
+    # Tampilkan 15 pesan terakhir
+    for role, msg in st.session_state.bot_history[-15:]:
+        if role == "bot":
+            st.markdown(
+                f"""
+                <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
+                    <div style="min-width:28px;font-size:1.2rem;">🤖</div>
+                    <div style="background:{_bbg};border:1px solid {_bbd};color:{_bbt};
+                                border-radius:12px 12px 12px 4px;padding:8px 12px;
+                                max-width:80%;font-size:0.85rem;line-height:1.5;
+                                word-break:break-word;">
+                        {msg.replace(chr(10), '<br>')}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"""
+                <div style="display:flex;align-items:flex-start;justify-content:flex-end;gap:8px;margin-bottom:8px;">
+                    <div style="background:{PRIMARY_COLOR};color:#fff;
+                                border-radius:12px 12px 4px 12px;padding:8px 12px;
+                                max-width:80%;font-size:0.85rem;line-height:1.5;
+                                word-break:break-word;">
+                        {msg.replace(chr(10), '<br>')}
+                    </div>
+                    <div style="min-width:28px;font-size:1.2rem;">👤</div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-now_str = now_wib().strftime("%H:%M")
-_dark_chat  = st.session_state.get('dark_mode', True)
-_chat_bg2   = "#111111" if _dark_chat else "#fafaf8"
-_chat_bdr2  = "#242424" if _dark_chat else "#e4e2dd"
-_bbg2       = "#1e1e1e" if _dark_chat else "#f0f0f0"
-_bbd2       = "#2a2a2a" if _dark_chat else "#e0ddd8"
-_bbt2       = "#e0e0e0" if _dark_chat else "#1a1a1a"
-_mut2       = "#666"    if _dark_chat else "#888"
-_user_bubble = PRIMARY_COLOR
+# ── INPUT CHAT (Streamlit native) ──
+with st.container():
+    cols = st.columns([6, 1])
+    with cols[0]:
+        user_input = st.text_input("", key="chat_input", placeholder=_ph_str, label_visibility="collapsed")
+    with cols[1]:
+        send_btn = st.button("➤", use_container_width=True)
 
-bubble_rows = ""
-for role, msg in st.session_state.bot_history[-15:]:
-    safe_msg = _html.escape(msg).replace('\n', '<br>')
-    if role == "bot":
-        bubble_rows += (
-            f'<div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:8px;">'
-            f'<div style="width:26px;height:26px;border-radius:50%;background:{_bbg2};font-size:0.85rem;'
-            f'display:flex;align-items:center;justify-content:center;flex-shrink:0;">🤖</div>'
-            f'<div style="max-width:82%;">'
-            f'<div style="background:{_bbg2};border:1px solid {_bbd2};color:{_bbt2};'
-            f'border-radius:14px 14px 14px 3px;padding:8px 12px;font-size:0.8rem;line-height:1.55;'
-            f'word-break:break-word;overflow-wrap:anywhere;font-family:sans-serif;">{safe_msg}</div>'
-            f'<div style="font-size:0.6rem;color:{_mut2};margin-top:2px;padding:0 4px;">{now_str}</div>'
-            f'</div></div>'
-        )
-    else:
-        bubble_rows += (
-            f'<div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:8px;flex-direction:row-reverse;">'
-            f'<div style="width:26px;height:26px;border-radius:50%;background:{_bbg2};font-size:0.85rem;'
-            f'display:flex;align-items:center;justify-content:center;flex-shrink:0;">👤</div>'
-            f'<div style="max-width:82%;">'
-            f'<div style="background:{_user_bubble};color:#fff;'
-            f'border-radius:14px 14px 3px 14px;padding:8px 12px;font-size:0.8rem;line-height:1.55;'
-            f'word-break:break-word;overflow-wrap:anywhere;white-space:pre-wrap;font-family:sans-serif;">{safe_msg}</div>'
-            f'<div style="font-size:0.6rem;color:{_mut2};margin-top:2px;padding:0 4px;text-align:right;">{now_str}</div>'
-            f'</div></div>'
-        )
-
-_components.html(f"""<!DOCTYPE html><html><head><style>
-*{{box-sizing:border-box;margin:0;padding:0;}}
-body{{background:{_chat_bg2};border:1px solid {_chat_bdr2};border-radius:16px;
-padding:12px 10px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-overflow-y:auto;height:100%;}}
-::-webkit-scrollbar{{width:3px;}}
-::-webkit-scrollbar-thumb{{background:{_bbd2};border-radius:99px;}}
-</style></head><body id="chat">{bubble_rows}
-<script>document.getElementById('chat').scrollTop=99999;</script>
-</body></html>""", height=300, scrolling=True)
-
-if "bot_input_counter" not in st.session_state:
-    st.session_state.bot_input_counter = 0
-
-_dark_ci  = st.session_state.get('dark_mode', True)
-_ci_bg    = "#1a1a1a" if _dark_ci else "#f5f5f5"
-_ci_bdr   = "#2a2a2a" if _dark_ci else "#d0d0d0"
-_ci_txt   = "#e0e0e0" if _dark_ci else "#1a1a1a"
-_ci_ph    = "#555"    if _dark_ci else "#aaa"
-_ci_chip  = "#1e1e1e" if _dark_ci else "#efefef"
-_ph_str   = "Tanya Groq AI..." if _ai_mode else "Ketik pesan atau /help..."
-
-_components.html(f"""<!DOCTYPE html><html><head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-*{{box-sizing:border-box;margin:0;padding:0;}}
-body{{background:transparent;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}}
-.chips{{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}}
-.chip{{
-  background:{_ci_chip};border:1px solid {_ci_bdr};color:{_ci_txt};
-  border-radius:16px;padding:5px 11px;font-size:0.72rem;cursor:pointer;
-  white-space:nowrap;
-}}
-.chip:hover{{border-color:{PRIMARY_COLOR};color:{PRIMARY_COLOR};}}
-.row{{display:flex;gap:6px;align-items:center;}}
-.row input{{
-  flex:1;min-width:0;background:{_ci_bg};border:1px solid {_ci_bdr};
-  color:{_ci_txt};border-radius:20px;padding:8px 14px;font-size:0.82rem;outline:none;
-}}
-.row input::placeholder{{color:{_ci_ph};}}
-.row input:focus{{border-color:{PRIMARY_COLOR};}}
-.btn-s{{
-  background:{PRIMARY_COLOR};border:none;border-radius:50%;
-  width:36px;height:36px;cursor:pointer;flex-shrink:0;
-  font-size:1rem;color:#fff;display:flex;align-items:center;justify-content:center;
-}}
-.btn-c{{
-  background:{_ci_bg};border:1px solid {_ci_bdr};border-radius:50%;
-  width:36px;height:36px;cursor:pointer;flex-shrink:0;
-  font-size:0.85rem;color:{_ci_txt};display:flex;align-items:center;justify-content:center;
-}}
-</style></head><body>
-<div class="chips">
-  <button class="chip" onclick="send('/rekap')">📊 Rekap</button>
-  <button class="chip" onclick="send('/total')">💰 Total</button>
-  <button class="chip" onclick="send('/pending')">⏳ Pending</button>
-  <button class="chip" onclick="send('/quote')">📖 Quote</button>
-  <button class="chip" onclick="send('/joke')">😂 Joke</button>
-  <button class="chip" onclick="send('/help')">❓ Help</button>
-</div>
-<div class="row">
-  <input id="inp" type="text" placeholder="{_ph_str}" autocomplete="off"/>
-  <button class="btn-s" onclick="send(document.getElementById('inp').value);document.getElementById('inp').value=''">➤</button>
-  <button class="btn-c" onclick="send('__CLEAR__')" title="Hapus chat">🗑</button>
-</div>
-<script>
-function send(v){{
-  v=(v||'').trim();
-  if(!v)return;
-  window.parent.postMessage({{type:'streamlit:setComponentValue',value:v}},'*');
-}}
-document.getElementById('inp').onkeydown=function(e){{
-  if(e.key==='Enter'){{send(this.value);this.value='';}}
-}};
-</script>
-</body></html>""", height=90, key="chat_ui")
-
-_cv = st.session_state.get("chat_ui")
-if _cv and isinstance(_cv, str):
-    if _cv == "__CLEAR__":
-        st.session_state.bot_history = [("bot", "Chat dikosongkan. Ketik /help untuk mulai lagi!")]
-        st.session_state["chat_ui"] = None
-        st.rerun()
-    elif _cv.strip():
-        _msg = _cv.strip()
+if send_btn and user_input:
+    _msg = user_input.strip()
+    if _msg:
         st.session_state.bot_history.append(("user", _msg))
         _cmd_keywords = ["/rekap","/riwayat","/total","/pending","/top","/cari",
                          "/quote","/joke","/help","rekap","riwayat","total",
@@ -2118,9 +1930,9 @@ if _cv and isinstance(_cv, str):
         else:
             _reply = handle_bot_command(_msg, _log_for_bot)
         st.session_state.bot_history.append(("bot", _reply))
-        st.session_state["chat_ui"] = None
         st.rerun()
 
+# ── TOMBOL REKAP TELEGRAM ──
 if _tele_ok:
     if st.button("📤 Kirim Rekap ke Telegram", key="bot_send_rekap", use_container_width=True):
         _ok_tele, _msg_tele = kirim_rekap_telegram(_log_for_bot)
