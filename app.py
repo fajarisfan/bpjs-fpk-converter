@@ -967,193 +967,150 @@ if not st.session_state.logged_in:
     </div>
     """, unsafe_allow_html=True)
 
-    # PERBAIKAN: semua dark_mode di sini diubah menjadi st.session_state.dark_mode
     _lbg  = "#0a0a0a" if st.session_state.dark_mode else "#f5f5f5"
     _lbdr = "#2a2a2a" if st.session_state.dark_mode else "#d0d0d0"
     _ltxt = "#e0e0e0" if st.session_state.dark_mode else "#1a1a1a"
     _lmut = "#555"    if st.session_state.dark_mode else "#999"
     _lbtn = PRIMARY_COLOR
 
-    # CSS agresif untuk menyembunyikan tombol Streamlit dan Manage app
+    # CSS untuk menyembunyikan elemen Streamlit yang tidak perlu
     st.markdown(f"""<style>
-    button[data-testid="stTextInputHideShowButton"],
-    button[data-testid="InputInstructions"],
-    [data-testid="stTextInputHideShowButton"],
-    button[aria-label*="password"],
-    button[aria-label*="Password"],
-    .stTextInput button,
-    div[data-testid="stTextInput"] button {{
-        display:none!important;visibility:hidden!important;
-        width:0!important;height:0!important;pointer-events:none!important;
-    }}
-    /* Sembunyikan tombol Streamlit Masuk */
     div[data-testid="stButton"] {{
         display: none !important;
     }}
-    /* Sembunyikan Manage app */
     [data-testid="stAppDeployButton"] {{
         display: none !important;
     }}
-    /* Sembunyikan hidden bridge input */
-    div[data-testid="stTextInput"]:has(#pin_bridge_input) {{
-        position:absolute!important;opacity:0!important;
-        height:0!important;overflow:hidden!important;pointer-events:none!important;
+    header, footer, #MainMenu {{
+        visibility: hidden !important;
     }}
     </style>""", unsafe_allow_html=True)
 
-    # Hidden bridge - Streamlit baca nilainya, user ga lihat
-    pin_bridge = st.text_input("", key="pin_bridge_input",
-                               label_visibility="collapsed",
-                               type="password", placeholder="",
-                               autocomplete="off")
+    import streamlit.components.v1 as _comp
 
-    # Visual PIN pakai HTML murni - no key parameter
-    import streamlit.components.v1 as _lcmp
-    _lcmp.html(f"""<!DOCTYPE html><html><head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-*{{box-sizing:border-box;margin:0;padding:0;}}
-body{{background:transparent;font-family:'JetBrains Mono',monospace;
-  display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 0;}}
-.pin-wrap input{{
-  width:220px;background:{_lbg};border:1.5px solid {_lbdr};
-  color:{_ltxt};border-radius:10px;padding:12px 16px;
-  font-size:1.2rem;letter-spacing:8px;outline:none;
-  font-family:'JetBrains Mono',monospace;text-align:center;
-  -webkit-text-security:disc;
-}}
-.pin-wrap input:focus{{border-color:{_lbtn};box-shadow:0 0 0 2px {_lbtn}33;}}
-.pin-wrap input::placeholder{{letter-spacing:2px;font-size:0.72rem;color:{_lmut};}}
-.btn-masuk{{
-  width:220px;background:{_lbtn};border:none;color:#fff;
-  border-radius:10px;padding:11px;font-size:0.9rem;cursor:pointer;
-  font-family:'JetBrains Mono',monospace;letter-spacing:1px;
-  transition:opacity 0.15s;
-}}
-.btn-masuk:hover{{opacity:0.85;}}
-.btn-bio{{
-  width:220px;background:transparent;border:1.5px solid {_lbdr};
-  color:{_ltxt};border-radius:10px;padding:9px;font-size:0.8rem;
-  cursor:pointer;font-family:'JetBrains Mono',monospace;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:border-color 0.15s;
-}}
-.btn-bio:hover{{border-color:{_lbtn};color:{_lbtn};}}
-.msg{{font-size:0.68rem;color:#f87171;min-height:14px;text-align:center;font-family:sans-serif;}}
-</style></head><body>
-<div class="pin-wrap">
-  <input id="pin" type="password" placeholder="● ● ● ●"
-    autocomplete="current-password" inputmode="numeric" maxlength="20"/>
-</div>
-<button class="btn-masuk" onclick="doLogin()">Masuk →</button>
-<button class="btn-bio" id="btn-bio" onclick="doBio()">☝️ &nbsp;Sidik Jari / Face ID</button>
-<div class="msg" id="msg"></div>
-<script>
-// Sync nilai ke hidden Streamlit input
-var pinEl = document.getElementById('pin');
-function syncToStreamlit(val){{
-  // Cari semua input password di parent window dan isi yang hidden
-  try{{
-    var inputs = window.parent.document.querySelectorAll('input[type="password"]');
-    inputs.forEach(function(inp){{
-      var nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype,'value').set;
-      nativeInputValueSetter.call(inp, val);
-      inp.dispatchEvent(new window.parent.Event('input', {{bubbles:true}}));
-    }});
-  }}catch(e){{}}
-}}
-pinEl.addEventListener('input', function(){{ syncToStreamlit(this.value); }});
+    pin_html = f"""
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 0;">
+        <input id="pin_input" type="password" placeholder="● ● ● ●" 
+               style="width:220px;background:{_lbg};border:1.5px solid {_lbdr};color:{_ltxt};
+                      border-radius:10px;padding:12px 16px;font-size:1.2rem;letter-spacing:8px;
+                      outline:none;text-align:center;font-family:monospace;"
+               autocomplete="current-password" inputmode="numeric" maxlength="20"/>
+        <button id="login_btn" style="width:220px;background:{_lbtn};border:none;color:#fff;
+                border-radius:10px;padding:11px;font-size:0.9rem;cursor:pointer;
+                font-family:monospace;letter-spacing:1px;transition:opacity 0.15s;">
+            Masuk →
+        </button>
+        <button id="bio_btn" style="width:220px;background:transparent;border:1.5px solid {_lbdr};
+                color:{_ltxt};border-radius:10px;padding:9px;font-size:0.8rem;cursor:pointer;
+                font-family:monospace;display:flex;align-items:center;justify-content:center;gap:8px;
+                transition:border-color 0.15s;">
+            ☝️ Sidik Jari / Face ID
+        </button>
+        <div id="msg" style="font-size:0.68rem;color:#f87171;min-height:14px;text-align:center;"></div>
+    </div>
+    <script>
+    const pinInput = document.getElementById('pin_input');
+    const loginBtn = document.getElementById('login_btn');
+    const bioBtn = document.getElementById('bio_btn');
+    const msgEl = document.getElementById('msg');
 
-function doLogin(){{
-  var v = pinEl.value.trim();
-  if(!v){{setMsg('PIN tidak boleh kosong'); return;}}
-  syncToStreamlit(v);
-  // Trigger form submit di parent — cari tombol Streamlit (walaupun tersembunyi)
-  setTimeout(function(){{
-    try{{
-      var btns = window.parent.document.querySelectorAll('button[kind="primary"],button[kind="secondaryFormSubmit"]');
-      btns.forEach(function(b){{ if(b.innerText.includes('Masuk') || b.innerText.includes('→')) b.click(); }});
-    }}catch(e){{}}
-  }}, 150);
-}}
+    function setMsg(t) {{ msgEl.textContent = t; }}
 
-pinEl.onkeydown = function(e){{ if(e.key==='Enter') doLogin(); }};
-
-function setMsg(t){{ document.getElementById('msg').textContent=t; }}
-
-// WebAuthn biometric
-async function doBio(){{
-  if(!window.PublicKeyCredential){{setMsg('Browser tidak support biometrik'); return;}}
-  try{{
-    var avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    if(!avail){{setMsg('Perangkat tidak punya sensor biometrik'); return;}}
-    var credId = localStorage.getItem('fpk_cred_id');
-    if(!credId){{
-      setMsg('Mendaftarkan sidik jari...');
-      var chal = new Uint8Array(32); crypto.getRandomValues(chal);
-      var reg = await navigator.credentials.create({{publicKey:{{
-        challenge:chal,
-        rp:{{name:"FPK Converter",id:location.hostname}},
-        user:{{id:new TextEncoder().encode("isfan"),name:"isfan",displayName:"Isfan"}},
-        pubKeyCredParams:[{{type:"public-key",alg:-7}},{{type:"public-key",alg:-257}}],
-        authenticatorSelection:{{authenticatorAttachment:"platform",userVerification:"required"}},
-        timeout:60000
-      }}}});
-      localStorage.setItem('fpk_cred_id', btoa(String.fromCharCode(...new Uint8Array(reg.rawId))));
-      setMsg('✅ Terdaftar! Klik sidik jari lagi untuk login.');
-    }} else {{
-      setMsg('Verifikasi sidik jari...');
-      var chal2 = new Uint8Array(32); crypto.getRandomValues(chal2);
-      var rawId = Uint8Array.from(atob(credId), c=>c.charCodeAt(0));
-      await navigator.credentials.get({{publicKey:{{
-        challenge:chal2,
-        allowCredentials:[{{type:"public-key",id:rawId}}],
-        userVerification:"required",timeout:60000
-      }}}});
-      // Biometric OK — isi sentinel ke hidden input lalu submit
-      syncToStreamlit('__BIO_OK__');
-      setTimeout(function(){{
-        try{{
-          var btns = window.parent.document.querySelectorAll('button');
-          btns.forEach(function(b){{ if(b.innerText.includes('Masuk')||b.innerText.includes('→')) b.click(); }});
-        }}catch(e){{}}
-      }},200);
+    function sendPin(value) {{
+        window.parent.postMessage({{
+            type: 'streamlit:setComponentValue',
+            value: value
+        }}, '*');
     }}
-  }}catch(e){{
-    if(e.name==='NotAllowedError') setMsg('Dibatalkan');
-    else setMsg('Error: '+e.message);
-  }}
-}}
-</script>
-</body></html>""", height=200)
 
-    # ── Streamlit button (tersembunyi, hanya untuk logika) ──
-    # Kita gunakan st.button dengan key dan container yang disembunyikan
-    with st.container():
-        # Kita tetap buat tombol Streamlit agar logika jalan, tapi kita sembunyikan dengan CSS
-        if st.button("Masuk →", key="btn_masuk_hidden", use_container_width=True):
-            _pval = st.session_state.get("pin_bridge_input", "")
-            if _pval == "__BIO_OK__":
+    loginBtn.addEventListener('click', function() {{
+        const v = pinInput.value.trim();
+        if (!v) {{ setMsg('PIN tidak boleh kosong'); return; }}
+        sendPin(v);
+    }});
+
+    pinInput.addEventListener('keydown', function(e) {{
+        if (e.key === 'Enter') {{
+            loginBtn.click();
+        }}
+    }});
+
+    async function doBio() {{
+        if (!window.PublicKeyCredential) {{
+            setMsg('Browser tidak support biometrik');
+            return;
+        }}
+        try {{
+            const avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+            if (!avail) {{
+                setMsg('Perangkat tidak punya sensor biometrik');
+                return;
+            }}
+            let credId = localStorage.getItem('fpk_cred_id');
+            if (!credId) {{
+                setMsg('Mendaftarkan sidik jari...');
+                const chal = new Uint8Array(32);
+                crypto.getRandomValues(chal);
+                const reg = await navigator.credentials.create({{
+                    publicKey: {{
+                        challenge: chal,
+                        rp: {{ name: "FPK Converter", id: location.hostname }},
+                        user: {{ id: new TextEncoder().encode("isfan"), name: "isfan", displayName: "Isfan" }},
+                        pubKeyCredParams: [
+                            {{ type: "public-key", alg: -7 }},
+                            {{ type: "public-key", alg: -257 }}
+                        ],
+                        authenticatorSelection: {{
+                            authenticatorAttachment: "platform",
+                            userVerification: "required"
+                        }},
+                        timeout: 60000
+                    }}
+                }});
+                localStorage.setItem('fpk_cred_id', btoa(String.fromCharCode(...new Uint8Array(reg.rawId))));
+                setMsg('✅ Terdaftar! Klik sidik jari lagi untuk login.');
+            }} else {{
+                setMsg('Verifikasi sidik jari...');
+                const chal2 = new Uint8Array(32);
+                crypto.getRandomValues(chal2);
+                const rawId = Uint8Array.from(atob(credId), c => c.charCodeAt(0));
+                await navigator.credentials.get({{
+                    publicKey: {{
+                        challenge: chal2,
+                        allowCredentials: [{{ type: "public-key", id: rawId }}],
+                        userVerification: "required",
+                        timeout: 60000
+                    }}
+                }});
+                sendPin('__BIO_OK__');
+            }}
+        }} catch (e) {{
+            if (e.name === 'NotAllowedError') setMsg('Dibatalkan');
+            else setMsg('Error: ' + e.message);
+        }}
+    }}
+
+    bioBtn.addEventListener('click', doBio);
+    </script>
+    """
+    _comp.html(pin_html, height=250, key="pin_component")
+
+    pin_value = st.session_state.get("pin_component", "")
+    if pin_value:
+        if pin_value == "__BIO_OK__":
+            st.session_state.logged_in = True
+            st.session_state.login_time = now_wib().isoformat()
+            st.rerun()
+        else:
+            ok, msg = check_pin(pin_value)
+            if ok:
                 st.session_state.logged_in = True
                 st.session_state.login_time = now_wib().isoformat()
                 st.rerun()
             else:
-                ok, msg = check_pin(_pval)
-                if ok:
-                    st.session_state.logged_in = True
-                    st.session_state.login_time = now_wib().isoformat()
-                    st.rerun()
-                else:
-                    st.error(msg)
-        # Tambahkan CSS untuk menyembunyikan container tombol ini
-        st.markdown("""
-        <style>
-        /* Sembunyikan tombol Streamlit yang kita buat di atas */
-        div[data-testid="stButton"]:has(button[kind="primary"]) {
-            display: none !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+                st.error(msg)
+                st.session_state.pin_component = None
+                st.rerun()
 
     st.markdown('<div style="text-align:center;margin-top:0.5rem;"><span style="font-family:JetBrains Mono,monospace;font-size:0.62rem;opacity:0.35;">v1.0 · privasi terlindungi</span></div>', unsafe_allow_html=True)
     st.stop()
