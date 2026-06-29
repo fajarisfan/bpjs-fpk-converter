@@ -986,6 +986,10 @@ if not st.session_state.logged_in:
         display:none!important;visibility:hidden!important;
         width:0!important;height:0!important;pointer-events:none!important;
     }}
+    /* Sembunyikan tombol Masuk Streamlit — hanya tersisa tombol HTML */
+    div[data-testid="stButton"]:has(button[kind="primary"]) {{
+        display: none !important;
+    }}
     /* Sembunyikan hidden bridge input */
     div[data-testid="stTextInput"]:has(#pin_bridge_input) {{
         position:absolute!important;opacity:0!important;
@@ -1060,7 +1064,7 @@ function doLogin(){{
   var v = pinEl.value.trim();
   if(!v){{setMsg('PIN tidak boleh kosong'); return;}}
   syncToStreamlit(v);
-  // Trigger form submit di parent
+  // Trigger form submit di parent — cari tombol Streamlit (walaupun tersembunyi)
   setTimeout(function(){{
     try{{
       var btns = window.parent.document.querySelectorAll('button[kind="primary"],button[kind="secondaryFormSubmit"]');
@@ -1119,8 +1123,9 @@ async function doBio(){{
 </script>
 </body></html>""", height=200)
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
+    # ── Streamlit button (tersembunyi, hanya untuk logika) ──
+    with st.container():
+        st.markdown('<div style="display:none;">', unsafe_allow_html=True)
         if st.button("Masuk →", key="btn_masuk", use_container_width=True):
             _pval = st.session_state.get("pin_bridge_input", "")
             if _pval == "__BIO_OK__":
@@ -1135,6 +1140,8 @@ async function doBio(){{
                     st.rerun()
                 else:
                     st.error(msg)
+        st.markdown('</div>', unsafe_allow_html=True)
+
     st.markdown('<div style="text-align:center;margin-top:0.5rem;"><span style="font-family:JetBrains Mono,monospace;font-size:0.62rem;opacity:0.35;">v1.0 · privasi terlindungi</span></div>', unsafe_allow_html=True)
     st.stop()
 
@@ -1806,7 +1813,6 @@ with tab_pengaturan:
     st.markdown("### 🔐 Pengelolaan Sidik Jari / Face ID")
     st.caption("Kelola autentikasi biometrik untuk login cepat tanpa PIN.")
 
-    # Komponen untuk menampilkan status biometrik
     import streamlit.components.v1 as _bio_comp
 
     status_html = """
@@ -1833,7 +1839,6 @@ with tab_pengaturan:
     col_reg, col_del = st.columns(2)
     with col_reg:
         if st.button("📌 Daftarkan Sidik Jari", use_container_width=True, key="bio_register"):
-            # Trigger registrasi WebAuthn melalui komponen HTML
             reg_script = """
             <script>
             async function registerBio() {
@@ -1913,7 +1918,7 @@ with tab_pengaturan:
 
 
 # ══════════════════════════════════════════════════════════════
-# TELEGRAM BOT + AI CHAT (tetap ada di bawah)
+# TELEGRAM BOT + AI CHAT
 # ══════════════════════════════════════════════════════════════
 st.divider()
 
