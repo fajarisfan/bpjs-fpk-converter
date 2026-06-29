@@ -89,6 +89,7 @@ for _k, _v in {
     "font_body":   "Inter",
     "bot_history": [],
     "bot_ai_mode": False,
+    "chat_input": "",  # untuk mengosongkan input chat
 }.items():
     if _k not in st.session_state:
         st.session_state[_k] = _v
@@ -604,6 +605,29 @@ def inject_css(dark):
     st.session_state._toggle_icon = toggle_icon
     st.session_state._toggle_tip = toggle_tip
 
+    # CSS tambahan untuk sembunyikan tombol mata di input password
+    hide_eye_css = """
+    /* Sembunyikan tombol show/hide password di semua input */
+    .stTextInput button[data-testid="stTextInputHideShowButton"],
+    .stTextInput button[aria-label="Show password"],
+    .stTextInput button[aria-label="Hide password"],
+    button[data-testid="stTextInputHideShowButton"],
+    button[aria-label="Show password"],
+    button[aria-label="Hide password"],
+    div[data-testid="stTextInput"] button {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+    /* Tambahan untuk mengatasi styling bawaan */
+    .stTextInput div[data-baseweb="input"] button {
+        display: none !important;
+    }
+    """
+
     st.markdown(f"""
     <style>
     @import url('{font_url}');
@@ -624,11 +648,7 @@ def inject_css(dark):
         -webkit-text-security: disc !important;
         background: {input_bg} !important;
     }}
-    .stTextInput button[data-testid="stTextInputHideShowButton"],
-    button[aria-label="Show password"],
-    button[aria-label="Hide password"] {{
-        display: none !important;
-    }}
+    {hide_eye_css}
     .stRadio > div {{
         display: flex !important;
         gap: 0.75rem !important;
@@ -1116,11 +1136,15 @@ def render_result(res, idx=0):
                 "Disetujui": st.column_config.NumberColumn("Nominal Cair", format="Rp %d", width=150),
             })
     with tab_json:
-        api_log = res.get('api_log')
-        if api_log:
-            st.json(api_log['response'].get('body', {}))
-        else:
-            st.info("Tidak ada JSON response.")
+        # Format data sesuai permintaan: {"type": "data", "No.SEP": "...", "Disetujui": ...}
+        data_list = []
+        for _, row in res['df'].iterrows():
+            data_list.append({
+                "type": "data",
+                "No.SEP": str(row['No.SEP']),
+                "Disetujui": int(row['Disetujui'])
+            })
+        st.json(data_list)
 
     dup = res['df'][res['df']['No.SEP'].duplicated(keep=False)]
     if not dup.empty:
@@ -1807,7 +1831,7 @@ with tab_pengaturan:
     """)
 
 # ══════════════════════════════════════════════════════════════
-# TELEGRAM BOT + AI CHAT (versi stabil dengan Streamlit native)
+# TELEGRAM BOT + AI CHAT
 # ══════════════════════════════════════════════════════════════
 st.divider()
 
@@ -1866,7 +1890,6 @@ if not st.session_state.bot_history:
 _log_for_bot = load_log()
 
 # ── RENDER BUBBLE CHAT ──
-# Tampilkan 15 pesan terakhir dengan markdown
 for role, msg in st.session_state.bot_history[-15:]:
     if role == "bot":
         st.markdown(
@@ -1923,6 +1946,8 @@ if send_btn and user_input:
         else:
             _reply = handle_bot_command(_msg, _log_for_bot)
         st.session_state.bot_history.append(("bot", _reply))
+        # Kosongkan input setelah kirim
+        st.session_state.chat_input = ""
         st.rerun()
 
 # ── TOMBOL REKAP TELEGRAM ──
