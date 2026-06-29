@@ -33,7 +33,7 @@ def derive_variants(hex_color: str) -> dict:
         "bg_l":   hsl_to_hex(h, max(15, s - 35), 93),
     }
 
-# Preset palette — nama netral, warna enak dilihat
+# Preset palette
 _PRESETS_PALETTE = [
     ("🍊 Oranye",   "#ff6b35",  "#00c47a",  "#ffd700",  "#a78bfa"),
     ("🟢 Hijau",    "#19f05a",  "#a121d4",  "#3eb8da",  "#f0a519"),
@@ -1807,7 +1807,7 @@ with tab_pengaturan:
     """)
 
 # ══════════════════════════════════════════════════════════════
-# TELEGRAM BOT + AI CHAT (versi sederhana tanpa components.html key)
+# TELEGRAM BOT + AI CHAT (versi stabil dengan Streamlit native)
 # ══════════════════════════════════════════════════════════════
 st.divider()
 
@@ -1816,11 +1816,6 @@ _surf_tele = "#141414" if _dark_tele else "#ffffff"
 _bdr_tele  = "#242424" if _dark_tele else "#e4e2dd"
 _txt_tele  = "#f0f0f0" if _dark_tele else "#1a1a1a"
 _mut_tele  = "#666"    if _dark_tele else "#888"
-_chat_bg   = "#111111" if _dark_tele else "#fafaf8"
-_chat_bdr  = "#242424" if _dark_tele else "#e4e2dd"
-_bbg       = "#1e1e1e" if _dark_tele else "#f0f0f0"
-_bbd       = "#2a2a2a" if _dark_tele else "#e0ddd8"
-_bbt       = "#e0e0e0" if _dark_tele else "#1a1a1a"
 
 _tele_ok  = tele_configured()
 _ai_ok    = claude_configured()
@@ -1870,48 +1865,46 @@ if not st.session_state.bot_history:
 
 _log_for_bot = load_log()
 
-# ── RENDER BUBBLE CHAT (menggunakan markdown dengan styling) ──
-# Kita buat tampilan bubble menggunakan st.markdown, bukan components.html
-chat_container = st.container()
-with chat_container:
-    # Tampilkan 15 pesan terakhir
-    for role, msg in st.session_state.bot_history[-15:]:
-        if role == "bot":
-            st.markdown(
-                f"""
-                <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
-                    <div style="min-width:28px;font-size:1.2rem;">🤖</div>
-                    <div style="background:{_bbg};border:1px solid {_bbd};color:{_bbt};
-                                border-radius:12px 12px 12px 4px;padding:8px 12px;
-                                max-width:80%;font-size:0.85rem;line-height:1.5;
-                                word-break:break-word;">
-                        {msg.replace(chr(10), '<br>')}
-                    </div>
+# ── RENDER BUBBLE CHAT ──
+# Tampilkan 15 pesan terakhir dengan markdown
+for role, msg in st.session_state.bot_history[-15:]:
+    if role == "bot":
+        st.markdown(
+            f"""
+            <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
+                <div style="min-width:28px;font-size:1.2rem;">🤖</div>
+                <div style="background:#1e1e1e;border:1px solid #2a2a2a;color:#e0e0e0;
+                            border-radius:12px 12px 12px 4px;padding:8px 12px;
+                            max-width:80%;font-size:0.85rem;line-height:1.5;
+                            word-break:break-word;">
+                    {msg.replace(chr(10), '<br>')}
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                f"""
-                <div style="display:flex;align-items:flex-start;justify-content:flex-end;gap:8px;margin-bottom:8px;">
-                    <div style="background:{PRIMARY_COLOR};color:#fff;
-                                border-radius:12px 12px 4px 12px;padding:8px 12px;
-                                max-width:80%;font-size:0.85rem;line-height:1.5;
-                                word-break:break-word;">
-                        {msg.replace(chr(10), '<br>')}
-                    </div>
-                    <div style="min-width:28px;font-size:1.2rem;">👤</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            f"""
+            <div style="display:flex;align-items:flex-start;justify-content:flex-end;gap:8px;margin-bottom:8px;">
+                <div style="background:{PRIMARY_COLOR};color:#fff;
+                            border-radius:12px 12px 4px 12px;padding:8px 12px;
+                            max-width:80%;font-size:0.85rem;line-height:1.5;
+                            word-break:break-word;">
+                    {msg.replace(chr(10), '<br>')}
                 </div>
-                """,
-                unsafe_allow_html=True
-            )
+                <div style="min-width:28px;font-size:1.2rem;">👤</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-# ── INPUT CHAT (Streamlit native) ──
+# ── INPUT CHAT ──
 with st.container():
     cols = st.columns([6, 1])
     with cols[0]:
-        user_input = st.text_input("", key="chat_input", placeholder=_ph_str, label_visibility="collapsed")
+        placeholder_text = "Tanya Groq AI..." if _ai_mode else "Ketik pesan atau /help..."
+        user_input = st.text_input("", key="chat_input", placeholder=placeholder_text, label_visibility="collapsed")
     with cols[1]:
         send_btn = st.button("➤", use_container_width=True)
 
