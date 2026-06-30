@@ -2,6 +2,8 @@ import re
 import time
 import tempfile
 import os
+import json
+import asyncio
 
 import pandas as pd
 import tabula
@@ -9,6 +11,7 @@ import pdfplumber
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 app = FastAPI(title="FPK Converter API", version="1.0")
 
@@ -139,12 +142,6 @@ async def _proses_satu_file(file: UploadFile, file_index: int = 0, total_files: 
 
         elapsed_ms = round((time.perf_counter() - t_start) * 1000, 1)
 
-        # Format tiap baris jadi {"type": "data", "No.SEP": ..., "Disetujui": ...}
-        data_rows = [
-            {"type": "data", "No.SEP": row["No.SEP"], "Disetujui": row["Disetujui"]}
-            for row in df_res.to_dict(orient="records")
-        ]
-
         return {
             "success": True,
             "filename": f"{nama}.csv",
@@ -153,7 +150,7 @@ async def _proses_satu_file(file: UploadFile, file_index: int = 0, total_files: 
             "jumlah": jumlah,
             "total": total,
             "duplikat": duplikat,
-            "data": data_rows,
+            "data": df_res.to_dict(orient="records"),
             "processing_time_ms": elapsed_ms,
             "file_index": file_index,
             "total_files": total_files,
@@ -206,3 +203,71 @@ async def proses_batch(files: list[UploadFile] = File(...)):
         "results": results,
         "errors": errors,
     }
+
+
+# ── ENDPOINT STREAMING (format sama persis dengan versi Replit/Termux) ──
+
+async def _generate_stream(file: UploadFile):
+    """Generator NDJSON: metadata -> data (per baris) + progress -> done."""
+    tmp_path = None
+    try:
+        content = await file.read()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        nama, tingkat = ambil_metadata_pdf(tmp_path)
+
+        ok, pesan_error = validasi_format_pdf(tmp_path)
+        if not ok:
+            yield json.dumps({"type": "error", "message": pesan_error}) + "\n"
+            return
+
+        df_res = process_data(tmp_path)
+        total_rows = len(df_res)
+        total_nominal_all = int(df_res['Disetujui'].sum())
+
+        yield json.dumps({
+            "type": "metadata",
+            "filename": nama,
+            "tingkat": tingkat,
+            "total_rows": total_rows,
+            "total_nominal": total_nominal_all
+        }) + "\n"
+
+        total_data = 0
+        total_nominal = 0
+        for _, row in df_res.iterrows():
+            yield json.dumps({
+                "type": "data",
+                "No.SEP": row['No.SEP'],
+                "Disetujui": int(row['Disetujui'])
+            }) + "\n"
+            total_data += 1
+            total_nominal += int(row['Disetujui'])
+
+            percent = int((total_data / total_rows) * 100) if total_rows else 100
+            yield json.dumps({"type": "progress", "percent": percent}) + "\n"
+            await asyncio.sleep(0.001)
+
+        yield json.dumps({
+            "type": "done",
+            "total_nominal": total_nominal,
+            "total_rows": total_data
+        }) + "\n"
+
+    except Exception as e:
+        yield json.dumps({"type": "error", "message": str(e)}) + "\n"
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+
+
+@app.post("/api/proses-stream")
+async def proses_stream(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File harus berformat PDF.")
+    return StreamingResponse(
+        _generate_stream(file),
+        media_type="application/x-ndjson"
+    )
