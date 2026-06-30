@@ -139,6 +139,12 @@ async def _proses_satu_file(file: UploadFile, file_index: int = 0, total_files: 
 
         elapsed_ms = round((time.perf_counter() - t_start) * 1000, 1)
 
+        # Format tiap baris jadi {"type": "data", "No.SEP": ..., "Disetujui": ...}
+        data_rows = [
+            {"type": "data", "No.SEP": row["No.SEP"], "Disetujui": row["Disetujui"]}
+            for row in df_res.to_dict(orient="records")
+        ]
+
         return {
             "success": True,
             "filename": f"{nama}.csv",
@@ -147,7 +153,7 @@ async def _proses_satu_file(file: UploadFile, file_index: int = 0, total_files: 
             "jumlah": jumlah,
             "total": total,
             "duplikat": duplikat,
-            "data": df_res.to_dict(orient="records"),
+            "data": data_rows,
             "processing_time_ms": elapsed_ms,
             "file_index": file_index,
             "total_files": total_files,
