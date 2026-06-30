@@ -1232,11 +1232,11 @@ def animasi_terminal_proses(uf, dark: bool):
     lines.append(ln(f'  jumlah : {jumlah} SEP', grn))
     lines.append(ln(f'  proc   : {proc_ms}ms', acc))
     lines.append(ln('', txt))
-    lines.append(ln('{', txt))
-    lines.append(ln(f'  "file"    : "{filename}",', yel))
-    lines.append(ln(f'  "tingkat" : "{tingkat}",', pur))
-    lines.append(ln(f'  "jumlah"  : {jumlah},', grn))
-    lines.append(ln('  "data": [', txt))
+    lines.append(ln(
+        json.dumps({"type": "metadata", "filename": filename, "tingkat": tingkat,
+                    "total_rows": jumlah, "total_nominal": total}),
+        txt
+    ))
     render(lines)
     time.sleep(0.2)
 
@@ -1249,14 +1249,12 @@ def animasi_terminal_proses(uf, dark: bool):
         no_urut = i + 1
         sep     = str(row["No.SEP"])
         nom     = int(row["Disetujui"])
-        nom_fmt = f"Rp {nom:,}".replace(",", ".")
+        data_json = json.dumps({"type": "data", "No.SEP": sep, "Disetujui": nom})
+        pct_line  = json.dumps({"type": "progress", "percent": int((no_urut / row_count) * 100)})
         all_lines.append((
             no_urut,
-            f'<div style="display:flex;gap:4px;align-items:baseline;white-space:nowrap;">'
-            f'<span style="color:{dim};min-width:42px;text-align:right;flex-shrink:0;">{no_urut}.</span>'
-            f'<span style="color:{grn};flex:1;overflow:hidden;text-overflow:ellipsis;">{sep}</span>'
-            f'<span style="color:{yel};font-weight:700;flex-shrink:0;text-align:right;">{nom_fmt}</span>'
-            f'</div>'
+            f'<div style="color:{grn};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{data_json}</div>'
+            f'<div style="color:{dim};white-space:nowrap;">{pct_line}</div>'
         ))
 
     prog = st.empty()
@@ -1294,13 +1292,8 @@ def animasi_terminal_proses(uf, dark: bool):
 
     total_fmt = f"Rp {total:,}".replace(",", ".")
     footer_lines = list(sep_window)
-    footer_lines.append(ln('  ],', txt))
-    footer_lines.append(ln(f'  "total"  : {total},', yel))
-    footer_lines.append(ln(f'  "nominal": "{total_fmt}",', acc))
-    if duplikat:
-        footer_lines.append(ln(f'  "duplikat": {len(duplikat)} SEP,', "#ff4444"))
-    footer_lines.append(ln('  "status" : "DONE ✓"', grn))
-    footer_lines.append(ln('}', txt))
+    done_json = json.dumps({"type": "done", "total_nominal": total, "total_rows": jumlah})
+    footer_lines.append(ln(done_json, acc))
     render(lines + footer_lines, done=True)
     time.sleep(0.8)
     term.empty()
