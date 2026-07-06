@@ -132,20 +132,28 @@ def _port_terbuka(port):
 @st.cache_resource
 def start_api_backend():
     if _port_terbuka(API_PORT):
-        return "already_running"
+        return "already_running", None
+    _err_holder = {}
     def _run():
-        import uvicorn
-        import api as api_module
-        uvicorn.run(api_module.app, host="0.0.0.0", port=API_PORT, log_level="warning")
+        try:
+            import uvicorn
+            import api as api_module
+            uvicorn.run(api_module.app, host="0.0.0.0", port=API_PORT, log_level="warning")
+        except Exception as e:
+            import traceback
+            _err_holder["error"] = f"{type(e).__name__}: {e}"
+            _err_holder["trace"] = traceback.format_exc()
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
     for _ in range(20):
         if _port_terbuka(API_PORT):
-            return "started"
+            return "started", None
+        if "error" in _err_holder:
+            return "error", _err_holder
         time.sleep(0.5)
-    return "timeout"
+    return "timeout", _err_holder
 
-_api_status = start_api_backend()
+_api_status, _api_error = start_api_backend()
 
 def now_wib():
     return datetime.now(timezone.utc) + timedelta(hours=7)
@@ -1512,7 +1520,15 @@ tab_pdf, tab_csv, tab_pengaturan = st.tabs(["📄 Konversi PDF → CSV", "🧮 K
 
 with tab_pdf:
     if _api_status == "timeout":
-        st.error("⚠️ Backend API gagal start. Coba refresh halaman.")
+        st.error("⚠️ Backend API gagal start (timeout 10 detik). Coba **Manage app → Reboot app** (refresh saja tidak cukup, statusnya di-cache).")
+        if _api_error and _api_error.get("trace"):
+            with st.expander("🔍 Detail error"):
+                st.code(_api_error["trace"])
+    elif _api_status == "error":
+        st.error(f"⚠️ Backend API gagal start: {_api_error.get('error', 'unknown error')}")
+        if _api_error and _api_error.get("trace"):
+            with st.expander("🔍 Detail error"):
+                st.code(_api_error["trace"])
     elif _api_status in ("started", "already_running"):
         st.caption(f"🟢 Backend API aktif di `{API_URL}`")
 
@@ -1677,32 +1693,35 @@ with tab_csv:
         if rows_per_file:
             grand_fmt = f"Rp {total_grand:,.0f}".replace(",", ".")
             st.markdown(f"""
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin:1rem 0;">
-                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:1rem;font-family:'JetBrains Mono',monospace;">
-                    <div style="color:{_mut_c};font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.3rem;">Total File</div>
-                    <div style="color:{_txt_c};font-size:1.2rem;font-weight:800;">{len(rows_per_file)}</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0.75rem;margin:1rem 0;">
+                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:1rem;font-family:'JetBrains Mono',monospace;min-width:0;">
+                    <div style="color:{_mut_c};font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Total File</div>
+                    <div style="color:{_txt_c};font-size:1.2rem;font-weight:800;word-break:break-word;">{len(rows_per_file)}</div>
                 </div>
-                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:1rem;font-family:'JetBrains Mono',monospace;">
-                    <div style="color:{_mut_c};font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.3rem;">Total SEP</div>
-                    <div style="color:{_txt_c};font-size:1.2rem;font-weight:800;">{total_sep_csv:,}</div>
+                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:1rem;font-family:'JetBrains Mono',monospace;min-width:0;">
+                    <div style="color:{_mut_c};font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Total SEP</div>
+                    <div style="color:{_txt_c};font-size:1.2rem;font-weight:800;word-break:break-word;">{total_sep_csv:,}</div>
                 </div>
-                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:1rem;font-family:'JetBrains Mono',monospace;">
-                    <div style="color:{_mut_c};font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.3rem;">Grand Total</div>
-                    <div style="color:{SECONDARY};font-size:1.2rem;font-weight:800;">{grand_fmt}</div>
+                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:1rem;font-family:'JetBrains Mono',monospace;min-width:0;">
+                    <div style="color:{_mut_c};font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Grand Total</div>
+                    <div style="color:{SECONDARY};font-size:1.2rem;font-weight:800;word-break:break-word;">{grand_fmt}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             for r in rows_per_file:
                 st.markdown(f"""
-                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:0.75rem 1.2rem;margin-bottom:0.5rem;display:flex;align-items:center;justify-content:space-between;font-family:'JetBrains Mono',monospace;">
-                    <div><div style="font-weight:700;color:{_txt_c};">📄 {r['nama']}</div><div style="color:{_mut_c};font-size:0.7rem;margin-top:2px;">{r['sep']:,} SEP</div></div>
-                    <div style="color:{SECONDARY};font-weight:800;">Rp {r['subtotal']:,}</div>
+                <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:0.75rem 1.2rem;margin-bottom:0.5rem;font-family:'JetBrains Mono',monospace;">
+                    <div style="font-weight:700;color:{_txt_c};word-break:break-all;overflow-wrap:anywhere;">📄 {r['nama']}</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:0.5rem;flex-wrap:wrap;">
+                        <div style="color:{_mut_c};font-size:0.7rem;white-space:nowrap;">{r['sep']:,} SEP</div>
+                        <div style="color:{SECONDARY};font-weight:800;white-space:nowrap;">Rp {r['subtotal']:,}</div>
+                    </div>
                 </div>
                 """.replace(",", "."), unsafe_allow_html=True)
             st.markdown(f"""
-            <div style="background:{PRIMARY_COLOR};border-radius:20px;padding:1.25rem 1.8rem;margin-top:1rem;display:flex;align-items:center;justify-content:space-between;font-family:'JetBrains Mono',monospace;">
-                <div style="color:#fff;font-size:0.8rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">Grand Total Disetujui</div>
-                <div style="color:#fff;font-size:1.3rem;font-weight:800;">{grand_fmt}</div>
+            <div style="background:{PRIMARY_COLOR};border-radius:20px;padding:1.1rem 1.4rem;margin-top:1rem;display:flex;align-items:center;justify-content:space-between;font-family:'JetBrains Mono',monospace;gap:0.75rem;flex-wrap:wrap;">
+                <div style="color:#fff;font-size:0.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Grand Total Disetujui</div>
+                <div style="color:#fff;font-size:1.3rem;font-weight:800;white-space:nowrap;">{grand_fmt}</div>
             </div>
             """, unsafe_allow_html=True)
     else:
