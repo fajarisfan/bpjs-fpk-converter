@@ -183,6 +183,9 @@ def update_log_status(nama_file, status):
         if item.get('nama_file') == nama_file:
             item['status'] = status
             item['waktu_selesai'] = now_wib().strftime("%d %b %Y, %H:%M") + " WIB" if status == "Selesai" else None
+            # Edit pesan Telegram jika ada message_id
+            if status == "Selesai" and item.get('tele_message_id') and tele_configured():
+                edit_notif_telegram(item)
             break
     with open(LOG_FILE, "w") as f:
         json.dump(log[:100], f, ensure_ascii=False, indent=2)
@@ -243,10 +246,48 @@ def kirim_notif_telegram(entry: dict) -> tuple[bool, str]:
             timeout=8
         )
         if resp.ok:
-            return True, "✅ Notif terkirim ke Telegram"
-        return False, f"❌ Gagal: {resp.json().get('description','unknown error')}"
+            msg_id = resp.json().get("result", {}).get("message_id")
+            return True, "✅ Notif terkirim ke Telegram", msg_id
+        return False, f"❌ Gagal: {resp.json().get('description','unknown error')}", None
     except Exception as e:
-        return False, f"❌ Error: {e}"
+        return False, f"❌ Error: {e}", None
+
+def edit_notif_telegram(entry: dict) -> bool:
+    """Edit pesan Telegram yang sudah ada — update status jadi Selesai."""
+    token, chat_id = get_tele_config()
+    if not token or not chat_id:
+        return False
+    msg_id = entry.get('tele_message_id')
+    if not msg_id:
+        return False
+    nom = f"Rp {entry['total']:,}".replace(",", ".")
+    waktu_selesai = entry.get('waktu_selesai', now_wib().strftime("%d %b %Y, %H:%M") + " WIB")
+    jenis_label = f" · 📌 {entry.get('jenis','Reguler')}" if entry.get('jenis') == 'Susulan' else ""
+    msg = (
+        f"📄 *FPK Converter — Konversi Berhasil*\n\n"
+        f"🏥 *File*: `{entry['nama_file']}`\n"
+        f"🔖 *Tingkat*: {entry.get('tingkat','–')}{jenis_label}\n"
+        f"🔢 *Jumlah SEP*: {entry['jumlah']:,}\n"
+        f"💰 *Total Nominal*: {nom}\n"
+        f"🕓 *Waktu*: {entry['waktu']}\n"
+        f"📊 *Status*: ✅ Selesai\n"
+        f"📥 *Diambil*: {waktu_selesai}\n"
+    )
+    try:
+        resp = requests.post(
+            f"https://api.telegram.org/bot{token}/editMessageText",
+            json={
+                "chat_id": chat_id,
+                "message_id": msg_id,
+                "text": msg,
+                "parse_mode": "Markdown",
+                "reply_markup": json.dumps({"inline_keyboard": []})
+            },
+            timeout=8
+        )
+        return resp.ok
+    except Exception:
+        return False
 
 def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
     token, chat_id = get_tele_config()
@@ -1160,16 +1201,12 @@ def render_result(res, idx=0):
     st.divider()
     col1, col2 = st.columns([3, 1])
     with col1:
-        # Format output CSV sesuai vendor — No.SEP, Disetujui
-        _FORMAT_VENDOR = ["No.SEP", "Disetujui"]
-        df_download = res['df'].copy()
-        # Pastikan kolom sesuai urutan format vendor
-        df_download = df_download[[c for c in _FORMAT_VENDOR if c in df_download.columns]]
-        csv = df_download.to_csv(index=False).encode('utf-8')
+        csv = res['df'].to_csv(index=False).encode('utf-8')
         downloaded = st.download_button(label="⬇ Download CSV", data=csv,
             file_name=res['filename'], mime="text/csv", key=f"dl_{idx}")
         if downloaded:
             update_log_status(res['filename'], 'Selesai')
+            st.toast("✅ CSV didownload & status diperbarui!", icon="✅")
             st.rerun()
     with col2:
         if st.button("Reset", key=f"reset_{idx}"):
@@ -1590,48 +1627,6 @@ with tab_pdf:
                     use_container_width=True, key="dl_demo_pdf")
         st.divider()
 
-    # ── Preview Format Output CSV ──
-    _dark_pv = st.session_state.get('dark_mode', True)
-    _surf_pv = "#1a1a1a" if _dark_pv else "#ffffff"
-    _bdr_pv  = "#2a2a2a" if _dark_pv else "#e4e2dd"
-    _txt_pv  = "#f0f0f0" if _dark_pv else "#1a1a1a"
-    _mut_pv  = "#666"    if _dark_pv else "#888"
-    _grn_pv  = SECONDARY
-
-    with st.expander("📋 Preview Format Output CSV", expanded=False):
-        st.markdown(f"""
-        <div style="font-size:0.68rem;color:{_mut_pv};margin-bottom:0.75rem;
-                    font-family:'JetBrains Mono',monospace;">
-            Format output CSV yang dihasilkan sesuai standar vendor BPJS Kesehatan:
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Tampil preview tabel format
-        _df_preview = pd.DataFrame({
-            "No.SEP": [
-                "1028R0010426V007929",
-                "1028R0010426V007931",
-                "1028R0010426V007932",
-                "...",
-            ],
-            "Disetujui": [132800, 198100, 247700, "..."]
-        })
-        st.dataframe(
-            _df_preview,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "No.SEP": st.column_config.TextColumn("No.SEP", width=200),
-                "Disetujui": st.column_config.TextColumn("Disetujui", width=120),
-            }
-        )
-        st.markdown(f"""
-        <div style="font-size:0.65rem;color:{_mut_pv};margin-top:0.5rem;
-                    font-family:'JetBrains Mono',monospace;">
-            💡 Header: <code>No.SEP,Disetujui</code> — siap upload ke SIMRS
-        </div>
-        """, unsafe_allow_html=True)
-
     uploaded_files = st.file_uploader(
         "Upload PDF FPK (bisa lebih dari satu)", type=['pdf'],
         accept_multiple_files=True, label_visibility="collapsed"
@@ -1674,7 +1669,17 @@ with tab_pdf:
                     }
                     save_log(entry)
                     if tele_configured():
-                        kirim_notif_telegram(entry)
+                        ok_tele, _, msg_id = kirim_notif_telegram(entry)
+                        if ok_tele and msg_id:
+                            entry['tele_message_id'] = msg_id
+                            # Update log dengan message_id
+                            log = load_log()
+                            for item in log:
+                                if item.get('nama_file') == entry['nama_file']:
+                                    item['tele_message_id'] = msg_id
+                                    break
+                            with open(LOG_FILE, "w") as f:
+                                json.dump(log[:100], f, ensure_ascii=False, indent=2)
                 except RuntimeError as e:
                     msg = e.args[0] if e.args else str(e)
                     errors.append(f"❌ {uf.name}: {msg}")
@@ -2118,6 +2123,7 @@ else:
             if status != "Selesai":
                 if st.button("✓", key=f"tandai_{i}", help="Tandai selesai"):
                     update_log_status(nama_file, 'Selesai')
+                    st.toast("✅ Status diperbarui!", icon="✅")
                     st.rerun()
 
         detail_cols = st.columns([3, 2])
