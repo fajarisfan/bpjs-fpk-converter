@@ -1160,22 +1160,11 @@ def render_result(res, idx=0):
     st.divider()
     col1, col2 = st.columns([3, 1])
     with col1:
-        # Sesuaikan dengan format upload jika ada
+        # Format output CSV sesuai vendor — No.SEP, Disetujui
+        _FORMAT_VENDOR = ["No.SEP", "Disetujui"]
         df_download = res['df'].copy()
-        _fmt_cols = st.session_state.get('_format_cols_valid', [])
-        if _fmt_cols:
-            # Rename kolom sesuai format (case insensitive match)
-            col_map = {}
-            for fc in _fmt_cols:
-                for dc in df_download.columns:
-                    if fc.strip().lower() == dc.strip().lower():
-                        col_map[dc] = fc
-            if col_map:
-                df_download = df_download.rename(columns=col_map)
-            # Urutkan kolom sesuai format, tambah kolom yang ada di hasil tapi tidak di format
-            ordered = [c for c in _fmt_cols if c in df_download.columns]
-            extra   = [c for c in df_download.columns if c not in ordered]
-            df_download = df_download[ordered + extra]
+        # Pastikan kolom sesuai urutan format vendor
+        df_download = df_download[[c for c in _FORMAT_VENDOR if c in df_download.columns]]
         csv = df_download.to_csv(index=False).encode('utf-8')
         downloaded = st.download_button(label="⬇ Download CSV", data=csv,
             file_name=res['filename'], mime="text/csv", key=f"dl_{idx}")
@@ -1601,82 +1590,47 @@ with tab_pdf:
                     use_container_width=True, key="dl_demo_pdf")
         st.divider()
 
-    # ── STEP 1: Upload Format CSV dulu ──
-    _dark_s = st.session_state.get('dark_mode', True)
-    _surf_s = "#1a1a1a" if _dark_s else "#ffffff"
-    _bdr_s  = "#2a2a2a" if _dark_s else "#e4e2dd"
-    _txt_s  = "#f0f0f0" if _dark_s else "#1a1a1a"
-    _mut_s  = "#777"    if _dark_s else "#888"
-    _grn_s  = SECONDARY
-    _acc_s  = PRIMARY_COLOR
+    # ── Preview Format Output CSV ──
+    _dark_pv = st.session_state.get('dark_mode', True)
+    _surf_pv = "#1a1a1a" if _dark_pv else "#ffffff"
+    _bdr_pv  = "#2a2a2a" if _dark_pv else "#e4e2dd"
+    _txt_pv  = "#f0f0f0" if _dark_pv else "#1a1a1a"
+    _mut_pv  = "#666"    if _dark_pv else "#888"
+    _grn_pv  = SECONDARY
 
-    st.markdown(f"""
-    <div style="background:{_surf_s};border:1px solid {_bdr_s};border-radius:18px;
-                padding:1rem 1.25rem;margin-bottom:1rem;">
-        <div style="font-size:0.65rem;font-weight:800;letter-spacing:2px;
-                    color:{_mut_s};text-transform:uppercase;
-                    font-family:'JetBrains Mono',monospace;margin-bottom:0.5rem;">
-            STEP 1 — Format Upload CSV
+    with st.expander("📋 Preview Format Output CSV", expanded=False):
+        st.markdown(f"""
+        <div style="font-size:0.68rem;color:{_mut_pv};margin-bottom:0.75rem;
+                    font-family:'JetBrains Mono',monospace;">
+            Format output CSV yang dihasilkan sesuai standar vendor BPJS Kesehatan:
         </div>
-        <div style="font-size:0.8rem;color:{_txt_s};margin-bottom:0.75rem;">
-            Upload file <b>Format_Upload.csv</b> terlebih dahulu sebelum convert PDF.
-            File ini digunakan sebagai template format output CSV.
-        </div>
-        <div style="font-size:0.72rem;color:{_mut_s};">
-            💡 Format yang dibutuhkan: kolom <code>No.SEP</code> dan <code>Disetujui</code>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    format_csv = st.file_uploader(
-        "Upload Format CSV", type=['csv'],
-        key="format_upload_csv", label_visibility="collapsed"
-    )
-
-    # Validasi format CSV
-    _format_valid = False
-    _format_cols  = []
-    if format_csv is not None:
-        try:
-            import io
-            df_fmt = pd.read_csv(io.BytesIO(format_csv.read()))
-            format_csv.seek(0)
-            _format_cols = [c.strip().strip('"') for c in df_fmt.columns.tolist()]
-            # Cek ada kolom No.SEP dan Disetujui
-            _has_nosep    = any('No.SEP' in c or 'nosep' in c.lower() for c in _format_cols)
-            _has_disetujui = any('Disetujui' in c or 'disetujui' in c.lower() for c in _format_cols)
-            if _has_nosep and _has_disetujui:
-                _format_valid = True
-                st.session_state['_format_cols_valid'] = _format_cols
-                st.success(f"✅ Format valid — kolom: {', '.join(_format_cols)}")
-            else:
-                st.error(f"❌ Format tidak valid. Kolom ditemukan: {', '.join(_format_cols)}. Dibutuhkan: No.SEP, Disetujui")
-        except Exception as e:
-            st.error(f"❌ Gagal baca CSV: {e}")
-
-    if not _format_valid:
-        # Tombol download template format
-        _template_csv = "No.SEP,Disetujui\n"
-        st.download_button(
-            label="⬇ Download Template Format CSV",
-            data=_template_csv.encode('utf-8'),
-            file_name="Format_Upload.csv",
-            mime="text/csv",
+        # Tampil preview tabel format
+        _df_preview = pd.DataFrame({
+            "No.SEP": [
+                "1028R0010426V007929",
+                "1028R0010426V007931",
+                "1028R0010426V007932",
+                "...",
+            ],
+            "Disetujui": [132800, 198100, 247700, "..."]
+        })
+        st.dataframe(
+            _df_preview,
             use_container_width=True,
-            key="dl_template_format"
+            hide_index=True,
+            column_config={
+                "No.SEP": st.column_config.TextColumn("No.SEP", width=200),
+                "Disetujui": st.column_config.TextColumn("Disetujui", width=120),
+            }
         )
-        st.stop()
-
-    st.divider()
-
-    # ── STEP 2: Upload PDF (setelah format valid) ──
-    st.markdown(f"""
-    <div style="font-size:0.65rem;font-weight:800;letter-spacing:2px;
-                color:{_mut_s};text-transform:uppercase;
-                font-family:'JetBrains Mono',monospace;margin-bottom:0.75rem;">
-        STEP 2 — Upload PDF FPK
-    </div>
-    """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style="font-size:0.65rem;color:{_mut_pv};margin-top:0.5rem;
+                    font-family:'JetBrains Mono',monospace;">
+            💡 Header: <code>No.SEP,Disetujui</code> — siap upload ke SIMRS
+        </div>
+        """, unsafe_allow_html=True)
 
     uploaded_files = st.file_uploader(
         "Upload PDF FPK (bisa lebih dari satu)", type=['pdf'],
