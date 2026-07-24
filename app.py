@@ -2,8 +2,6 @@ import os
 import json
 import re
 import time
-import socket
-import threading
 import colorsys
 import pandas as pd
 import streamlit as st
@@ -121,39 +119,19 @@ ACCENT        = _PAL["accent"]
 
 # ── CONFIG ──────────────────────────────────────────────────
 LOG_FILE  = "/tmp/log_konversi.json"
-API_PORT  = 8000
-API_URL   = f"http://localhost:{API_PORT}"
+API_URL   = "https://fpk-converter-api--isfanfajara.replit.app"
 
-def _port_terbuka(port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(0.5)
-        return s.connect_ex(("localhost", port)) == 0
+@st.cache_data(ttl=30)
+def cek_status_api():
+    try:
+        r = requests.get(f"{API_URL}/api/health", timeout=8)
+        if r.status_code == 200:
+            return "ok", None
+        return "error", f"HTTP {r.status_code}"
+    except requests.exceptions.RequestException as e:
+        return "error", str(e)
 
-@st.cache_resource
-def start_api_backend():
-    if _port_terbuka(API_PORT):
-        return "already_running", None
-    _err_holder = {}
-    def _run():
-        try:
-            import uvicorn
-            import api as api_module
-            uvicorn.run(api_module.app, host="0.0.0.0", port=API_PORT, log_level="warning")
-        except Exception as e:
-            import traceback
-            _err_holder["error"] = f"{type(e).__name__}: {e}"
-            _err_holder["trace"] = traceback.format_exc()
-    thread = threading.Thread(target=_run, daemon=True)
-    thread.start()
-    for _ in range(20):
-        if _port_terbuka(API_PORT):
-            return "started", None
-        if "error" in _err_holder:
-            return "error", _err_holder
-        time.sleep(0.5)
-    return "timeout", _err_holder
-
-_api_status, _api_error = start_api_backend()
+_api_status, _api_error = cek_status_api()
 
 def now_wib():
     return datetime.now(timezone.utc) + timedelta(hours=7)
@@ -1561,18 +1539,14 @@ st.markdown(f"""
 tab_pdf, tab_csv, tab_pengaturan = st.tabs(["📄 Konversi PDF → CSV", "🧮 Kalkulator CSV", "🔐 Pengaturan"])
 
 with tab_pdf:
-    if _api_status == "timeout":
-        st.error("⚠️ Backend API gagal start (timeout 10 detik). Coba **Manage app → Reboot app** (refresh saja tidak cukup, statusnya di-cache).")
-        if _api_error and _api_error.get("trace"):
-            with st.expander("🔍 Detail error"):
-                st.code(_api_error["trace"])
-    elif _api_status == "error":
-        st.error(f"⚠️ Backend API gagal start: {_api_error.get('error', 'unknown error')}")
-        if _api_error and _api_error.get("trace"):
-            with st.expander("🔍 Detail error"):
-                st.code(_api_error["trace"])
-    elif _api_status in ("started", "already_running"):
+    if _api_status == "ok":
         st.caption(f"🟢 Backend API aktif di `{API_URL}`")
+    else:
+        st.error(f"⚠️ Backend API tidak bisa dihubungi: {_api_error}")
+        st.caption(
+            "Kalau ini deployment Replit, kemungkinan app-nya lagi sleep — "
+            "buka link API-nya langsung di tab baru dulu buat 'membangunkan', lalu refresh halaman ini."
+        )
 
     _dark_demo = st.session_state.get('dark_mode', True)
     _demo_bg  = "#1a1410" if _dark_demo else "#fff8ec"
