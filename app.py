@@ -10,7 +10,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 from dummy_pdf import build_dummy_fpk_pdf, BULAN_LIST, TINGKAT_LIST
 
-# â”€â”€ COLOR SYSTEM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── COLOR SYSTEM ──────────────────────────────────────────────
 def hsl_to_hex(h: int, s: int, l: int) -> str:
     r, g, b = colorsys.hls_to_rgb(h / 360, l / 100, s / 100)
     return "#{:02x}{:02x}{:02x}".format(int(r * 255), int(g * 255), int(b * 255))
@@ -33,14 +33,14 @@ def derive_variants(hex_color: str) -> dict:
 
 # Preset palette
 _PRESETS_PALETTE = [
-    ("ðŸŠ Oranye",   "#ff6b35",  "#00c47a",  "#ffd700",  "#a78bfa"),
-    ("ðŸŸ¢ Hijau",    "#19f05a",  "#a121d4",  "#3eb8da",  "#f0a519"),
-    ("ðŸ’œ Ungu",     "#a855f7",  "#22d3ee",  "#fb923c",  "#34d399"),
-    ("ðŸ”µ Biru",     "#3b82f6",  "#10b981",  "#f59e0b",  "#e879f9"),
-    ("ðŸ©µ Cyan",     "#06b6d4",  "#f59e0b",  "#ec4899",  "#84cc16"),
-    ("ðŸ–¤ Mono",     "#e2e8f0",  "#94a3b8",  "#64748b",  "#475569"),
-    ("ðŸ”´ Merah",    "#ef4444",  "#3b82f6",  "#fbbf24",  "#a78bfa"),
-    ("ðŸŒ¿ Sage",     "#6db36d",  "#e07b39",  "#f0c030",  "#7b8fe0"),
+    ("🍊 Oranye",   "#ff6b35",  "#00c47a",  "#ffd700",  "#a78bfa"),
+    ("🟢 Hijau",    "#19f05a",  "#a121d4",  "#3eb8da",  "#f0a519"),
+    ("💜 Ungu",     "#a855f7",  "#22d3ee",  "#fb923c",  "#34d399"),
+    ("🔵 Biru",     "#3b82f6",  "#10b981",  "#f59e0b",  "#e879f9"),
+    ("🩵 Cyan",     "#06b6d4",  "#f59e0b",  "#ec4899",  "#84cc16"),
+    ("🖤 Mono",     "#e2e8f0",  "#94a3b8",  "#64748b",  "#475569"),
+    ("🔴 Merah",    "#ef4444",  "#3b82f6",  "#fbbf24",  "#a78bfa"),
+    ("🌿 Sage",     "#6db36d",  "#e07b39",  "#f0c030",  "#7b8fe0"),
 ]
 
 _FONT_OPTIONS = [
@@ -65,9 +65,9 @@ _FONT_IMPORT = {
     "Outfit":       "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap",
 }
 
-st.set_page_config(page_title="FPK Converter", page_icon="ðŸ“„", layout="wide")
+st.set_page_config(page_title="FPK Converter", page_icon="📄", layout="wide")
 
-# â”€â”€ SESSION STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── SESSION STATE ──────────────────────────────────────────────
 for _k, _v in {
     "logged_in": False, "dark_mode": True, "attempts": 0,
     "locked_until": None, "login_time": None,
@@ -92,7 +92,7 @@ for _k, _v in {
     if _k not in st.session_state:
         st.session_state[_k] = _v
 
-# â”€â”€ ACTIVE PALETTE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── ACTIVE PALETTE ─────────────────────────────────────────────
 def build_palette() -> dict:
     p  = derive_variants(st.session_state.c_primary)
     s  = derive_variants(st.session_state.c_secondary)
@@ -117,7 +117,7 @@ PRIMARY_COLOR = _PAL["primary"]
 SECONDARY     = _PAL["secondary"]
 ACCENT        = _PAL["accent"]
 
-# â”€â”€ CONFIG â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── CONFIG ──────────────────────────────────────────────────
 LOG_FILE  = "/tmp/log_konversi.json"
 API_URL   = "https://fpk-converter-api--isfanfajara.replit.app"
 
@@ -179,7 +179,7 @@ def unique_filename(base_filename: str, existing_names: set) -> str:
             return candidate
         counter += 1
 
-# â”€â”€ TELEGRAM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── TELEGRAM ──────────────────────────────────────────────────
 def get_tele_config():
     try:
         token   = str(st.secrets.get("TELEGRAM_TOKEN", ""))
@@ -197,19 +197,19 @@ def kirim_notif_telegram(entry: dict) -> tuple[bool, str]:
     if not token or not chat_id:
         return False, "Token/Chat ID belum dikonfigurasi"
     nom = f"Rp {entry['total']:,}".replace(",", ".")
-    jenis_label = f" Â· ðŸ“Œ {entry.get('jenis','Reguler')}" if entry.get('jenis') == 'Susulan' else ""
+    jenis_label = f" · 📌 {entry.get('jenis','Reguler')}" if entry.get('jenis') == 'Susulan' else ""
     msg = (
-        f"ðŸ“„ *FPK Converter â€” Konversi Berhasil*\n\n"
-        f"ðŸ¥ *File*: `{entry['nama_file']}`\n"
-        f"ðŸ”– *Tingkat*: {entry.get('tingkat','â€“')}{jenis_label}\n"
-        f"ðŸ”¢ *Jumlah SEP*: {entry['jumlah']:,}\n"
-        f"ðŸ’° *Total Nominal*: {nom}\n"
-        f"ðŸ•“ *Waktu*: {entry['waktu']}\n"
-        f"ðŸ“Š *Status*: {'âœ… Selesai' if entry.get('status')=='Selesai' else 'â³ Belum Diambil'}\n"
+        f"📄 *FPK Converter — Konversi Berhasil*\n\n"
+        f"🏥 *File*: `{entry['nama_file']}`\n"
+        f"🔖 *Tingkat*: {entry.get('tingkat','–')}{jenis_label}\n"
+        f"🔢 *Jumlah SEP*: {entry['jumlah']:,}\n"
+        f"💰 *Total Nominal*: {nom}\n"
+        f"🕓 *Waktu*: {entry['waktu']}\n"
+        f"📊 *Status*: {'✅ Selesai' if entry.get('status')=='Selesai' else '⏳ Belum Diambil'}\n"
     )
     keyboard = {
         "inline_keyboard": [
-            [{"text": "âœ… Tandai Selesai", "callback_data": f"done_{entry['nama_file']}"}],
+            [{"text": "✅ Tandai Selesai", "callback_data": f"done_{entry['nama_file']}"}],
         ]
     }
     try:
@@ -225,13 +225,13 @@ def kirim_notif_telegram(entry: dict) -> tuple[bool, str]:
         )
         if resp.ok:
             msg_id = resp.json().get("result", {}).get("message_id")
-            return True, "âœ… Notif terkirim ke Telegram", msg_id
-        return False, f"âŒ Gagal: {resp.json().get('description','unknown error')}", None
+            return True, "✅ Notif terkirim ke Telegram", msg_id
+        return False, f"❌ Gagal: {resp.json().get('description','unknown error')}", None
     except Exception as e:
-        return False, f"âŒ Error: {e}", None
+        return False, f"❌ Error: {e}", None
 
 def edit_notif_telegram(entry: dict) -> bool:
-    """Edit pesan Telegram yang sudah ada â€” update status jadi Selesai."""
+    """Edit pesan Telegram yang sudah ada — update status jadi Selesai."""
     token, chat_id = get_tele_config()
     if not token or not chat_id:
         return False
@@ -240,16 +240,16 @@ def edit_notif_telegram(entry: dict) -> bool:
         return False
     nom = f"Rp {entry['total']:,}".replace(",", ".")
     waktu_selesai = entry.get('waktu_selesai', now_wib().strftime("%d %b %Y, %H:%M") + " WIB")
-    jenis_label = f" Â· ðŸ“Œ {entry.get('jenis','Reguler')}" if entry.get('jenis') == 'Susulan' else ""
+    jenis_label = f" · 📌 {entry.get('jenis','Reguler')}" if entry.get('jenis') == 'Susulan' else ""
     msg = (
-        f"ðŸ“„ *FPK Converter â€” Konversi Berhasil*\n\n"
-        f"ðŸ¥ *File*: `{entry['nama_file']}`\n"
-        f"ðŸ”– *Tingkat*: {entry.get('tingkat','â€“')}{jenis_label}\n"
-        f"ðŸ”¢ *Jumlah SEP*: {entry['jumlah']:,}\n"
-        f"ðŸ’° *Total Nominal*: {nom}\n"
-        f"ðŸ•“ *Waktu*: {entry['waktu']}\n"
-        f"ðŸ“Š *Status*: âœ… Selesai\n"
-        f"ðŸ“¥ *Diambil*: {waktu_selesai}\n"
+        f"📄 *FPK Converter — Konversi Berhasil*\n\n"
+        f"🏥 *File*: `{entry['nama_file']}`\n"
+        f"🔖 *Tingkat*: {entry.get('tingkat','–')}{jenis_label}\n"
+        f"🔢 *Jumlah SEP*: {entry['jumlah']:,}\n"
+        f"💰 *Total Nominal*: {nom}\n"
+        f"🕓 *Waktu*: {entry['waktu']}\n"
+        f"📊 *Status*: ✅ Selesai\n"
+        f"📥 *Diambil*: {waktu_selesai}\n"
     )
     try:
         resp = requests.post(
@@ -280,16 +280,16 @@ def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
     rows = ""
     for i, x in enumerate(log_data[:20], 1):
         nom = f"Rp {x['total']:,}".replace(",",".")
-        st_icon = "âœ…" if x.get('status') == 'Selesai' else "â³"
-        rows += f"{i}. `{x['nama_file']}`\n   {st_icon} {x['jumlah']:,} SEP Â· {nom} Â· {x['waktu']}\n"
+        st_icon = "✅" if x.get('status') == 'Selesai' else "⏳"
+        rows += f"{i}. `{x['nama_file']}`\n   {st_icon} {x['jumlah']:,} SEP · {nom} · {x['waktu']}\n"
     if len(log_data) > 20:
         rows += f"\n_...dan {len(log_data)-20} lainnya_\n"
     msg = (
-        f"ðŸ“Š *Rekap FPK Converter*\n\n"
-        f"ðŸ“ Total file: *{len(log_data)}*\n"
-        f"âœ… Selesai: *{selesai}* Â· â³ Pending: *{len(log_data)-selesai}*\n"
-        f"ðŸ”¢ Total SEP: *{total_sep:,}*\n"
-        f"ðŸ’° Total Nominal: *{nom_fmt}*\n\n"
+        f"📊 *Rekap FPK Converter*\n\n"
+        f"📁 Total file: *{len(log_data)}*\n"
+        f"✅ Selesai: *{selesai}* · ⏳ Pending: *{len(log_data)-selesai}*\n"
+        f"🔢 Total SEP: *{total_sep:,}*\n"
+        f"💰 Total Nominal: *{nom_fmt}*\n\n"
         f"*Riwayat:*\n{rows}"
     )
     try:
@@ -299,12 +299,12 @@ def kirim_rekap_telegram(log_data: list) -> tuple[bool, str]:
             timeout=8
         )
         if resp.ok:
-            return True, "âœ… Rekap terkirim ke Telegram"
-        return False, f"âŒ Gagal: {resp.json().get('description','unknown error')}"
+            return True, "✅ Rekap terkirim ke Telegram"
+        return False, f"❌ Gagal: {resp.json().get('description','unknown error')}"
     except Exception as e:
-        return False, f"âŒ Error: {e}"
+        return False, f"❌ Error: {e}"
 
-# â”€â”€ AI CHAT (Groq) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── AI CHAT (Groq) ──────────────────────────────────────────────
 def get_groq_api_key() -> str:
     try:
         return str(st.secrets.get("GROQ_API_KEY", ""))
@@ -317,7 +317,7 @@ def claude_configured() -> bool:
 def chat_with_claude(history: list, log_data: list) -> str:
     api_key = get_groq_api_key()
     if not api_key:
-        return "âŒ GROQ_API_KEY belum dikonfigurasi. Daftar gratis di console.groq.com lalu tambahkan di Secrets."
+        return "❌ GROQ_API_KEY belum dikonfigurasi. Daftar gratis di console.groq.com lalu tambahkan di Secrets."
 
     log_summary = ""
     if log_data:
@@ -342,14 +342,14 @@ def chat_with_claude(history: list, log_data: list) -> str:
     system_prompt = (
         "Kamu adalah FPK Bot, asisten cerdas untuk aplikasi FPK Converter milik Isfan Fajar Anugrah. "
         "Aplikasi ini dipakai di RSUD Cilegon untuk konversi data klaim BPJS Kesehatan dari PDF ke CSV. "
-        "Alur kerja: petugas upload PDF FPK â†’ sistem ekstrak No.SEP dan nominal Disetujui â†’ output CSV. "
+        "Alur kerja: petugas upload PDF FPK → sistem ekstrak No.SEP dan nominal Disetujui → output CSV. "
         "Tingkat klaim: RITL (rawat inap tingkat lanjut) dan RJTL (rawat jalan tingkat lanjut). "
         "Jenis: Reguler (klaim normal) dan Susulan (klaim tambahan/perbaikan). "
         "Kamu paham konteks data konversi dan bisa menjawab pertanyaan tentang rekap, nominal, jumlah SEP, status pending. "
         "Kamu juga bisa diajak ngobrol santai, kasih motivasi Islami, atau bantu hal umum lainnya. "
         "Jawab pakai bahasa Indonesia yang ramah dan santai. "
         "Sesekali pakai kata Islami seperti Alhamdulillah, Insya Allah, Masya Allah. "
-        "Jawaban singkat dan padat â€” maksimal 3-4 kalimat kecuali ditanya detail spesifik."
+        "Jawaban singkat dan padat — maksimal 3-4 kalimat kecuali ditanya detail spesifik."
         + log_summary
     )
 
@@ -390,11 +390,11 @@ def chat_with_claude(history: list, log_data: list) -> str:
             err_detail = resp.json().get("error", {}).get("message", resp.text)
         except Exception:
             err_detail = resp.text
-        return f"âŒ Groq API error {resp.status_code}: {err_detail}"
+        return f"❌ Groq API error {resp.status_code}: {err_detail}"
     except Exception as e:
-        return f"âŒ Gagal menghubungi Groq: {e}"
+        return f"❌ Gagal menghubungi Groq: {e}"
 
-# â”€â”€ BOT COMMAND HANDLER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── BOT COMMAND HANDLER ────────────────────────────────────────
 _QUOTES = [
     'Sebaik-baik manusia adalah yang paling bermanfaat bagi orang lain. (HR. Thabrani)',
     'Barangsiapa yang beriman kepada Allah dan hari akhir, hendaklah ia berkata baik atau diam. (HR. Bukhari & Muslim)',
@@ -403,66 +403,66 @@ _QUOTES = [
 ]
 
 _JOKES = [
-    "Kenapa programmer FPK gak pernah sedih? Karena selalu ada try-catch ðŸ¤£",
-    "Orang IT kalau turun hujan? Nunggu koneksi stabil dulu ðŸ˜„",
-    "FPK Converter minta maaf ke PDF: 'Maaf ya, aku harus mengekstrak kamu' ðŸ˜‚",
+    "Kenapa programmer FPK gak pernah sedih? Karena selalu ada try-catch 🤣",
+    "Orang IT kalau turun hujan? Nunggu koneksi stabil dulu 😄",
+    "FPK Converter minta maaf ke PDF: 'Maaf ya, aku harus mengekstrak kamu' 😂",
 ]
 
 def handle_bot_command(text: str, log_data: list) -> str:
     text_lower = text.strip().lower()
 
     if "zizah" in text_lower:
-        return "Jangan di pikiran terus, doain aja yang terbaik buat dia ðŸ™âœ¨\nYang penting kamu tetap semangat dan sholat ya!"
+        return "Jangan di pikiran terus, doain aja yang terbaik buat dia 🙏✨\nYang penting kamu tetap semangat dan sholat ya!"
 
     if text_lower in ["assalamualaikum", "assalamu'alaikum", "salam"]:
-        return "Waalaikumsalam warahmatullahi wabarakatuh! ðŸ˜Š\nSemoga hari kakak penuh berkah dan dimudahkan segala urusan. Aamiin."
+        return "Waalaikumsalam warahmatullahi wabarakatuh! 😊\nSemoga hari kakak penuh berkah dan dimudahkan segala urusan. Aamiin."
 
     if any(k in text_lower for k in ["halo", "hai", "hey", "hello"]):
-        return "Halo kak! Senang ngobrol sama kakak ðŸ˜„\nKetik /help untuk lihat perintah, atau aktifkan Mode AI untuk chat cerdas!"
+        return "Halo kak! Senang ngobrol sama kakak 😄\nKetik /help untuk lihat perintah, atau aktifkan Mode AI untuk chat cerdas!"
 
     if any(k in text_lower for k in ["kabar", "gimana", "apa kabar"]):
-        return "Alhamdulillah, baik banget kak! ðŸ˜Š\nSemoga kakak juga selalu sehat dan bahagia ya."
+        return "Alhamdulillah, baik banget kak! 😊\nSemoga kakak juga selalu sehat dan bahagia ya."
 
     if text_lower in ["/quote", "quote"]:
         import random
-        return f"ðŸ“– *Kutipan Hari Ini*\n\n{random.choice(_QUOTES)}"
+        return f"📖 *Kutipan Hari Ini*\n\n{random.choice(_QUOTES)}"
 
     if text_lower in ["/joke", "joke"]:
         import random
-        return f"ðŸ˜‚ *Candaan Santai*\n\n{random.choice(_JOKES)}"
+        return f"😂 *Candaan Santai*\n\n{random.choice(_JOKES)}"
 
     if text_lower in ["/rekap", "rekap"]:
         if not log_data:
-            return "ðŸ“­ Belum ada data konversi."
+            return "📭 Belum ada data konversi."
         total_nom = sum(x['total'] for x in log_data)
         total_sep = sum(x['jumlah'] for x in log_data)
         selesai   = sum(1 for x in log_data if x.get('status') == 'Selesai')
         nom_fmt   = f"Rp {total_nom:,}".replace(",", ".")
         return (
-            f"ðŸ“Š *Rekap FPK Converter*\n\n"
-            f"ðŸ“ Total file: *{len(log_data)}*\n"
-            f"âœ… Selesai: *{selesai}* Â· â³ Pending: *{len(log_data)-selesai}*\n"
-            f"ðŸ”¢ Total SEP: *{total_sep:,}*\n"
-            f"ðŸ’° Total Nominal: *{nom_fmt}*"
+            f"📊 *Rekap FPK Converter*\n\n"
+            f"📁 Total file: *{len(log_data)}*\n"
+            f"✅ Selesai: *{selesai}* · ⏳ Pending: *{len(log_data)-selesai}*\n"
+            f"🔢 Total SEP: *{total_sep:,}*\n"
+            f"💰 Total Nominal: *{nom_fmt}*"
         )
 
     if text_lower in ["/riwayat", "riwayat"]:
         if not log_data:
-            return "ðŸ“­ Belum ada riwayat."
+            return "📭 Belum ada riwayat."
         rows = ""
         for i, x in enumerate(log_data[:10], 1):
             nom = f"Rp {x['total']:,}".replace(",",".")
-            st_icon = "âœ…" if x.get('status') == 'Selesai' else "â³"
-            rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP Â· {nom}\n\n"
-        return f"ðŸ“‹ *10 Konversi Terakhir*\n\n{rows}"
+            st_icon = "✅" if x.get('status') == 'Selesai' else "⏳"
+            rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP · {nom}\n\n"
+        return f"📋 *10 Konversi Terakhir*\n\n{rows}"
 
     if text_lower in ["/total", "total"]:
         if not log_data:
-            return "ðŸ“­ Belum ada data."
+            return "📭 Belum ada data."
         total_nom = sum(x['total'] for x in log_data)
         total_sep = sum(x['jumlah'] for x in log_data)
         return (
-            f"ðŸ’° *Total Keseluruhan*\n\n"
+            f"💰 *Total Keseluruhan*\n\n"
             f"Nominal: *Rp {total_nom:,}*\n"
             f"SEP: *{total_sep:,}*\n"
             f"File: *{len(log_data)}*"
@@ -471,22 +471,22 @@ def handle_bot_command(text: str, log_data: list) -> str:
     if text_lower in ["/pending", "pending"]:
         pending = [x for x in log_data if x.get('status') != 'Selesai']
         if not pending:
-            return "âœ… Semua file sudah diambil!"
+            return "✅ Semua file sudah diambil!"
         rows = ""
         for i, x in enumerate(pending, 1):
             nom = f"Rp {x['total']:,}".replace(",",".")
-            rows += f"{i}. `{x['nama_file']}`\n   {x['jumlah']:,} SEP Â· {nom}\n\n"
-        return f"â³ *{len(pending)} File Belum Diambil*\n\n{rows}"
+            rows += f"{i}. `{x['nama_file']}`\n   {x['jumlah']:,} SEP · {nom}\n\n"
+        return f"⏳ *{len(pending)} File Belum Diambil*\n\n{rows}"
 
     if text_lower in ["/top", "top"]:
         if not log_data:
-            return "ðŸ“­ Belum ada data."
+            return "📭 Belum ada data."
         sorted_data = sorted(log_data, key=lambda x: x['total'], reverse=True)[:5]
         rows = ""
         for i, x in enumerate(sorted_data, 1):
             nom = f"Rp {x['total']:,}".replace(",", ".")
-            rows += f"{i}. `{x['nama_file']}` â†’ {nom}\n"
-        return f"ðŸ† *Top 5 Konversi Terbesar*\n\n{rows}"
+            rows += f"{i}. `{x['nama_file']}` → {nom}\n"
+        return f"🏆 *Top 5 Konversi Terbesar*\n\n{rows}"
 
     if text_lower.startswith("/cari ") or text_lower.startswith("cari "):
         keyword = text.split(" ", 1)[1].strip().lower()
@@ -494,35 +494,35 @@ def handle_bot_command(text: str, log_data: list) -> str:
                  or keyword in x.get('waktu','').lower()
                  or keyword in x.get('tingkat','').lower()]
         if not hasil:
-            return f"ðŸ” Tidak ada hasil untuk *{keyword}*"
+            return f"🔍 Tidak ada hasil untuk *{keyword}*"
         rows = ""
         for i, x in enumerate(hasil[:10], 1):
             nom = f"Rp {x['total']:,}".replace(",",".")
-            st_icon = "âœ…" if x.get('status') == 'Selesai' else "â³"
-            rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP Â· {nom}\n\n"
-        return f"ðŸ” *Hasil cari '{keyword}'* ({len(hasil)} ditemukan)\n\n{rows}"
+            st_icon = "✅" if x.get('status') == 'Selesai' else "⏳"
+            rows += f"{i}. `{x['nama_file']}` {st_icon}\n   {x['jumlah']:,} SEP · {nom}\n\n"
+        return f"🔍 *Hasil cari '{keyword}'* ({len(hasil)} ditemukan)\n\n{rows}"
 
     if text_lower in ["/help", "help", "bantuan"]:
         return (
-            "ðŸ¤– *FPK Bot â€” Asisten Konversi*\n\n"
-            "ðŸ“Œ *Perintah:*\n"
-            "`/rekap`   â†’ Ringkasan konversi\n"
-            "`/riwayat` â†’ 10 konversi terakhir\n"
-            "`/total`   â†’ Total nominal & SEP\n"
-            "`/pending` â†’ File belum diambil\n"
-            "`/top`     â†’ Top 5 terbesar\n"
-            "`/cari <kata>` â†’ Cari file\n"
-            "`/quote`   â†’ Kutipan islami\n"
-            "`/joke`    â†’ Candaan santai\n\n"
-            "ðŸ’¡ Aktifkan *Mode AI* untuk chat cerdas!"
+            "🤖 *FPK Bot — Asisten Konversi*\n\n"
+            "📌 *Perintah:*\n"
+            "`/rekap`   → Ringkasan konversi\n"
+            "`/riwayat` → 10 konversi terakhir\n"
+            "`/total`   → Total nominal & SEP\n"
+            "`/pending` → File belum diambil\n"
+            "`/top`     → Top 5 terbesar\n"
+            "`/cari <kata>` → Cari file\n"
+            "`/quote`   → Kutipan islami\n"
+            "`/joke`    → Candaan santai\n\n"
+            "💡 Aktifkan *Mode AI* untuk chat cerdas!"
         )
 
     return (
-        "Maaf kak, belum paham ðŸ˜…\n"
+        "Maaf kak, belum paham 😅\n"
         "Ketik `/help` untuk lihat perintah, atau aktifkan **Mode AI** untuk chat bebas!"
     )
 
-# â”€â”€ PIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── PIN ─────────────────────────────────────────────────────
 MAX_ATTEMPT = 5
 LOCKOUT_MIN = 5
 
@@ -538,7 +538,7 @@ def check_pin(input_pin):
     if locked_until:
         if now_wib() < locked_until:
             sisa = int((locked_until - now_wib()).total_seconds() // 60) + 1
-            return False, f"ðŸ”’ Terlalu banyak percobaan. Coba lagi dalam **{sisa} menit**."
+            return False, f"🔒 Terlalu banyak percobaan. Coba lagi dalam **{sisa} menit**."
         else:
             st.session_state.attempts = 0
             st.session_state.locked_until = None
@@ -551,10 +551,10 @@ def check_pin(input_pin):
         sisa_attempt = MAX_ATTEMPT - st.session_state.attempts
         if st.session_state.attempts >= MAX_ATTEMPT:
             st.session_state.locked_until = now_wib() + timedelta(minutes=LOCKOUT_MIN)
-            return False, f"ðŸ”’ PIN salah {MAX_ATTEMPT}x. Dikunci selama **{LOCKOUT_MIN} menit**."
-        return False, f"âŒ PIN salah. Sisa percobaan: **{sisa_attempt}x**."
+            return False, f"🔒 PIN salah {MAX_ATTEMPT}x. Dikunci selama **{LOCKOUT_MIN} menit**."
+        return False, f"❌ PIN salah. Sisa percobaan: **{sisa_attempt}x**."
 
-# â”€â”€ CSS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── CSS ─────────────────────────────────────────────────────
 def inject_css(dark):
     c_bg      = st.session_state.get("c_bg", "")
     c_navbar  = st.session_state.get("c_navbar", "")
@@ -581,7 +581,7 @@ def inject_css(dark):
         input_col   = "#f0f0f0"
         label_col   = "#888888"
         shadow      = "rgba(0,0,0,0.7)"
-        toggle_icon = "â˜€ï¸"
+        toggle_icon = "☀️"
         toggle_tip  = "Mode Terang"
         log_bg      = c_sidebar or "#141414"
         log_border  = "#242424"
@@ -612,7 +612,7 @@ def inject_css(dark):
         input_col   = "#1a1a1a"
         label_col   = "#666666"
         shadow      = "rgba(0,0,0,0.07)"
-        toggle_icon = "ðŸŒ™"
+        toggle_icon = "🌙"
         toggle_tip  = "Mode Gelap"
         log_bg      = c_sidebar or "#ffffff"
         log_border  = "#e0ddd8"
@@ -973,7 +973,7 @@ def inject_css(dark):
     </style>
     """, unsafe_allow_html=True)
 
-# â”€â”€ LOGIN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── LOGIN ────────────────────────────────────────────────────
 if st.session_state.logged_in:
     login_time = st.session_state.get("login_time")
     if login_time:
@@ -987,14 +987,14 @@ if not st.session_state.logged_in:
     inject_css(st.session_state.dark_mode)
     col_empty, col_theme_login = st.columns([8, 1])
     with col_theme_login:
-        icon = "â˜€ï¸" if st.session_state.dark_mode else "ðŸŒ™"
+        icon = "☀️" if st.session_state.dark_mode else "🌙"
         if st.button(icon, help="Ganti tema", key="login_theme_toggle"):
             st.session_state.dark_mode = not st.session_state.dark_mode
             st.rerun()
     st.markdown("""
     <div style="text-align:center;padding:2rem 0 1rem;">
         <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;letter-spacing:3px;opacity:0.4;margin-bottom:1rem;">FPK CONVERTER</div>
-        <div style="font-size:2.5rem;margin-bottom:0.5rem;">ðŸ”</div>
+        <div style="font-size:2.5rem;margin-bottom:0.5rem;">🔐</div>
         <h2 style="margin:0 0 0.25rem;">Selamat Datang</h2>
         <p style="opacity:0.5;font-size:0.85rem;">Masukkan PIN untuk melanjutkan</p>
     </div>
@@ -1002,8 +1002,8 @@ if not st.session_state.logged_in:
 
     with st.container():
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        pin = st.text_input("", type="password", key="login_pin", placeholder="â— â— â— â—", label_visibility="collapsed")
-        if st.button("Masuk â†’", key="login_btn", use_container_width=True):
+        pin = st.text_input("", type="password", key="login_pin", placeholder="● ● ● ●", label_visibility="collapsed")
+        if st.button("Masuk →", key="login_btn", use_container_width=True):
             if pin:
                 ok, msg = check_pin(pin)
                 if ok:
@@ -1017,7 +1017,7 @@ if not st.session_state.logged_in:
         st.markdown('</div>', unsafe_allow_html=True)
 
     # Tombol biometrik
-    if st.button("â˜ï¸ Sidik Jari / Face ID", key="bio_login", use_container_width=True):
+    if st.button("☝️ Sidik Jari / Face ID", key="bio_login", use_container_width=True):
         import streamlit.components.v1 as _comp
         bio_js = """
         <script>
@@ -1084,10 +1084,10 @@ if not st.session_state.logged_in:
         """
         _comp.html(bio_js, height=0)
 
-    st.markdown('<div style="text-align:center;margin-top:0.5rem;"><span style="font-family:JetBrains Mono,monospace;font-size:0.62rem;opacity:0.35;">v1.0 Â· privasi terlindungi</span></div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center;margin-top:0.5rem;"><span style="font-family:JetBrains Mono,monospace;font-size:0.62rem;opacity:0.35;">v1.0 · privasi terlindungi</span></div>', unsafe_allow_html=True)
     st.stop()
 
-# â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── HELPERS ──────────────────────────────────────────────────
 def panggil_api_proses(uf, timeout=60):
     endpoint = f"{API_URL}/api/proses"
     files = {"file": (uf.name, uf.getvalue(), "application/pdf")}
@@ -1129,18 +1129,18 @@ def panggil_api_proses(uf, timeout=60):
 def render_result(res, idx=0):
     tingkat = res['tingkat']
     t_lower = tingkat.lower()
-    t_label = ("ðŸ¥ Rawat Inap (RITL)" if tingkat == "RITL"
-               else "ðŸƒ Rawat Jalan (RJTL)" if tingkat == "RJTL" else tingkat)
+    t_label = ("🏥 Rawat Inap (RITL)" if tingkat == "RITL"
+               else "🏃 Rawat Jalan (RJTL)" if tingkat == "RJTL" else tingkat)
     total_rp = f"Rp {res['total']:,.0f}".replace(",", ".")
     jenis = res.get('jenis', 'Reguler')
-    jenis_badge = '<span style="background:#fef3c7;border:1.5px solid #f59e0b;color:#92400e;padding:2px 10px;border-radius:40px;font-size:0.58rem;font-weight:800;">ðŸ“Œ Susulan</span>' if jenis == "Susulan" else ""
+    jenis_badge = '<span style="background:#fef3c7;border:1.5px solid #f59e0b;color:#92400e;padding:2px 10px;border-radius:40px;font-size:0.58rem;font-weight:800;">📌 Susulan</span>' if jenis == "Susulan" else ""
     _dark = st.session_state.get('dark_mode', True)
     surf = "#1a1a1a" if _dark else "#ffffff"
     bdr  = "#2a2a2a" if _dark else "#e0ddd8"
     shadow = "rgba(0,0,0,0.5)" if _dark else "rgba(0,0,0,0.06)"
 
     st.markdown(
-        f'<div style="display:inline-flex;align-items:center;gap:8px;background:{surf};border:1px solid {bdr};border-radius:40px;padding:6px 18px;font-size:0.8rem;font-weight:600;font-family:JetBrains Mono,monospace;box-shadow:0 2px 12px {shadow};">ðŸ“„ {res["filename"]} {jenis_badge}</div>',
+        f'<div style="display:inline-flex;align-items:center;gap:8px;background:{surf};border:1px solid {bdr};border-radius:40px;padding:6px 18px;font-size:0.8rem;font-weight:600;font-family:JetBrains Mono,monospace;box-shadow:0 2px 12px {shadow};">📄 {res["filename"]} {jenis_badge}</div>',
         unsafe_allow_html=True
     )
     col1, col2 = st.columns(2)
@@ -1151,7 +1151,7 @@ def render_result(res, idx=0):
     st.markdown(f'<div class="bento"><div class="label">Tingkat Pelayanan</div><div class="tingkat-badge {t_lower}">{t_label}</div><div class="sub" style="margin-top:0.5rem;">terdeteksi otomatis dari PDF</div></div>', unsafe_allow_html=True)
     st.divider()
 
-    tab_preview, tab_json = st.tabs(["ðŸ“Š Preview Data", "ðŸ“¦ JSON Mentah"])
+    tab_preview, tab_json = st.tabs(["📊 Preview Data", "📦 JSON Mentah"])
     with tab_preview:
         df_prev = res['df'].copy()
         df_prev.insert(0, 'No', range(1, 1 + len(df_prev)))
@@ -1174,17 +1174,17 @@ def render_result(res, idx=0):
 
     dup = res['df'][res['df']['No.SEP'].duplicated(keep=False)]
     if not dup.empty:
-        st.warning(f"âš ï¸ **{len(dup['No.SEP'].unique())} No.SEP duplikat ditemukan**")
+        st.warning(f"⚠️ **{len(dup['No.SEP'].unique())} No.SEP duplikat ditemukan**")
 
     st.divider()
     col1, col2 = st.columns([3, 1])
     with col1:
         csv = res['df'].to_csv(index=False).encode('utf-8')
-        downloaded = st.download_button(label="â¬‡ Download CSV", data=csv,
+        downloaded = st.download_button(label="⬇ Download CSV", data=csv,
             file_name=res['filename'], mime="text/csv", key=f"dl_{idx}")
         if downloaded:
             update_log_status(res['filename'], 'Selesai')
-            st.toast("âœ… CSV didownload & status diperbarui!", icon="âœ…")
+            st.toast("✅ CSV didownload & status diperbarui!", icon="✅")
             st.rerun()
     with col2:
         if st.button("Reset", key=f"reset_{idx}"):
@@ -1207,7 +1207,7 @@ def animasi_terminal_proses(uf, dark: bool):
     def render(lines, done=False):
         visible = lines[-60:]
         inner = "".join(f'<div style="margin:0 0 1px 0;line-height:1.6;">{l}</div>' for l in visible)
-        dot = f'<span style="color:{grn};">â—</span>' if not done else f'<span style="color:{acc};">âœ“</span>'
+        dot = f'<span style="color:{grn};">●</span>' if not done else f'<span style="color:{acc};">✓</span>'
         label = "LIVE" if not done else "DONE"
         label_col = grn if not done else acc
         term.markdown(f"""
@@ -1218,7 +1218,7 @@ def animasi_terminal_proses(uf, dark: bool):
                         border-bottom:1px solid {bdr_pnl};padding-bottom:0.35rem;margin-bottom:0.6rem;
                         display:flex;align-items:center;gap:6px;">
                 {dot}&nbsp;API RESPONSE
-                <span style="color:{label_col};margin-left:4px;">Â· {label}</span>
+                <span style="color:{label_col};margin-left:4px;">· {label}</span>
             </div>
             <div style="overflow-y:auto;height:280px;scrollbar-width:thin;" id="term-out">
                 {inner}
@@ -1255,7 +1255,7 @@ def animasi_terminal_proses(uf, dark: bool):
     sep_list = df_res[["No.SEP", "Disetujui"]].to_dict(orient="records")
     row_count = max(1, jumlah)
 
-    lines[-1] = ln(f'  status : 200 OK Â· {lat_ms}ms', grn)
+    lines[-1] = ln(f'  status : 200 OK · {lat_ms}ms', grn)
     lines.append(ln(f'  tingkat: {tingkat}', pur))
     lines.append(ln(f'  jumlah : {jumlah} SEP', grn))
     lines.append(ln(f'  proc   : {proc_ms}ms', acc))
@@ -1353,9 +1353,9 @@ def build_chart(log_data):
         rows.append(row)
     return pd.DataFrame(rows).set_index('Periode')
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════
 # HALAMAN UTAMA
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════
 
 log_data_for_hero = load_log()
 _total_konversi = len(log_data_for_hero)
@@ -1370,7 +1370,7 @@ SECONDARY     = _PAL["secondary"]
 ACCENT        = _PAL["accent"]
 inject_css(st.session_state.dark_mode)
 
-# â”€â”€ TOP NAV â”€â”€
+# ── TOP NAV ──
 st.markdown("""
 <div class="top-nav">
     <div class="top-nav-logo"><span>FPK CONVERTER</span></div>
@@ -1380,39 +1380,39 @@ st.markdown("""
 col_sp_nav, col_theme_nav, col_paint_nav, col_pin_nav, col_logout_nav = st.columns([4, 1, 1, 1, 1])
 with col_theme_nav:
     st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
-    icon = st.session_state.get('_toggle_icon', 'â˜€ï¸')
+    icon = st.session_state.get('_toggle_icon', '☀️')
     if st.button(icon, help=st.session_state.get('_toggle_tip', 'Ganti tema'), key="theme_toggle"):
         st.session_state.dark_mode = not st.session_state.dark_mode
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 with col_paint_nav:
     st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
-    if st.button("ðŸŽ¨", help="Kustomisasi tampilan", key="open_theme"):
+    if st.button("🎨", help="Kustomisasi tampilan", key="open_theme"):
         st.session_state.show_theme_panel = not st.session_state.get("show_theme_panel", False)
         st.session_state.show_pin_form = False
     st.markdown('</div>', unsafe_allow_html=True)
 with col_pin_nav:
     st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
-    if st.button("ðŸ”‘", help="Ganti PIN", key="open_pin"):
+    if st.button("🔑", help="Ganti PIN", key="open_pin"):
         st.session_state.show_pin_form = not st.session_state.get("show_pin_form", False)
         st.session_state.show_theme_panel = False
     st.markdown('</div>', unsafe_allow_html=True)
 with col_logout_nav:
     st.markdown('<div class="icon-btn-wrap">', unsafe_allow_html=True)
-    if st.button("ðŸšª", help="Keluar", key="logout_btn"):
+    if st.button("🚪", help="Keluar", key="logout_btn"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
-# â”€â”€ PANEL TEMA â”€â”€
+# ── PANEL TEMA ──
 if st.session_state.get("show_theme_panel"):
     _dark_p = st.session_state.dark_mode
     _bdr_p  = "#2a2a2a" if _dark_p else "#e4e2dd"
     _txt_p  = "#f0f0f0" if _dark_p else "#1a1a1a"
     _mut_p  = "#666"    if _dark_p else "#888"
 
-    tab_warna, tab_section, tab_font = st.tabs(["ðŸŽ¨ Warna", "ðŸ–¼ Section", "ðŸ”¤ Font"])
+    tab_warna, tab_section, tab_font = st.tabs(["🎨 Warna", "🖼 Section", "🔤 Font"])
 
     with tab_warna:
         st.markdown(f'<div style="font-size:0.68rem;font-weight:700;color:{_mut_p};margin:0.5rem 0 0.4rem;border-left:3px solid {PRIMARY_COLOR};padding-left:8px;">Custom 4 Warna Utama</div>', unsafe_allow_html=True)
@@ -1432,14 +1432,14 @@ if st.session_state.get("show_theme_panel"):
 
         ba, bb = st.columns([3, 1])
         with ba:
-            if st.button("âœ… Terapkan Warna", key="apply_color", use_container_width=True):
+            if st.button("✅ Terapkan Warna", key="apply_color", use_container_width=True):
                 st.session_state.c_primary   = new_p
                 st.session_state.c_secondary = new_s
                 st.session_state.c_accent    = new_a
                 st.session_state.c_purple    = new_pu
                 st.rerun()
         with bb:
-            if st.button("â†º Reset", key="reset_color", use_container_width=True):
+            if st.button("↺ Reset", key="reset_color", use_container_width=True):
                 st.session_state.c_primary   = "#ff6b35"
                 st.session_state.c_secondary = "#00c47a"
                 st.session_state.c_accent    = "#ffd700"
@@ -1450,34 +1450,34 @@ if st.session_state.get("show_theme_panel"):
         st.caption("Kosongkan untuk ikut tema dark/light otomatis")
         sc1, sc2 = st.columns(2)
         with sc1:
-            st.caption("ðŸ–¼ Background")
+            st.caption("🖼 Background")
             new_bg = st.color_picker("", st.session_state.c_bg or "#0a0a0a", key="pick_bg", label_visibility="collapsed")
             use_bg = st.checkbox("Aktifkan", value=bool(st.session_state.c_bg), key="use_bg")
 
-            st.caption("ðŸ” Navbar/Surface")
+            st.caption("🔝 Navbar/Surface")
             new_nb = st.color_picker("", st.session_state.c_navbar or "#141414", key="pick_nb", label_visibility="collapsed")
             use_nb = st.checkbox("Aktifkan", value=bool(st.session_state.c_navbar), key="use_nb")
 
-            st.caption("ðŸ“‹ Sidebar/Log")
+            st.caption("📋 Sidebar/Log")
             new_sb = st.color_picker("", st.session_state.c_sidebar or "#141414", key="pick_sb", label_visibility="collapsed")
             use_sb = st.checkbox("Aktifkan", value=bool(st.session_state.c_sidebar), key="use_sb")
 
         with sc2:
-            st.caption("ðŸ¦¸ Header/Hero")
+            st.caption("🦸 Header/Hero")
             new_hd = st.color_picker("", st.session_state.c_header or "#141414", key="pick_hd", label_visibility="collapsed")
             use_hd = st.checkbox("Aktifkan", value=bool(st.session_state.c_header), key="use_hd")
 
-            st.caption("ðŸ‘£ Footer BG")
+            st.caption("👣 Footer BG")
             new_ft = st.color_picker("", st.session_state.c_footer or "#0a0a0a", key="pick_ft", label_visibility="collapsed")
             use_ft = st.checkbox("Aktifkan", value=bool(st.session_state.c_footer), key="use_ft")
 
-            st.caption("ðŸ‘£ Footer Text")
+            st.caption("👣 Footer Text")
             new_ft_txt = st.color_picker("", st.session_state.c_footer_txt or "#888888", key="pick_ft_txt", label_visibility="collapsed")
             use_ft_txt = st.checkbox("Aktifkan", value=bool(st.session_state.c_footer_txt), key="use_ft_txt")
 
         sc_a, sc_b = st.columns([3, 1])
         with sc_a:
-            if st.button("âœ… Terapkan Section", key="apply_section", use_container_width=True):
+            if st.button("✅ Terapkan Section", key="apply_section", use_container_width=True):
                 st.session_state.c_bg        = new_bg  if use_bg  else ""
                 st.session_state.c_navbar    = new_nb  if use_nb  else ""
                 st.session_state.c_sidebar   = new_sb  if use_sb  else ""
@@ -1486,7 +1486,7 @@ if st.session_state.get("show_theme_panel"):
                 st.session_state.c_footer_txt= new_ft_txt if use_ft_txt else ""
                 st.rerun()
         with sc_b:
-            if st.button("â†º Reset", key="reset_section", use_container_width=True):
+            if st.button("↺ Reset", key="reset_section", use_container_width=True):
                 for k in ["c_bg","c_navbar","c_sidebar","c_header","c_footer","c_footer_txt"]:
                     st.session_state[k] = ""
                 st.rerun()
@@ -1503,15 +1503,15 @@ if st.session_state.get("show_theme_panel"):
                     st.session_state.font_body = fname
                     st.rerun()
 
-# â”€â”€ PANEL PIN â”€â”€
+# ── PANEL PIN ──
 if st.session_state.get("show_pin_form"):
-    with st.expander("ðŸ”‘ Ganti PIN", expanded=True):
-        st.info("ðŸ’¡ Ubah nilai **PIN** di **Streamlit Cloud â†’ Settings â†’ Secrets**, lalu klik **Reboot app**.")
+    with st.expander("🔑 Ganti PIN", expanded=True):
+        st.info("💡 Ubah nilai **PIN** di **Streamlit Cloud → Settings → Secrets**, lalu klik **Reboot app**.")
 
-# â”€â”€ HERO CARD â”€â”€
+# ── HERO CARD ──
 st.markdown(f"""
 <div class="hero-card">
-    <div class="hero-label">FPK Converter Â· v1.0</div>
+    <div class="hero-label">FPK Converter · v1.0</div>
     <div class="hero-title">FPK <span>Converter</span></div>
     <div class="hero-sub">Konversi data klaim BPJS Kesehatan ke CSV</div>
     <div class="hero-stats">
@@ -1535,16 +1535,16 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# â”€â”€ 3 TABS â”€â”€
-tab_pdf, tab_csv, tab_pengaturan = st.tabs(["ðŸ“„ Konversi PDF â†’ CSV", "ðŸ§® Kalkulator CSV", "ðŸ” Pengaturan"])
+# ── 3 TABS ──
+tab_pdf, tab_csv, tab_pengaturan = st.tabs(["📄 Konversi PDF → CSV", "🧮 Kalkulator CSV", "🔐 Pengaturan"])
 
 with tab_pdf:
     if _api_status == "ok":
-        st.caption(f"ðŸŸ¢ Backend API aktif di `{API_URL}`")
+        st.caption(f"🟢 Backend API aktif di `{API_URL}`")
     else:
-        st.error(f"âš ï¸ Backend API tidak bisa dihubungi: {_api_error}")
+        st.error(f"⚠️ Backend API tidak bisa dihubungi: {_api_error}")
         st.caption(
-            "Kalau ini deployment Replit, kemungkinan app-nya lagi sleep â€” "
+            "Kalau ini deployment Replit, kemungkinan app-nya lagi sleep — "
             "buka link API-nya langsung di tab baru dulu buat 'membangunkan', lalu refresh halaman ini."
         )
 
@@ -1560,16 +1560,16 @@ with tab_pdf:
             key="toggle_demo_mode", label_visibility="collapsed"
         )
     with col_demo_label:
-        st.markdown(f'<div style="font-size:0.85rem;font-weight:700;padding-top:2px;">ðŸŽ­ Mode Demo {"â€” AKTIF" if st.session_state.demo_mode else ""}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:0.85rem;font-weight:700;padding-top:2px;">🎭 Mode Demo {"— AKTIF" if st.session_state.demo_mode else ""}</div>', unsafe_allow_html=True)
 
     if st.session_state.demo_mode:
         st.markdown(
             f'<div style="background:{_demo_bg};border:1px solid {_demo_bdr};border-radius:14px;'
             f'padding:0.9rem 1.1rem;margin:0.5rem 0 1rem;font-size:0.8rem;color:{_demo_txt};">'
-            f'âš ï¸ <b>Mode Demo aktif.</b> Data fiktif/acak untuk simulasi.</div>',
+            f'⚠️ <b>Mode Demo aktif.</b> Data fiktif/acak untuk simulasi.</div>',
             unsafe_allow_html=True
         )
-        with st.expander("âš™ï¸ Generator PDF Dummy", expanded=(st.session_state.demo_pdf_bytes is None)):
+        with st.expander("⚙️ Generator PDF Dummy", expanded=(st.session_state.demo_pdf_bytes is None)):
             colg1, colg2, colg3 = st.columns(3)
             with colg1:
                 gen_bulan = st.selectbox("Bulan", ["(acak)"] + BULAN_LIST, index=0, key="gen_bulan")
@@ -1578,7 +1578,7 @@ with tab_pdf:
             with colg3:
                 gen_tingkat = st.selectbox("Tingkat", ["(acak)"] + TINGKAT_LIST, index=0, key="gen_tingkat")
             gen_jumlah = st.slider("Jumlah baris SEP", min_value=2, max_value=30, value=8, key="gen_jumlah")
-            if st.button("ðŸŽ² Generate PDF Dummy", use_container_width=True, key="btn_gen_dummy"):
+            if st.button("🎲 Generate PDF Dummy", use_container_width=True, key="btn_gen_dummy"):
                 tmp_out = "/tmp/_demo_fpk_dummy.pdf"
                 info = build_dummy_fpk_pdf(
                     tmp_out,
@@ -1594,9 +1594,9 @@ with tab_pdf:
             if st.session_state.demo_pdf_bytes:
                 info = st.session_state.demo_pdf_info
                 total_fmt = f"Rp {info['total_disetujui']:,}".replace(",", ".")
-                st.success(f"âœ… PDF dummy siap â€” {info['tingkat']} Â· {info['bulan'].capitalize()} {info['tahun']} Â· {info['jumlah_baris']} SEP")
+                st.success(f"✅ PDF dummy siap — {info['tingkat']} · {info['bulan'].capitalize()} {info['tahun']} · {info['jumlah_baris']} SEP")
                 fname_demo = f"DUMMY_FPK_{info['tingkat']}_{info['bulan'].upper()}_{info['tahun']}.pdf"
-                st.download_button("â¬‡ Download PDF Dummy", data=st.session_state.demo_pdf_bytes,
+                st.download_button("⬇ Download PDF Dummy", data=st.session_state.demo_pdf_bytes,
                     file_name=fname_demo, mime="application/pdf",
                     use_container_width=True, key="dl_demo_pdf")
         st.divider()
@@ -1616,7 +1616,7 @@ with tab_pdf:
             _dark = st.session_state.get('dark_mode', True)
             for i, uf in enumerate(uploaded_files):
                 if total_f > 1:
-                    st.markdown(f'<div style="font-family:JetBrains Mono,monospace;font-size:0.75rem;color:#888;margin-bottom:4px;">FILE {i+1}/{total_f} â€” {uf.name}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div style="font-family:JetBrains Mono,monospace;font-size:0.75rem;color:#888;margin-bottom:4px;">FILE {i+1}/{total_f} — {uf.name}</div>', unsafe_allow_html=True)
                 try:
                     payload, df_res, req_meta, resp_meta = animasi_terminal_proses(uf, dark=_dark)
                     filename = payload['filename']
@@ -1656,9 +1656,9 @@ with tab_pdf:
                                 json.dump(log[:100], f, ensure_ascii=False, indent=2)
                 except RuntimeError as e:
                     msg = e.args[0] if e.args else str(e)
-                    errors.append(f"âŒ {uf.name}: {msg}")
+                    errors.append(f"❌ {uf.name}: {msg}")
                 except Exception as e:
-                    errors.append(f"âŒ {uf.name}: {e}")
+                    errors.append(f"❌ {uf.name}: {e}")
             st.session_state.results = results
             st.session_state.errors  = errors
             st.session_state.show_done = True
@@ -1674,14 +1674,14 @@ with tab_pdf:
             total_sep = sum(r['count'] for r in results)
             total_nom = sum(r['total'] for r in results)
             nom_fmt   = f"Rp {total_nom:,}".replace(",", ".")
-            st.success(f"âœ… {len(results)} file berhasil diproses â€” {total_sep} SEP â€” {nom_fmt}")
+            st.success(f"✅ {len(results)} file berhasil diproses — {total_sep} SEP — {nom_fmt}")
 
     if st.session_state.get('results'):
         results = st.session_state.results
         if len(results) == 1:
             render_result(results[0], idx=0)
         else:
-            tab_labels = [f"{'ðŸ¥' if r['tingkat']=='RITL' else 'ðŸƒ'} {r['tingkat']}" for r in results]
+            tab_labels = [f"{'🏥' if r['tingkat']=='RITL' else '🏃'} {r['tingkat']}" for r in results]
             tabs_hasil = st.tabs(tab_labels)
             for i, (tab_h, res) in enumerate(zip(tabs_hasil, results)):
                 with tab_h:
@@ -1707,7 +1707,7 @@ with tab_csv:
                 df_c = pd.read_csv(cf)
                 col_d = next((c for c in df_c.columns if 'disetujui' in c.lower()), None)
                 if col_d is None:
-                    st.warning(f"âš ï¸ {cf.name}: kolom 'Disetujui' tidak ditemukan.")
+                    st.warning(f"⚠️ {cf.name}: kolom 'Disetujui' tidak ditemukan.")
                     continue
                 df_c[col_d] = pd.to_numeric(df_c[col_d].astype(str).str.replace(r'[^0-9]', '', regex=True), errors='coerce').fillna(0)
                 subtotal = int(df_c[col_d].sum())
@@ -1715,7 +1715,7 @@ with tab_csv:
                 total_grand   += subtotal
                 total_sep_csv += len(df_c)
             except Exception as e:
-                st.error(f"âŒ {cf.name}: {e}")
+                st.error(f"❌ {cf.name}: {e}")
         if rows_per_file:
             grand_fmt = f"Rp {total_grand:,.0f}".replace(",", ".")
             st.markdown(f"""
@@ -1737,7 +1737,7 @@ with tab_csv:
             for r in rows_per_file:
                 st.markdown(f"""
                 <div style="background:{_surf_c};border:1px solid {_bdr_c};border-radius:16px;padding:0.75rem 1.2rem;margin-bottom:0.5rem;font-family:'JetBrains Mono',monospace;">
-                    <div style="font-weight:700;color:{_txt_c};word-break:break-all;overflow-wrap:anywhere;">ðŸ“„ {r['nama']}</div>
+                    <div style="font-weight:700;color:{_txt_c};word-break:break-all;overflow-wrap:anywhere;">📄 {r['nama']}</div>
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;gap:0.5rem;flex-wrap:wrap;">
                         <div style="color:{_mut_c};font-size:0.7rem;white-space:nowrap;">{r['sep']:,} SEP</div>
                         <div style="color:{SECONDARY};font-weight:800;white-space:nowrap;">Rp {r['subtotal']:,}</div>
@@ -1753,32 +1753,32 @@ with tab_csv:
     else:
         st.markdown(f"""
         <div style="border:2px dashed {("#2a2a2a" if _dark_c else "#e0ddd8")};background:{_surf_c};border-radius:20px;padding:2.5rem;text-align:center;margin-top:0.5rem;">
-            <div style="font-size:2rem;margin-bottom:0.5rem;">ðŸ“Š</div>
+            <div style="font-size:2rem;margin-bottom:0.5rem;">📊</div>
             <div style="font-weight:700;font-size:1rem;margin-bottom:0.3rem;color:{_txt_c};">Upload file CSV di atas</div>
-            <div style="color:{_mut_c};font-size:0.85rem;">Bisa multiple file â€” format: No.SEP, Disetujui</div>
+            <div style="color:{_mut_c};font-size:0.85rem;">Bisa multiple file — format: No.SEP, Disetujui</div>
         </div>
         """, unsafe_allow_html=True)
 
-# â”€â”€ TAB PENGATURAN â”€â”€
+# ── TAB PENGATURAN ──
 with tab_pengaturan:
-    st.markdown("### ðŸ” Pengelolaan Sidik Jari / Face ID")
+    st.markdown("### 🔐 Pengelolaan Sidik Jari / Face ID")
     st.caption("Kelola autentikasi biometrik untuk login cepat tanpa PIN.")
 
     import streamlit.components.v1 as _bio_comp
 
     status_html = """
     <div id="bio_status_container" style="margin: 0.5rem 0; padding: 0.75rem 1rem; border-radius: 12px; border: 1px solid #333;">
-        <span id="bio_status_text">ðŸ” Memeriksa status...</span>
+        <span id="bio_status_text">🔍 Memeriksa status...</span>
     </div>
     <script>
     function updateBioStatus() {
         var el = document.getElementById('bio_status_text');
         var cred = localStorage.getItem('fpk_cred_id');
         if (cred) {
-            el.innerHTML = 'âœ… Sidik jari/Face ID sudah terdaftar.';
+            el.innerHTML = '✅ Sidik jari/Face ID sudah terdaftar.';
             el.style.color = '#4ade80';
         } else {
-            el.innerHTML = 'âŒ Belum ada data biometrik terdaftar.';
+            el.innerHTML = '❌ Belum ada data biometrik terdaftar.';
             el.style.color = '#f87171';
         }
     }
@@ -1799,19 +1799,19 @@ with tab_pengaturan:
 
     col_reg, col_del = st.columns(2)
     with col_reg:
-        if st.button("ðŸ“Œ Daftarkan Sidik Jari", use_container_width=True, key="bio_register"):
+        if st.button("📌 Daftarkan Sidik Jari", use_container_width=True, key="bio_register"):
             reg_script = """
             <script>
             (async function() {
                 if (!window.PublicKeyCredential) {
-                    sessionStorage.setItem('bio_msg', 'âŒ Browser tidak mendukung WebAuthn');
+                    sessionStorage.setItem('bio_msg', '❌ Browser tidak mendukung WebAuthn');
                     location.reload();
                     return;
                 }
                 try {
                     const avail = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
                     if (!avail) {
-                        sessionStorage.setItem('bio_msg', 'âŒ Perangkat tidak memiliki sensor biometrik');
+                        sessionStorage.setItem('bio_msg', '❌ Perangkat tidak memiliki sensor biometrik');
                         location.reload();
                         return;
                     }
@@ -1845,10 +1845,10 @@ with tab_pengaturan:
                         }
                     });
                     localStorage.setItem('fpk_cred_id', btoa(String.fromCharCode(...new Uint8Array(reg.rawId))));
-                    sessionStorage.setItem('bio_msg', 'âœ… Sidik jari berhasil didaftarkan!');
+                    sessionStorage.setItem('bio_msg', '✅ Sidik jari berhasil didaftarkan!');
                     location.reload();
                 } catch (e) {
-                    let msg = 'âŒ Gagal: ';
+                    let msg = '❌ Gagal: ';
                     if (e.name === 'NotAllowedError') msg += 'Dibatalkan oleh user';
                     else if (e.name === 'InvalidStateError') msg += 'Credential sudah ada, coba hapus dulu';
                     else msg += e.message;
@@ -1862,14 +1862,14 @@ with tab_pengaturan:
             st.info("Proses registrasi dimulai. Ikuti instruksi dari browser.")
 
     with col_del:
-        if st.button("ðŸ—‘ï¸ Hapus Sidik Jari", use_container_width=True, key="bio_delete"):
+        if st.button("🗑️ Hapus Sidik Jari", use_container_width=True, key="bio_delete"):
             del_script = """
             <script>
             if (localStorage.getItem('fpk_cred_id')) {
                 localStorage.removeItem('fpk_cred_id');
-                sessionStorage.setItem('bio_msg', 'âœ… Data biometrik telah dihapus.');
+                sessionStorage.setItem('bio_msg', '✅ Data biometrik telah dihapus.');
             } else {
-                sessionStorage.setItem('bio_msg', 'â„¹ï¸ Belum ada data biometrik.');
+                sessionStorage.setItem('bio_msg', 'ℹ️ Belum ada data biometrik.');
             }
             location.reload();
             </script>
@@ -1879,15 +1879,15 @@ with tab_pengaturan:
 
     st.markdown("---")
     st.markdown("""
-    **â„¹ï¸ Cara Penggunaan:**
+    **ℹ️ Cara Penggunaan:**
     - Klik **Daftarkan Sidik Jari** untuk mengaktifkan login biometrik.
     - Setelah terdaftar, pada halaman login cukup klik tombol **Sidik Jari / Face ID** dan verifikasi.
     - Gunakan **Hapus Sidik Jari** untuk menghapus data biometrik yang tersimpan.
     """)
 
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════
 # TELEGRAM BOT + AI CHAT
-# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ══════════════════════════════════════════════════════════════
 st.divider()
 
 _dark_tele = st.session_state.get('dark_mode', True)
@@ -1905,16 +1905,16 @@ st.markdown(f"""
     <div style="font-size:0.7rem;font-weight:800;letter-spacing:2px;color:{_mut_tele};
                 text-transform:uppercase;border-left:3px solid {PRIMARY_COLOR};
                 padding-left:10px;font-family:'JetBrains Mono',monospace;">
-        ðŸ¤– {"FPK AI Bot" if _ai_mode else "FPK Bot"}
+        🤖 {"FPK AI Bot" if _ai_mode else "FPK Bot"}
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
               color:{'#00c47a' if _tele_ok else '#f87171'};">
-            {'â— Telegram' if _tele_ok else 'â—‹ Telegram'}
+            {'● Telegram' if _tele_ok else '○ Telegram'}
         </span>
         <span style="font-size:0.65rem;font-family:'JetBrains Mono',monospace;
               color:{'#00c47a' if _ai_ok else '#f87171'};">
-            {'â— Claude AI' if _ai_ok else 'â—‹ Claude AI'}
+            {'● Claude AI' if _ai_ok else '○ Claude AI'}
         </span>
     </div>
 </div>
@@ -1928,27 +1928,27 @@ with col_ai_toggle:
         st.rerun()
 with col_ai_label:
     if _ai_mode:
-        st.markdown(f'<div style="font-size:0.78rem;font-weight:700;color:{PRIMARY_COLOR};padding-top:2px;">âœ¨ Mode AI Aktif â€” Chat cerdas dengan Groq</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:0.78rem;font-weight:700;color:{PRIMARY_COLOR};padding-top:2px;">✨ Mode AI Aktif — Chat cerdas dengan Groq</div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div style="font-size:0.78rem;color:{_mut_tele};padding-top:2px;">Mode AI â€” Aktifkan untuk chat cerdas (Groq)</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-size:0.78rem;color:{_mut_tele};padding-top:2px;">Mode AI — Aktifkan untuk chat cerdas (Groq)</div>', unsafe_allow_html=True)
 
 if not _ai_ok and _ai_mode:
-    st.warning("âš ï¸ Tambahkan `GROQ_API_KEY` di Secrets untuk mengaktifkan Mode AI.")
+    st.warning("⚠️ Tambahkan `GROQ_API_KEY` di Secrets untuk mengaktifkan Mode AI.")
 
 if not st.session_state.bot_history:
     st.session_state.bot_history = [
-        ("bot", "Assalamualaikum kak! ðŸ˜Š\nGua FPK Bot â€” siap bantu.\nKetik /help untuk perintah, atau aktifkan Mode AI untuk chat cerdas!")
+        ("bot", "Assalamualaikum kak! 😊\nGua FPK Bot — siap bantu.\nKetik /help untuk perintah, atau aktifkan Mode AI untuk chat cerdas!")
     ]
 
 _log_for_bot = load_log()
 
-# â”€â”€ RENDER BUBBLE CHAT â”€â”€
+# ── RENDER BUBBLE CHAT ──
 for role, msg in st.session_state.bot_history[-15:]:
     if role == "bot":
         st.markdown(
             f"""
             <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
-                <div style="min-width:28px;font-size:1.2rem;">ðŸ¤–</div>
+                <div style="min-width:28px;font-size:1.2rem;">🤖</div>
                 <div style="background:#1e1e1e;border:1px solid #2a2a2a;color:#e0e0e0;
                             border-radius:12px 12px 12px 4px;padding:8px 12px;
                             max-width:80%;font-size:0.85rem;line-height:1.5;
@@ -1969,20 +1969,20 @@ for role, msg in st.session_state.bot_history[-15:]:
                             word-break:break-word;">
                     {msg.replace(chr(10), '<br>')}
                 </div>
-                <div style="min-width:28px;font-size:1.2rem;">ðŸ‘¤</div>
+                <div style="min-width:28px;font-size:1.2rem;">👤</div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-# â”€â”€ INPUT CHAT â”€â”€
+# ── INPUT CHAT ──
 with st.container():
     cols = st.columns([6, 1])
     with cols[0]:
         placeholder_text = "Tanya Groq AI..." if _ai_mode else "Ketik pesan atau /help..."
         user_input = st.text_input("", key="chat_input", placeholder=placeholder_text, label_visibility="collapsed")
     with cols[1]:
-        send_btn = st.button("âž¤", use_container_width=True)
+        send_btn = st.button("➤", use_container_width=True)
 
 if send_btn and user_input:
     _msg = user_input.strip()
@@ -2003,7 +2003,7 @@ if send_btn and user_input:
         st.rerun()
 
 if _tele_ok:
-    if st.button("ðŸ“¤ Kirim Rekap ke Telegram", key="bot_send_rekap", use_container_width=True):
+    if st.button("📤 Kirim Rekap ke Telegram", key="bot_send_rekap", use_container_width=True):
         _ok_tele, _msg_tele = kirim_rekap_telegram(_log_for_bot)
         st.session_state["_tele_notif"] = (_ok_tele, _msg_tele)
         st.rerun()
@@ -2018,7 +2018,7 @@ if _tele_notif:
 
 st.divider()
 
-# â”€â”€ RIWAYAT & REKAP â”€â”€
+# ── RIWAYAT & REKAP ──
 log_data = load_log()
 
 if log_data:
@@ -2040,20 +2040,20 @@ if log_data:
                        bulan_order.index(x.split()[0]) if x.split()[0] in bulan_order else 99),
         reverse=True)
 
-    st.markdown("### ðŸ“… Rekap Per Bulan")
+    st.markdown("### 📅 Rekap Per Bulan")
     for p in sorted_periods:
         r = rekap[p]
         total_rp = f"Rp {r['total']:,.0f}".replace(",", ".")
-        tkt_str  = " Â· ".join(sorted(t for t in r['tingkats'] if t))
+        tkt_str  = " · ".join(sorted(t for t in r['tingkats'] if t))
         col1, col2 = st.columns([3, 1])
         with col1:
-            st.markdown(f"**{p}**  \n{r['konversi']}x konversi Â· {r['count']} SEP Â· {tkt_str}")
+            st.markdown(f"**{p}**  \n{r['konversi']}x konversi · {r['count']} SEP · {tkt_str}")
         with col2:
             st.markdown(f"**{total_rp}**")
         st.divider()
 
 if log_data:
-    st.markdown("### ðŸ“Š Rekap Per Periode")
+    st.markdown("### 📊 Rekap Per Periode")
     df_chart = build_chart(log_data)
     if df_chart is not None:
         st.bar_chart(df_chart, use_container_width=True, height=220,
@@ -2062,10 +2062,10 @@ if log_data:
 
 col_title, col_hapus = st.columns([4, 1])
 with col_title:
-    st.markdown("### ðŸ•“ Riwayat Konversi")
+    st.markdown("### 🕓 Riwayat Konversi")
 with col_hapus:
     if log_data:
-        if st.button("ðŸ—‘ï¸ Hapus", key="hapus_log"):
+        if st.button("🗑️ Hapus", key="hapus_log"):
             hapus_log()
             st.session_state.results = []
             st.rerun()
@@ -2084,31 +2084,31 @@ else:
 
         cols = st.columns([3, 1.2, 1.5, 0.8])
         with cols[0]:
-            st.markdown(f"**ðŸ“„ {nama_file}**")
+            st.markdown(f"**📄 {nama_file}**")
         with cols[1]:
             if tkt:
                 st.markdown(f"`{tkt}`")
         with cols[2]:
             if status == "Selesai":
-                st.success("âœ… Selesai")
+                st.success("✅ Selesai")
             else:
-                st.warning("â³ Belum Diambil")
+                st.warning("⏳ Belum Diambil")
         with cols[3]:
             if status != "Selesai":
-                if st.button("âœ“", key=f"tandai_{i}", help="Tandai selesai"):
+                if st.button("✓", key=f"tandai_{i}", help="Tandai selesai"):
                     update_log_status(nama_file, 'Selesai')
-                    st.toast("âœ… Status diperbarui!", icon="âœ…")
+                    st.toast("✅ Status diperbarui!", icon="✅")
                     st.rerun()
 
         detail_cols = st.columns([3, 2])
         with detail_cols[0]:
-            st.caption(f"ðŸ•“ {waktu}  Â·  {total_rp}  Â·  {jumlah_sep} SEP")
+            st.caption(f"🕓 {waktu}  ·  {total_rp}  ·  {jumlah_sep} SEP")
         with detail_cols[1]:
             if status == "Selesai" and waktu_selesai:
-                st.caption(f"ðŸ“¥ {waktu_selesai}")
+                st.caption(f"📥 {waktu_selesai}")
         st.divider()
 
-# â”€â”€ FOOTER â”€â”€
+# ── FOOTER ──
 _dark_ft  = st.session_state.get('dark_mode', True)
 _ft_c_bg  = st.session_state.get("c_footer", "")
 _ft_c_txt = st.session_state.get("c_footer_txt", "")
@@ -2119,9 +2119,9 @@ st.markdown(f"""
     <div class="fpk-footer-txt">
         Dikembangkan oleh <strong style="color:#6366f1;">Isfan Fajar Anugrah</strong>
     </div>
-    <div style="font-size:0.6rem;color:{_ft_txt1};margin-top:0.25rem;">Versi 1.0 Â· 2025 Â· All Rights Reserved</div>
+    <div style="font-size:0.6rem;color:{_ft_txt1};margin-top:0.25rem;">Versi 1.0 · 2025 · All Rights Reserved</div>
     <div style="display:inline-block;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.1);border-radius:40px;padding:3px 14px;margin-top:0.5rem;">
-        <span style="font-size:0.58rem;color:#f87171;">âš ï¸ Hak Cipta Pribadi â€” Dilarang digandakan tanpa izin</span>
+        <span style="font-size:0.58rem;color:#f87171;">⚠️ Hak Cipta Pribadi — Dilarang digandakan tanpa izin</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
