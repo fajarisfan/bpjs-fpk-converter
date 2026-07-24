@@ -1,8 +1,8 @@
+import os
 import re
 import time
-import tempfile
-import os
 import json
+import tempfile
 import asyncio
 
 import pandas as pd
@@ -11,11 +11,10 @@ import pdfplumber
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, Response
 
-app = FastAPI(title="FPK Converter API", version="1.0")
+app = FastAPI(title="FPK Converter API - Streaming", version="1.1")
 
-# Izinkan dipanggil dari Streamlit (local maupun deployed)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,7 +23,7 @@ app.add_middleware(
 )
 
 
-# ── LOGIC EKSTRAKSI (dipindah dari app.py, tidak diubah) ───────
+# ── METADATA & VALIDASI ─────────────────────────────────────────
 
 def ambil_metadata_pdf(pdf_path: str):
     nama_file, tingkat = "Hasil_Konversi_FPK", "UNKNOWN"
@@ -53,12 +52,6 @@ def validasi_format_pdf(pdf_path: str):
     Cek apakah PDF yang diupload benar-benar dokumen 'RINCIAN DATA HASIL
     VERIFIKASI' (FPK BPJS Kesehatan), bukan dokumen lain yang kebetulan
     juga berformat .pdf.
-
-    Penanda wajib (semua harus ada di halaman pertama):
-      1. Judul dokumen "RINCIAN DATA HASIL VERIFIKASI"
-      2. Label "Nama RS"
-      3. Label "Tingkat Pelayanan"
-      4. Header kolom tabel: "No.SEP" dan "Disetujui"
     """
     try:
         with pdfplumber.open(pdf_path) as pdf:
@@ -93,11 +86,19 @@ def validasi_format_pdf(pdf_path: str):
 
 
 def process_data(pdf_path: str) -> pd.DataFrame:
+    """Ekstrak tabel dari PDF. Coba lattice dulu, fallback ke stream kalau kosong."""
     df_list = tabula.read_pdf(pdf_path, pages='all', multiple_tables=True,
                               lattice=True, pandas_options={'header': None})
     if not df_list:
+        df_list = tabula.read_pdf(pdf_path, pages='all', multiple_tables=True,
+                                  stream=True, pandas_options={'header': None})
+    if not df_list:
         raise ValueError("PDF tidak terbaca.")
+
     cleaned = [df for df in df_list if df.shape[1] >= 6 and len(df) > 1]
+    if not cleaned:
+        raise ValueError("Tidak ada tabel valid yang ditemukan di PDF.")
+
     df      = pd.concat(cleaned, ignore_index=True)
     df_data = df.iloc[:, :6].copy()
     df_data = df_data[pd.to_numeric(df_data.iloc[:, 0], errors='coerce').notna()]
@@ -110,22 +111,32 @@ def process_data(pdf_path: str) -> pd.DataFrame:
     return df_data[['No.SEP', 'Disetujui']].reset_index(drop=True)
 
 
-# ── ENDPOINTS ────────────────────────────────────────────────
+def deteksi_duplikat(df_res: pd.DataFrame):
+    dup = df_res[df_res['No.SEP'].duplicated(keep=False)]
+    return sorted(dup['No.SEP'].unique().tolist()) if not dup.empty else []
+
+
+def simpan_upload_sementara(content: bytes) -> str:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(content)
+        return tmp.name
+
+
+# ── HEALTH ───────────────────────────────────────────────────
 
 @app.get("/api/health")
 def health():
     return {"status": "ok", "service": "fpk-converter-api"}
 
 
+# ── /api/proses — single file, non-streaming (dipakai Streamlit) ──
+
 async def _proses_satu_file(file: UploadFile, file_index: int = 0, total_files: int = 1) -> dict:
-    """Helper internal: proses satu UploadFile, return dict hasil."""
     t_start  = time.perf_counter()
     tmp_path = None
     try:
-        content = await file.read()
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
+        content  = await file.read()
+        tmp_path = simpan_upload_sementara(content)
 
         nama, tingkat = ambil_metadata_pdf(tmp_path)
 
@@ -133,12 +144,10 @@ async def _proses_satu_file(file: UploadFile, file_index: int = 0, total_files: 
         if not ok:
             raise ValueError(pesan_error)
 
-        df_res        = process_data(tmp_path)
-        total         = int(df_res['Disetujui'].sum())
-        jumlah        = len(df_res)
-
-        dup      = df_res[df_res['No.SEP'].duplicated(keep=False)]
-        duplikat = sorted(dup['No.SEP'].unique().tolist()) if not dup.empty else []
+        df_res   = process_data(tmp_path)
+        total    = int(df_res['Disetujui'].sum())
+        jumlah   = len(df_res)
+        duplikat = deteksi_duplikat(df_res)
 
         elapsed_ms = round((time.perf_counter() - t_start) * 1000, 1)
 
@@ -167,7 +176,6 @@ async def proses_pdf(file: UploadFile = File(...)):
     try:
         return await _proses_satu_file(file, file_index=0, total_files=1)
     except ValueError as e:
-        # Error validasi format PDF: pesannya sudah jelas, tidak perlu dibungkus lagi.
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Gagal memproses PDF: {e}")
@@ -175,16 +183,11 @@ async def proses_pdf(file: UploadFile = File(...)):
 
 @app.post("/api/proses-batch")
 async def proses_batch(files: list[UploadFile] = File(...)):
-    """
-    Proses beberapa PDF sekaligus.
-    Return: { "results": [...], "total_files": N, "errors": [...] }
-    """
     if not files:
         raise HTTPException(status_code=400, detail="Tidak ada file yang dikirim.")
 
-    results = []
-    errors  = []
-    total   = len(files)
+    results, errors = [], []
+    total = len(files)
 
     for i, file in enumerate(files):
         if not file.filename.lower().endswith(".pdf"):
@@ -205,16 +208,13 @@ async def proses_batch(files: list[UploadFile] = File(...)):
     }
 
 
-# ── ENDPOINT STREAMING (format sama persis dengan versi Replit/Termux) ──
+# ── /api/proses-stream — dipakai FPK Extractor & fpk.sh (Termux) ──
 
-async def _generate_stream(file: UploadFile):
-    """Generator NDJSON: metadata -> data (per baris) + progress -> done."""
+async def generate_stream(file: UploadFile):
     tmp_path = None
     try:
-        content = await file.read()
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
+        content  = await file.read()
+        tmp_path = simpan_upload_sementara(content)
 
         nama, tingkat = ambil_metadata_pdf(tmp_path)
 
@@ -223,14 +223,15 @@ async def _generate_stream(file: UploadFile):
             yield json.dumps({"type": "error", "message": pesan_error}) + "\n"
             return
 
-        df_res = process_data(tmp_path)
+        df_res     = process_data(tmp_path)
         total_rows = len(df_res)
         total_nominal_all = int(df_res['Disetujui'].sum())
+        duplikat   = deteksi_duplikat(df_res)
 
         yield json.dumps({
             "type": "metadata",
-            "filename": nama,
             "tingkat": tingkat,
+            "filename": nama,
             "total_rows": total_rows,
             "total_nominal": total_nominal_all
         }) + "\n"
@@ -250,10 +251,13 @@ async def _generate_stream(file: UploadFile):
             yield json.dumps({"type": "progress", "percent": percent}) + "\n"
             await asyncio.sleep(0.001)
 
+        # field "duplikat" bersifat tambahan — konsumen lama yang cuma
+        # ambil field tertentu (mis. jq di fpk.sh) tidak akan terganggu.
         yield json.dumps({
             "type": "done",
             "total_nominal": total_nominal,
-            "total_rows": total_data
+            "total_rows": total_data,
+            "duplikat": duplikat
         }) + "\n"
 
     except Exception as e:
@@ -266,8 +270,55 @@ async def _generate_stream(file: UploadFile):
 @app.post("/api/proses-stream")
 async def proses_stream(file: UploadFile = File(...)):
     if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="File harus berformat PDF.")
-    return StreamingResponse(
-        _generate_stream(file),
-        media_type="application/x-ndjson"
+        raise HTTPException(status_code=400, detail="File harus PDF")
+    return StreamingResponse(generate_stream(file), media_type="application/x-ndjson")
+
+
+# ── /api/data — raw JSON non-streaming (dipakai tombol 'Raw JSON') ──
+
+@app.post("/api/data")
+async def get_data(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File harus PDF")
+    tmp_path = None
+    try:
+        content  = await file.read()
+        tmp_path = simpan_upload_sementara(content)
+
+        ok, pesan_error = validasi_format_pdf(tmp_path)
+        if not ok:
+            raise HTTPException(status_code=422, detail=pesan_error)
+
+        df_res = process_data(tmp_path)
+        return [
+            {"type": "data", "No.SEP": r["No.SEP"], "Disetujui": int(r["Disetujui"])}
+            for r in df_res.to_dict(orient="records")
+        ]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Gagal memproses PDF: {e}")
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+
+
+@app.post("/api/download-csv")
+async def download_csv(rows: list[dict]):
+    if not rows:
+        raise HTTPException(status_code=400, detail="Data kosong.")
+    df = pd.DataFrame(rows)
+    if not {"No.SEP", "Disetujui"}.issubset(df.columns):
+        raise HTTPException(status_code=400, detail="Format data tidak sesuai.")
+    csv_bytes = df.to_csv(index=False).encode("utf-8-sig")
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=hasil_fpk.csv"}
     )
+
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    with open("index.html", "r") as f:
+        return f.read()
